@@ -1,0 +1,30 @@
+server:
+  http_port: 8080
+  opamp_port: 4320
+
+otlp:
+  grpc_endpoint: 0.0.0.0:4317
+  http_endpoint: 0.0.0.0:4318
+
+storage:
+  app:
+    type: sqlite
+    path: ./data/app.db
+  telemetry:
+    type: duckdb
+    path: ./data/telemetry.db
+
+retention:
+  raw_metrics: 24h
+  raw_logs: 24h
+  rollups_1m: 7d
+  rollups_5m: 30d
+
+rollups:
+  enabled: true
+  interval_1m: "*/1 * * * *"
+  interval_5m: "*/5 * * * *"
+
+logging:
+  level: info
+  format: json
