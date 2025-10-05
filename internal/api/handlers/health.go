@@ -36,8 +36,8 @@ type HealthResponse struct {
 // handleHealth handles GET /health
 func (h *HealthHandlers) HandleHealth(c *gin.Context) {
 	// Check storage health
-	sqliteHealthy := h.checkSQLiteHealth()
-	duckdbHealthy := h.checkDuckDBHealth()
+	sqliteHealthy := h.checkSQLiteHealth(c)
+	duckdbHealthy := h.checkDuckDBHealth(c)
 
 	// Determine overall status
 	status := "healthy"
@@ -65,21 +65,21 @@ func (h *HealthHandlers) HandleHealth(c *gin.Context) {
 }
 
 // checkSQLiteHealth checks if SQLite is healthy
-func (h *HealthHandlers) checkSQLiteHealth() bool {
+func (h *HealthHandlers) checkSQLiteHealth(c *gin.Context) bool {
 	// Try to get a simple count from agents table
-	_, err := h.storage.App.ListAgents(nil)
+	_, err := h.storage.App.ListAgents(c.Request.Context())
 	return err == nil
 }
 
 // checkDuckDBHealth checks if DuckDB is healthy
-func (h *HealthHandlers) checkDuckDBHealth() bool {
+func (h *HealthHandlers) checkDuckDBHealth(c *gin.Context) bool {
 	// Try to query a simple metric count
 	query := interfaces.MetricQuery{
 		StartTime: time.Now().Add(-1 * time.Minute),
 		EndTime:   time.Now(),
 		Limit:     1,
 	}
-	_, err := h.storage.Telemetry.QueryMetrics(nil, query)
+	_, err := h.storage.Telemetry.QueryMetrics(c.Request.Context(), query)
 	return err == nil
 }
 

@@ -1,4 +1,6 @@
 import { apiGet, apiPost, apiDelete } from './base';
+import type { Config } from './configs';
+import type { Agent } from '../types/agent';
 
 export interface Group {
   id: string;
@@ -13,8 +15,22 @@ export interface CreateGroupRequest {
   labels?: Record<string, string>;
 }
 
+export interface AssignConfigRequest {
+  config_id: string;
+}
+
+export interface AssignConfigResponse {
+  message: string;
+  config: Config;
+}
+
 export interface GetGroupsResponse {
   groups: Group[];
+  count: number;
+}
+
+export interface GetGroupAgentsResponse {
+  agents: Agent[];
   count: number;
 }
 
@@ -36,4 +52,19 @@ export const createGroup = (data: CreateGroupRequest): Promise<Group> => {
 // Delete group
 export const deleteGroup = (id: string): Promise<void> => {
   return apiDelete<void>(`/groups/${id}`);
+};
+
+// Assign config to group
+export const assignConfigToGroup = (groupId: string, data: AssignConfigRequest): Promise<AssignConfigResponse> => {
+  return apiPost<AssignConfigResponse>(`/groups/${groupId}/config`, data);
+};
+
+// Get group's active config
+export const getGroupConfig = (groupId: string): Promise<Config> => {
+  return apiGet<Config>(`/groups/${groupId}/config`);
+};
+
+// Get agents in group
+export const getGroupAgents = (groupId: string): Promise<GetGroupAgentsResponse> => {
+  return apiGet<GetGroupAgentsResponse>(`/groups/${groupId}/agents`);
 };

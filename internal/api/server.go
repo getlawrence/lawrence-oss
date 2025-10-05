@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -73,11 +75,12 @@ func (s *Server) registerRoutes() {
 	configHandlers := handlers.NewConfigHandlers(s.storage, s.logger)
 	telemetryHandlers := handlers.NewTelemetryHandlers(s.storage, s.logger)
 	groupHandlers := handlers.NewGroupHandlers(s.storage, s.logger)
+	topologyHandlers := handlers.NewTopologyHandlers(s.storage, s.logger)
 	healthHandlers := handlers.NewHealthHandlers(s.storage, s.logger)
-	
+
 	// Health check
 	s.router.GET("/health", healthHandlers.HandleHealth)
-	
+
 	// API v1 routes
 	v1 := s.router.Group("/api/v1")
 	{
@@ -85,21 +88,23 @@ func (s *Server) registerRoutes() {
 		agents := v1.Group("/agents")
 		{
 			agents.GET("", agentHandlers.HandleGetAgents)
+			agents.GET("/stats", agentHandlers.HandleGetAgentStats) // Must come before /:id
 			agents.GET("/:id", agentHandlers.HandleGetAgent)
 			agents.PATCH("/:id/group", agentHandlers.HandleUpdateAgentGroup)
-			agents.GET("/stats", agentHandlers.HandleGetAgentStats)
 		}
-		
+
 		// Config routes
 		configs := v1.Group("/configs")
 		{
 			configs.GET("", configHandlers.HandleGetConfigs)
 			configs.POST("", configHandlers.HandleCreateConfig)
+			configs.POST("/validate", configHandlers.HandleValidateConfig) // Must come before /:id
+			configs.GET("/versions", configHandlers.HandleGetConfigVersions)
 			configs.GET("/:id", configHandlers.HandleGetConfig)
 			configs.PUT("/:id", configHandlers.HandleUpdateConfig)
 			configs.DELETE("/:id", configHandlers.HandleDeleteConfig)
 		}
-		
+
 		// Telemetry routes
 		telemetry := v1.Group("/telemetry")
 		{
@@ -109,7 +114,7 @@ func (s *Server) registerRoutes() {
 			telemetry.GET("/overview", telemetryHandlers.HandleGetTelemetryOverview)
 			telemetry.GET("/services", telemetryHandlers.HandleGetServices)
 		}
-		
+
 		// Group routes
 		groups := v1.Group("/groups")
 		{
@@ -118,8 +123,35 @@ func (s *Server) registerRoutes() {
 			groups.GET("/:id", groupHandlers.HandleGetGroup)
 			groups.PUT("/:id", groupHandlers.HandleUpdateGroup)
 			groups.DELETE("/:id", groupHandlers.HandleDeleteGroup)
+			groups.POST("/:id/config", groupHandlers.HandleAssignConfig)
+			groups.GET("/:id/config", groupHandlers.HandleGetGroupConfig)
+			groups.GET("/:id/agents", groupHandlers.HandleGetGroupAgents)
+		}
+
+		// Topology routes
+		topology := v1.Group("/topology")
+		{
+			topology.GET("", topologyHandlers.HandleGetTopology)
+			topology.GET("/agent/:id", topologyHandlers.HandleGetAgentTopology)
+			topology.GET("/group/:id", topologyHandlers.HandleGetGroupTopology)
 		}
 	}
+
+	// Serve static files for the UI
+	s.router.Static("/assets", "./ui/dist/assets")
+
+	// SPA catch-all route - must be last
+	s.router.NoRoute(func(c *gin.Context) {
+		// Check if file exists
+		filePath := filepath.Join("./ui/dist", c.Request.URL.Path)
+		if _, err := os.Stat(filePath); err == nil {
+			c.File(filePath)
+			return
+		}
+
+		// Serve index.html for all other routes (SPA routing)
+		c.File("./ui/dist/index.html")
+	})
 }
 
 // corsMiddleware adds CORS headers

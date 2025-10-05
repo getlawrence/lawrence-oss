@@ -3,8 +3,11 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './layout';
 import InventoryPage from './pages/Inventory';
 import GroupsPage from './pages/Groups';
+import GroupDetailsPage from './pages/GroupDetails';
 import ConfigsPage from './pages/Configs';
+import ConfigEditorPage from './pages/ConfigEditor';
 import TelemetryPage from './pages/Telemetry';
+import TopologyPage from './pages/Topology';
 
 import './App.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -25,8 +28,11 @@ function App() {
                 <Route path="/" element={<InventoryPage />} />
                 <Route path="/inventory" element={<InventoryPage />} />
                 <Route path="/groups" element={<GroupsPage />} />
+                <Route path="/groups/:groupId" element={<GroupDetailsPage />} />
                 <Route path="/configs" element={<ConfigsPage />} />
+                <Route path="/config-editor" element={<ConfigEditorPage />} />
                 <Route path="/telemetry" element={<TelemetryPage />} />
+                <Route path="/topology" element={<TopologyPage />} />
               </Route>
             </Routes>
           </Router>

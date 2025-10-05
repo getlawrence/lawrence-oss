@@ -607,6 +607,53 @@ func (s *Storage) QueryRollups(ctx context.Context, query interfaces.RollupQuery
 	return rollups, nil
 }
 
+// QueryRaw executes a raw SQL query and returns results as a map
+func (s *Storage) QueryRaw(ctx context.Context, query string, args ...interface{}) ([]map[string]interface{}, error) {
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute query: %w", err)
+	}
+	defer rows.Close()
+
+	// Get column names
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get columns: %w", err)
+	}
+
+	// Prepare result
+	var results []map[string]interface{}
+
+	// Process rows
+	for rows.Next() {
+		// Create a slice of interface{} to hold the values
+		values := make([]interface{}, len(columns))
+		valuePtrs := make([]interface{}, len(columns))
+		for i := range values {
+			valuePtrs[i] = &values[i]
+		}
+
+		// Scan row into value pointers
+		if err := rows.Scan(valuePtrs...); err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		// Create map for this row
+		rowMap := make(map[string]interface{})
+		for i, col := range columns {
+			rowMap[col] = values[i]
+		}
+
+		results = append(results, rowMap)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %w", err)
+	}
+
+	return results, nil
+}
+
 // CleanupOldData removes old telemetry data based on retention policy
 func (s *Storage) CleanupOldData(ctx context.Context, retention time.Duration) error {
 	cutoffTime := time.Now().Add(-retention)

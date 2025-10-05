@@ -46,6 +46,9 @@ type TelemetryStorage interface {
 	QueryLogs(ctx context.Context, query LogQuery) ([]Log, error)
 	QueryTraces(ctx context.Context, query TraceQuery) ([]Trace, error)
 
+	// Raw SQL query for flexible querying
+	QueryRaw(ctx context.Context, query string, args ...interface{}) ([]map[string]interface{}, error)
+
 	// Rollups
 	CreateRollups(ctx context.Context, window time.Time, interval RollupInterval) error
 	QueryRollups(ctx context.Context, query RollupQuery) ([]Rollup, error)
