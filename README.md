@@ -20,6 +20,28 @@ Lawrence OSS manages OpenTelemetry collectors via OpAMP protocol and stores thei
 
 ## Getting Started
 
+### Run with Docker
+
+Pull and run the latest release:
+
+```bash
+# Pull the image
+docker pull ghcr.io/getlawrence/lawrence-oss:latest
+
+# Run Lawrence
+docker run -d \
+  --name lawrence \
+  -p 8080:8080 \
+  -p 4320:4320 \
+  -p 4317:4317 \
+  -p 4318:4318 \
+  -v lawrence-data:/data \
+  ghcr.io/getlawrence/lawrence-oss:latest
+
+# Access the UI
+open http://localhost:8080
+```
+
 ### Run with Docker Compose
 
 ```bash
