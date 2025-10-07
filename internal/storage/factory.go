@@ -1,76 +1,76 @@
 package storage
 
 import (
-	"fmt"
-
-	"github.com/getlawrence/lawrence-oss/internal/storage/duckdb"
-	"github.com/getlawrence/lawrence-oss/internal/storage/interfaces"
-	"github.com/getlawrence/lawrence-oss/internal/storage/sqlite"
 	"go.uber.org/zap"
+
+	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore"
+	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore/sqlite"
+	"github.com/getlawrence/lawrence-oss/internal/storage/telemetrystore"
+	"github.com/getlawrence/lawrence-oss/internal/storage/telemetrystore/duckdb"
 )
 
-// Container holds both app and telemetry storage instances
-type Container struct {
-	App       interfaces.AppStorage
-	Telemetry interfaces.TelemetryStorage
-	logger    *zap.Logger
+// SQLiteApplicationStoreFactory creates SQLite-based application store instances
+type SQLiteApplicationStoreFactory struct {
+	dbPath string
+	logger *zap.Logger
 }
 
-// NewContainer creates a new storage container with both SQLite and DuckDB
-func NewContainer(sqlitePath, duckdbPath string, logger *zap.Logger) (*Container, error) {
-	// Initialize SQLite for app data
-	appStorage, err := sqlite.NewStorage(sqlitePath, logger)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize SQLite storage: %w", err)
+// NewSQLiteApplicationStoreFactory creates a new SQLite application store factory
+func NewSQLiteApplicationStoreFactory(dbPath string, logger *zap.Logger) *SQLiteApplicationStoreFactory {
+	return &SQLiteApplicationStoreFactory{
+		dbPath: dbPath,
+		logger: logger,
 	}
-
-	// Initialize DuckDB for telemetry data
-	telemetryStorage, err := duckdb.NewStorage(duckdbPath, logger)
-	if err != nil {
-		appStorage.Close() // Clean up on error
-		return nil, fmt.Errorf("failed to initialize DuckDB storage: %w", err)
-	}
-
-	container := &Container{
-		App:       appStorage,
-		Telemetry: telemetryStorage,
-		logger:    logger,
-	}
-
-	logger.Info("Storage container initialized",
-		zap.String("sqlite_path", sqlitePath),
-		zap.String("duckdb_path", duckdbPath))
-
-	return container, nil
 }
 
-// Close closes both storage connections
-func (c *Container) Close() error {
-	var appErr, telemetryErr error
-
-	if c.App != nil {
-		appErr = c.App.Close()
-	}
-
-	if c.Telemetry != nil {
-		telemetryErr = c.Telemetry.Close()
-	}
-
-	if appErr != nil {
-		return fmt.Errorf("failed to close app storage: %w", appErr)
-	}
-	if telemetryErr != nil {
-		return fmt.Errorf("failed to close telemetry storage: %w", telemetryErr)
-	}
-
-	c.logger.Info("Storage container closed")
+// Initialize implements ApplicationStoreFactory
+func (f *SQLiteApplicationStoreFactory) Initialize(logger *zap.Logger) error {
+	f.logger = logger
 	return nil
 }
 
-// GetTelemetryWriter returns a TelemetryWriter implementation for OTLP receivers
-func (c *Container) GetTelemetryWriter() interface{} {
-	if duckdbStorage, ok := c.Telemetry.(*duckdb.Storage); ok {
-		return duckdb.NewWriterAdapter(duckdbStorage)
+// CreateApplicationStore creates an applicationstore.ApplicationStore
+func (f *SQLiteApplicationStoreFactory) CreateApplicationStore() (applicationstore.ApplicationStore, error) {
+	return sqlite.NewSQLiteStorage(f.dbPath, f.logger)
+}
+
+// DuckDBTelemetryStoreFactory creates DuckDB-based telemetry store instances
+type DuckDBTelemetryStoreFactory struct {
+	dbPath  string
+	logger  *zap.Logger
+	factory *duckdb.Factory
+}
+
+// NewDuckDBTelemetryStoreFactory creates a new DuckDB telemetry store factory
+func NewDuckDBTelemetryStoreFactory(dbPath string, logger *zap.Logger) *DuckDBTelemetryStoreFactory {
+	factory := duckdb.NewFactory(dbPath)
+	if err := factory.Initialize(logger); err != nil {
+		logger.Fatal("Failed to initialize DuckDB factory", zap.Error(err))
 	}
+	return &DuckDBTelemetryStoreFactory{
+		dbPath:  dbPath,
+		logger:  logger,
+		factory: factory,
+	}
+}
+
+// Initialize implements TelemetryStoreFactory
+func (f *DuckDBTelemetryStoreFactory) Initialize(logger *zap.Logger) error {
+	f.logger = logger
 	return nil
+}
+
+// CreateTelemetryReader creates a telemetrystore.Reader
+func (f *DuckDBTelemetryStoreFactory) CreateTelemetryReader() (telemetrystore.Reader, error) {
+	return f.factory.CreateTelemetryReader()
+}
+
+// CreateTelemetryWriter creates a telemetrystore.Writer
+func (f *DuckDBTelemetryStoreFactory) CreateTelemetryWriter() (telemetrystore.Writer, error) {
+	return f.factory.CreateTelemetryWriter()
+}
+
+// CreateWriterAdapter creates a writer adapter for OTLP receivers
+func (f *DuckDBTelemetryStoreFactory) CreateWriterAdapter() *duckdb.WriterAdapter {
+	return f.factory.CreateWriterAdapter()
 }

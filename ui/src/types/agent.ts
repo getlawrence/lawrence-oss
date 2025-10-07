@@ -1,7 +1,7 @@
 export interface Agent {
   id: string;
   name: string;
-  status: 'online' | 'offline' | 'error';
+  status: "online" | "offline" | "error";
   last_seen: string;
   version: string;
   group_id?: string;

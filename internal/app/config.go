@@ -10,12 +10,12 @@ import (
 
 // Config represents the application configuration
 type Config struct {
-	Server   ServerConfig   `yaml:"server"`
-	OTLP     OTLPConfig     `yaml:"otlp"`
-	Storage  StorageConfig  `yaml:"storage"`
+	Server    ServerConfig    `yaml:"server"`
+	OTLP      OTLPConfig      `yaml:"otlp"`
+	Storage   StorageConfig   `yaml:"storage"`
 	Retention RetentionConfig `yaml:"retention"`
-	Rollups  RollupsConfig  `yaml:"rollups"`
-	Logging  LoggingConfig  `yaml:"logging"`
+	Rollups   RollupsConfig   `yaml:"rollups"`
+	Logging   LoggingConfig   `yaml:"logging"`
 }
 
 // ServerConfig contains server configuration

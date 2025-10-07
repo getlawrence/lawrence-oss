@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/getlawrence/lawrence-oss/internal/metrics"
 	"github.com/getlawrence/lawrence-oss/internal/otlp/parser"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -27,7 +28,7 @@ type GRPCServer struct {
 }
 
 // NewGRPCServer creates a new gRPC server instance
-func NewGRPCServer(port int, writer TelemetryWriter, logger *zap.Logger) (*GRPCServer, error) {
+func NewGRPCServer(port int, writer TelemetryWriter, asyncWriter AsyncTelemetryWriter, metricsInstance *metrics.OTLPMetrics, logger *zap.Logger) (*GRPCServer, error) {
 	// Create parser
 	otlpParser := parser.NewOTLPParser(logger)
 
@@ -44,9 +45,9 @@ func NewGRPCServer(port int, writer TelemetryWriter, logger *zap.Logger) (*GRPCS
 	)
 
 	// Register OTLP services
-	traceService := NewTraceService(writer, otlpParser, logger)
-	metricsService := NewMetricsService(writer, otlpParser, logger)
-	logsService := NewLogsService(writer, otlpParser, logger)
+	traceService := NewTraceService(writer, asyncWriter, otlpParser, metricsInstance, logger)
+	metricsService := NewMetricsService(writer, asyncWriter, otlpParser, metricsInstance, logger)
+	logsService := NewLogsService(writer, asyncWriter, otlpParser, metricsInstance, logger)
 
 	coltracepb.RegisterTraceServiceServer(server, traceService)
 	colmetricspb.RegisterMetricsServiceServer(server, metricsService)

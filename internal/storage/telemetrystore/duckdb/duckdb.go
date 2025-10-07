@@ -9,9 +9,13 @@ import (
 	"time"
 
 	"github.com/getlawrence/lawrence-oss/internal/otlp"
-	"github.com/getlawrence/lawrence-oss/internal/storage/interfaces"
+	"github.com/getlawrence/lawrence-oss/internal/otlp/parser"
+	"github.com/getlawrence/lawrence-oss/internal/storage/telemetrystore"
 	"github.com/google/uuid"
 	_ "github.com/marcboeker/go-duckdb"
+	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/collector/pdata/pmetric"
+	"go.opentelemetry.io/collector/pdata/ptrace"
 	"go.uber.org/zap"
 )
 
@@ -19,6 +23,34 @@ import (
 type Storage struct {
 	db     *sql.DB
 	logger *zap.Logger
+}
+
+// Reader implements the telemetrystore.Reader interface
+type Reader struct {
+	*Storage
+}
+
+// Writer implements the telemetrystore.Writer interface
+type Writer struct {
+	*Storage
+}
+
+// NewDuckDBReader creates a new DuckDB reader instance
+func NewDuckDBReader(dbPath string, logger *zap.Logger) (telemetrystore.Reader, error) {
+	storage, err := NewStorage(dbPath, logger)
+	if err != nil {
+		return nil, err
+	}
+	return &Reader{Storage: storage}, nil
+}
+
+// NewDuckDBWriter creates a new DuckDB writer instance
+func NewDuckDBWriter(dbPath string, logger *zap.Logger) (telemetrystore.Writer, error) {
+	storage, err := NewStorage(dbPath, logger)
+	if err != nil {
+		return nil, err
+	}
+	return &Writer{Storage: storage}, nil
 }
 
 // NewStorage creates a new DuckDB storage instance
@@ -29,8 +61,8 @@ func NewStorage(dbPath string, logger *zap.Logger) (*Storage, error) {
 	}
 
 	// Configure connection pool
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(2)
+	db.SetMaxOpenConns(5)
+	db.SetMaxIdleConns(1)
 	db.SetConnMaxLifetime(30 * time.Minute)
 
 	storage := &Storage{
@@ -57,18 +89,18 @@ func (s *Storage) initSchema() error {
 }
 
 // WriteMetrics writes metric data to DuckDB
-func (s *Storage) WriteMetrics(ctx context.Context, metrics []interfaces.Metric) error {
+func (s *Storage) WriteMetrics(ctx context.Context, metrics []telemetrystore.Metric) error {
 	if len(metrics) == 0 {
 		return nil
 	}
 
 	// Group metrics by type for batch insertion
-	var sums, gauges []interfaces.Metric
+	var sums, gauges []telemetrystore.Metric
 	for _, m := range metrics {
 		switch m.Type {
-		case interfaces.MetricTypeCounter:
+		case telemetrystore.MetricTypeCounter:
 			sums = append(sums, m)
-		case interfaces.MetricTypeGauge:
+		case telemetrystore.MetricTypeGauge:
 			gauges = append(gauges, m)
 		}
 	}
@@ -92,7 +124,7 @@ func (s *Storage) WriteMetrics(ctx context.Context, metrics []interfaces.Metric)
 }
 
 // writeMetricSums writes sum metrics to DuckDB
-func (s *Storage) writeMetricSums(ctx context.Context, sums []interfaces.Metric) error {
+func (s *Storage) writeMetricSums(ctx context.Context, sums []telemetrystore.Metric) error {
 	query := `
 		INSERT INTO metrics_sum (
 			timestamp, agent_id, service_name, metric_name, value, metric_attributes
@@ -103,7 +135,7 @@ func (s *Storage) writeMetricSums(ctx context.Context, sums []interfaces.Metric)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
@@ -139,7 +171,7 @@ func (s *Storage) writeMetricSums(ctx context.Context, sums []interfaces.Metric)
 }
 
 // writeMetricGauges writes gauge metrics to DuckDB
-func (s *Storage) writeMetricGauges(ctx context.Context, gauges []interfaces.Metric) error {
+func (s *Storage) writeMetricGauges(ctx context.Context, gauges []telemetrystore.Metric) error {
 	query := `
 		INSERT INTO metrics_gauge (
 			timestamp, agent_id, service_name, metric_name, value, metric_attributes
@@ -150,7 +182,7 @@ func (s *Storage) writeMetricGauges(ctx context.Context, gauges []interfaces.Met
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
@@ -186,7 +218,7 @@ func (s *Storage) writeMetricGauges(ctx context.Context, gauges []interfaces.Met
 }
 
 // WriteLogs writes log data to DuckDB
-func (s *Storage) WriteLogs(ctx context.Context, logs []interfaces.Log) error {
+func (s *Storage) WriteLogs(ctx context.Context, logs []telemetrystore.Log) error {
 	if len(logs) == 0 {
 		return nil
 	}
@@ -201,7 +233,7 @@ func (s *Storage) WriteLogs(ctx context.Context, logs []interfaces.Log) error {
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
@@ -238,7 +270,7 @@ func (s *Storage) WriteLogs(ctx context.Context, logs []interfaces.Log) error {
 }
 
 // WriteTraces writes trace data to DuckDB
-func (s *Storage) WriteTraces(ctx context.Context, traces []interfaces.Trace) error {
+func (s *Storage) WriteTraces(ctx context.Context, traces []telemetrystore.Trace) error {
 	if len(traces) == 0 {
 		return nil
 	}
@@ -255,7 +287,7 @@ func (s *Storage) WriteTraces(ctx context.Context, traces []interfaces.Trace) er
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
@@ -302,7 +334,7 @@ func (s *Storage) WriteTraces(ctx context.Context, traces []interfaces.Trace) er
 }
 
 // QueryMetrics queries metrics from DuckDB
-func (s *Storage) QueryMetrics(ctx context.Context, query interfaces.MetricQuery) ([]interfaces.Metric, error) {
+func (s *Storage) QueryMetrics(ctx context.Context, query telemetrystore.MetricQuery) ([]telemetrystore.Metric, error) {
 	sqlQuery := `
 		SELECT timestamp, agent_id, metric_name, value, metric_attributes
 		FROM (
@@ -337,9 +369,9 @@ func (s *Storage) QueryMetrics(ctx context.Context, query interfaces.MetricQuery
 	}
 	defer rows.Close()
 
-	var metrics []interfaces.Metric
+	var metrics []telemetrystore.Metric
 	for rows.Next() {
-		var m interfaces.Metric
+		var m telemetrystore.Metric
 		var agentIDStr string
 		var attrsJSON string
 
@@ -349,7 +381,7 @@ func (s *Storage) QueryMetrics(ctx context.Context, query interfaces.MetricQuery
 		}
 
 		m.AgentID, _ = uuid.Parse(agentIDStr)
-		json.Unmarshal([]byte(attrsJSON), &m.Labels)
+		_ = json.Unmarshal([]byte(attrsJSON), &m.Labels)
 
 		metrics = append(metrics, m)
 	}
@@ -358,7 +390,7 @@ func (s *Storage) QueryMetrics(ctx context.Context, query interfaces.MetricQuery
 }
 
 // QueryLogs queries logs from DuckDB
-func (s *Storage) QueryLogs(ctx context.Context, query interfaces.LogQuery) ([]interfaces.Log, error) {
+func (s *Storage) QueryLogs(ctx context.Context, query telemetrystore.LogQuery) ([]telemetrystore.Log, error) {
 	sqlQuery := `
 		SELECT timestamp, agent_id, severity_text, body, log_attributes
 		FROM logs
@@ -394,9 +426,9 @@ func (s *Storage) QueryLogs(ctx context.Context, query interfaces.LogQuery) ([]i
 	}
 	defer rows.Close()
 
-	var logs []interfaces.Log
+	var logs []telemetrystore.Log
 	for rows.Next() {
-		var l interfaces.Log
+		var l telemetrystore.Log
 		var agentIDStr string
 		var attrsJSON string
 
@@ -406,7 +438,7 @@ func (s *Storage) QueryLogs(ctx context.Context, query interfaces.LogQuery) ([]i
 		}
 
 		l.AgentID, _ = uuid.Parse(agentIDStr)
-		json.Unmarshal([]byte(attrsJSON), &l.Attributes)
+		_ = json.Unmarshal([]byte(attrsJSON), &l.Attributes)
 
 		logs = append(logs, l)
 	}
@@ -415,7 +447,7 @@ func (s *Storage) QueryLogs(ctx context.Context, query interfaces.LogQuery) ([]i
 }
 
 // QueryTraces queries traces from DuckDB
-func (s *Storage) QueryTraces(ctx context.Context, query interfaces.TraceQuery) ([]interfaces.Trace, error) {
+func (s *Storage) QueryTraces(ctx context.Context, query telemetrystore.TraceQuery) ([]telemetrystore.Trace, error) {
 	sqlQuery := `
 		SELECT timestamp, agent_id, trace_id, span_id, parent_span_id,
 		       span_name, duration, status_code, status_message, span_attributes
@@ -447,9 +479,9 @@ func (s *Storage) QueryTraces(ctx context.Context, query interfaces.TraceQuery) 
 	}
 	defer rows.Close()
 
-	var traces []interfaces.Trace
+	var traces []telemetrystore.Trace
 	for rows.Next() {
-		var t interfaces.Trace
+		var t telemetrystore.Trace
 		var agentIDStr string
 		var parentSpanID sql.NullString
 		var attrsJSON string
@@ -466,7 +498,7 @@ func (s *Storage) QueryTraces(ctx context.Context, query interfaces.TraceQuery) 
 		if parentSpanID.Valid {
 			t.ParentSpanID = &parentSpanID.String
 		}
-		json.Unmarshal([]byte(attrsJSON), &t.Attributes)
+		_ = json.Unmarshal([]byte(attrsJSON), &t.Attributes)
 
 		traces = append(traces, t)
 	}
@@ -475,21 +507,21 @@ func (s *Storage) QueryTraces(ctx context.Context, query interfaces.TraceQuery) 
 }
 
 // CreateRollups creates pre-aggregated rollup data
-func (s *Storage) CreateRollups(ctx context.Context, window time.Time, interval interfaces.RollupInterval) error {
+func (s *Storage) CreateRollups(ctx context.Context, window time.Time, interval telemetrystore.RollupInterval) error {
 	var tableName string
 	var windowDuration time.Duration
 
 	switch interval {
-	case interfaces.RollupInterval1m:
+	case telemetrystore.RollupInterval1m:
 		tableName = "rollups_1m"
 		windowDuration = 1 * time.Minute
-	case interfaces.RollupInterval5m:
+	case telemetrystore.RollupInterval5m:
 		tableName = "rollups_5m"
 		windowDuration = 5 * time.Minute
-	case interfaces.RollupInterval1h:
+	case telemetrystore.RollupInterval1h:
 		tableName = "rollups_1h"
 		windowDuration = 1 * time.Hour
-	case interfaces.RollupInterval1d:
+	case telemetrystore.RollupInterval1d:
 		tableName = "rollups_1d"
 		windowDuration = 24 * time.Hour
 	default:
@@ -534,16 +566,16 @@ func (s *Storage) CreateRollups(ctx context.Context, window time.Time, interval 
 }
 
 // QueryRollups queries rollup data
-func (s *Storage) QueryRollups(ctx context.Context, query interfaces.RollupQuery) ([]interfaces.Rollup, error) {
+func (s *Storage) QueryRollups(ctx context.Context, query telemetrystore.RollupQuery) ([]telemetrystore.Rollup, error) {
 	var tableName string
 	switch query.Interval {
-	case interfaces.RollupInterval1m:
+	case telemetrystore.RollupInterval1m:
 		tableName = "rollups_1m"
-	case interfaces.RollupInterval5m:
+	case telemetrystore.RollupInterval5m:
 		tableName = "rollups_5m"
-	case interfaces.RollupInterval1h:
+	case telemetrystore.RollupInterval1h:
 		tableName = "rollups_1h"
-	case interfaces.RollupInterval1d:
+	case telemetrystore.RollupInterval1d:
 		tableName = "rollups_1d"
 	default:
 		return nil, fmt.Errorf("invalid rollup interval: %s", query.Interval)
@@ -579,9 +611,9 @@ func (s *Storage) QueryRollups(ctx context.Context, query interfaces.RollupQuery
 	}
 	defer rows.Close()
 
-	var rollups []interfaces.Rollup
+	var rollups []telemetrystore.Rollup
 	for rows.Next() {
-		var r interfaces.Rollup
+		var r telemetrystore.Rollup
 		var agentIDStr, groupIDStr sql.NullString
 
 		err := rows.Scan(
@@ -605,6 +637,53 @@ func (s *Storage) QueryRollups(ctx context.Context, query interfaces.RollupQuery
 	}
 
 	return rollups, nil
+}
+
+// QueryRaw executes a raw SQL query and returns results as a map
+func (s *Storage) QueryRaw(ctx context.Context, query string, args ...interface{}) ([]map[string]interface{}, error) {
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute query: %w", err)
+	}
+	defer rows.Close()
+
+	// Get column names
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get columns: %w", err)
+	}
+
+	// Prepare result
+	var results []map[string]interface{}
+
+	// Process rows
+	for rows.Next() {
+		// Create a slice of interface{} to hold the values
+		values := make([]interface{}, len(columns))
+		valuePtrs := make([]interface{}, len(columns))
+		for i := range values {
+			valuePtrs[i] = &values[i]
+		}
+
+		// Scan row into value pointers
+		if err := rows.Scan(valuePtrs...); err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		// Create map for this row
+		rowMap := make(map[string]interface{})
+		for i, col := range columns {
+			rowMap[col] = values[i]
+		}
+
+		results = append(results, rowMap)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %w", err)
+	}
+
+	return results, nil
 }
 
 // CleanupOldData removes old telemetry data based on retention policy
@@ -655,7 +734,7 @@ func (s *Storage) WriteTracesFromOTLP(ctx context.Context, traces []otlp.TraceDa
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
@@ -718,7 +797,7 @@ func (s *Storage) WriteLogsFromOTLP(ctx context.Context, logs []otlp.LogData) er
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
@@ -767,25 +846,39 @@ func (s *Storage) WriteLogsFromOTLP(ctx context.Context, logs []otlp.LogData) er
 
 // WriteMetricsFromOTLP writes metric data from OTLP parser format
 func (s *Storage) WriteMetricsFromOTLP(ctx context.Context, sums []otlp.MetricSumData, gauges []otlp.MetricGaugeData, histograms []otlp.MetricHistogramData) error {
+	s.logger.Debug("WriteMetricsFromOTLP called",
+		zap.Int("sums", len(sums)),
+		zap.Int("gauges", len(gauges)),
+		zap.Int("histograms", len(histograms)))
+
 	// Write sums
 	if len(sums) > 0 {
+		s.logger.Debug("Writing sum metrics", zap.Int("count", len(sums)))
 		if err := s.writeOTLPSums(ctx, sums); err != nil {
+			s.logger.Error("Failed to write sum metrics", zap.Error(err))
 			return err
 		}
+		s.logger.Debug("Successfully wrote sum metrics")
 	}
 
 	// Write gauges
 	if len(gauges) > 0 {
+		s.logger.Debug("Writing gauge metrics", zap.Int("count", len(gauges)))
 		if err := s.writeOTLPGauges(ctx, gauges); err != nil {
+			s.logger.Error("Failed to write gauge metrics", zap.Error(err))
 			return err
 		}
+		s.logger.Debug("Successfully wrote gauge metrics")
 	}
 
 	// Write histograms
 	if len(histograms) > 0 {
+		s.logger.Debug("Writing histogram metrics", zap.Int("count", len(histograms)))
 		if err := s.writeOTLPHistograms(ctx, histograms); err != nil {
+			s.logger.Error("Failed to write histogram metrics", zap.Error(err))
 			return err
 		}
+		s.logger.Debug("Successfully wrote histogram metrics")
 	}
 
 	s.logger.Debug("Wrote OTLP metrics to DuckDB",
@@ -796,6 +889,10 @@ func (s *Storage) WriteMetricsFromOTLP(ctx context.Context, sums []otlp.MetricSu
 }
 
 func (s *Storage) writeOTLPSums(ctx context.Context, sums []otlp.MetricSumData) error {
+	if len(sums) == 0 {
+		return nil
+	}
+
 	query := `
 		INSERT INTO metrics_sum (
 			timestamp, agent_id, group_id, group_name, service_name,
@@ -803,40 +900,67 @@ func (s *Storage) writeOTLPSums(ctx context.Context, sums []otlp.MetricSumData) 
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback()
+	s.logger.Debug("Starting writeOTLPSums transaction", zap.Int("count", len(sums)))
 
-	stmt, err := tx.PrepareContext(ctx, query)
-	if err != nil {
-		return fmt.Errorf("failed to prepare statement: %w", err)
-	}
-	defer stmt.Close()
-
-	for _, m := range sums {
-		resourceAttrsJSON, _ := json.Marshal(m.ResourceAttributes)
-		metricAttrsJSON, _ := json.Marshal(m.Attributes)
-
-		_, err = stmt.ExecContext(ctx,
-			m.TimeUnix,
-			m.AgentID,
-			m.GroupID,
-			m.GroupName,
-			m.ServiceName,
-			m.MetricName,
-			m.MetricDescription,
-			m.Value,
-			string(resourceAttrsJSON),
-			string(metricAttrsJSON),
-		)
-		if err != nil {
-			return fmt.Errorf("failed to insert sum metric: %w", err)
+	// Process in smaller batches to avoid overwhelming the database
+	batchSize := 10
+	for i := 0; i < len(sums); i += batchSize {
+		end := i + batchSize
+		if end > len(sums) {
+			end = len(sums)
 		}
+
+		batch := sums[i:end]
+		s.logger.Debug("Processing batch", zap.Int("start", i), zap.Int("end", end), zap.Int("batch_size", len(batch)))
+
+		tx, err := s.db.BeginTx(ctx, nil)
+		if err != nil {
+			s.logger.Error("Failed to begin transaction", zap.Error(err))
+			return fmt.Errorf("failed to begin transaction: %w", err)
+		}
+
+		stmt, err := tx.PrepareContext(ctx, query)
+		if err != nil {
+			_ = tx.Rollback()
+			s.logger.Error("Failed to prepare statement", zap.Error(err))
+			return fmt.Errorf("failed to prepare statement: %w", err)
+		}
+
+		for j, m := range batch {
+			resourceAttrsJSON, _ := json.Marshal(m.ResourceAttributes)
+			metricAttrsJSON, _ := json.Marshal(m.Attributes)
+
+			_, err = stmt.ExecContext(ctx,
+				m.TimeUnix,
+				m.AgentID,
+				m.GroupID,
+				m.GroupName,
+				m.ServiceName,
+				m.MetricName,
+				m.MetricDescription,
+				m.Value,
+				string(resourceAttrsJSON),
+				string(metricAttrsJSON),
+			)
+			if err != nil {
+				stmt.Close()
+				_ = tx.Rollback()
+				s.logger.Error("Failed to insert sum metric", zap.Error(err), zap.Int("batch_index", j), zap.String("metric_name", m.MetricName))
+				return fmt.Errorf("failed to insert sum metric: %w", err)
+			}
+		}
+
+		stmt.Close()
+		if err := tx.Commit(); err != nil {
+			s.logger.Error("Failed to commit transaction", zap.Error(err))
+			return fmt.Errorf("failed to commit transaction: %w", err)
+		}
+
+		s.logger.Debug("Batch committed successfully", zap.Int("batch_size", len(batch)))
 	}
 
-	return tx.Commit()
+	s.logger.Debug("All batches completed successfully")
+	return nil
 }
 
 func (s *Storage) writeOTLPGauges(ctx context.Context, gauges []otlp.MetricGaugeData) error {
@@ -851,7 +975,7 @@ func (s *Storage) writeOTLPGauges(ctx context.Context, gauges []otlp.MetricGauge
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
@@ -896,7 +1020,7 @@ func (s *Storage) writeOTLPHistograms(ctx context.Context, histograms []otlp.Met
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
@@ -935,4 +1059,64 @@ func (s *Storage) writeOTLPHistograms(ctx context.Context, histograms []otlp.Met
 	}
 
 	return tx.Commit()
+}
+
+// Writer interface implementations for telemetrystore.Writer
+// These methods convert pdata types and delegate to the Storage methods
+
+// WriteTraces implements telemetrystore.Writer
+func (w *Writer) WriteTraces(ctx context.Context, td ptrace.Traces) error {
+	// Marshal pdata to protobuf bytes
+	marshaler := &ptrace.ProtoMarshaler{}
+	data, err := marshaler.MarshalTraces(td)
+	if err != nil {
+		return fmt.Errorf("failed to marshal traces: %w", err)
+	}
+
+	// Parse protobuf bytes to otlp types
+	p := parser.NewOTLPParser(w.logger)
+	traces, err := p.ParseTraces(data)
+	if err != nil {
+		return fmt.Errorf("failed to parse traces: %w", err)
+	}
+
+	return w.Storage.WriteTracesFromOTLP(ctx, traces)
+}
+
+// WriteMetrics implements telemetrystore.Writer
+func (w *Writer) WriteMetrics(ctx context.Context, md pmetric.Metrics) error {
+	// Marshal pdata to protobuf bytes
+	marshaler := &pmetric.ProtoMarshaler{}
+	data, err := marshaler.MarshalMetrics(md)
+	if err != nil {
+		return fmt.Errorf("failed to marshal metrics: %w", err)
+	}
+
+	// Parse protobuf bytes to otlp types
+	p := parser.NewOTLPParser(w.logger)
+	sums, gauges, histograms, err := p.ParseMetrics(data)
+	if err != nil {
+		return fmt.Errorf("failed to parse metrics: %w", err)
+	}
+
+	return w.Storage.WriteMetricsFromOTLP(ctx, sums, gauges, histograms)
+}
+
+// WriteLogs implements telemetrystore.Writer
+func (w *Writer) WriteLogs(ctx context.Context, ld plog.Logs) error {
+	// Marshal pdata to protobuf bytes
+	marshaler := &plog.ProtoMarshaler{}
+	data, err := marshaler.MarshalLogs(ld)
+	if err != nil {
+		return fmt.Errorf("failed to marshal logs: %w", err)
+	}
+
+	// Parse protobuf bytes to otlp types
+	p := parser.NewOTLPParser(w.logger)
+	logs, err := p.ParseLogs(data)
+	if err != nil {
+		return fmt.Errorf("failed to parse logs: %w", err)
+	}
+
+	return w.Storage.WriteLogsFromOTLP(ctx, logs)
 }

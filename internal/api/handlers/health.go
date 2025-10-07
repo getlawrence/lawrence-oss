@@ -7,37 +7,38 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"github.com/getlawrence/lawrence-oss/internal/storage"
-	"github.com/getlawrence/lawrence-oss/internal/storage/interfaces"
+	"github.com/getlawrence/lawrence-oss/internal/services"
 )
 
 // HealthHandlers handles health check endpoints
 type HealthHandlers struct {
-	storage *storage.Container
-	logger  *zap.Logger
+	agentService     services.AgentService
+	telemetryService services.TelemetryQueryService
+	logger           *zap.Logger
 }
 
 // NewHealthHandlers creates a new health handlers instance
-func NewHealthHandlers(storage *storage.Container, logger *zap.Logger) *HealthHandlers {
+func NewHealthHandlers(agentService services.AgentService, telemetryService services.TelemetryQueryService, logger *zap.Logger) *HealthHandlers {
 	return &HealthHandlers{
-		storage: storage,
-		logger:  logger,
+		agentService:     agentService,
+		telemetryService: telemetryService,
+		logger:           logger,
 	}
 }
 
 // HealthResponse represents the health check response
 type HealthResponse struct {
 	Status    string            `json:"status"`
-	Timestamp time.Time        `json:"timestamp"`
-	Version   string           `json:"version"`
+	Timestamp time.Time         `json:"timestamp"`
+	Version   string            `json:"version"`
 	Services  map[string]string `json:"services"`
 }
 
 // handleHealth handles GET /health
 func (h *HealthHandlers) HandleHealth(c *gin.Context) {
 	// Check storage health
-	sqliteHealthy := h.checkSQLiteHealth()
-	duckdbHealthy := h.checkDuckDBHealth()
+	sqliteHealthy := h.checkSQLiteHealth(c)
+	duckdbHealthy := h.checkDuckDBHealth(c)
 
 	// Determine overall status
 	status := "healthy"
@@ -50,8 +51,8 @@ func (h *HealthHandlers) HandleHealth(c *gin.Context) {
 		Timestamp: time.Now(),
 		Version:   "0.1.0",
 		Services: map[string]string{
-			"sqlite":  h.getHealthStatus(sqliteHealthy),
-			"duckdb":  h.getHealthStatus(duckdbHealthy),
+			"sqlite": h.getHealthStatus(sqliteHealthy),
+			"duckdb": h.getHealthStatus(duckdbHealthy),
 		},
 	}
 
@@ -65,21 +66,21 @@ func (h *HealthHandlers) HandleHealth(c *gin.Context) {
 }
 
 // checkSQLiteHealth checks if SQLite is healthy
-func (h *HealthHandlers) checkSQLiteHealth() bool {
+func (h *HealthHandlers) checkSQLiteHealth(c *gin.Context) bool {
 	// Try to get a simple count from agents table
-	_, err := h.storage.App.ListAgents(nil)
+	_, err := h.agentService.ListAgents(c.Request.Context())
 	return err == nil
 }
 
 // checkDuckDBHealth checks if DuckDB is healthy
-func (h *HealthHandlers) checkDuckDBHealth() bool {
+func (h *HealthHandlers) checkDuckDBHealth(c *gin.Context) bool {
 	// Try to query a simple metric count
-	query := interfaces.MetricQuery{
+	query := services.MetricQuery{
 		StartTime: time.Now().Add(-1 * time.Minute),
 		EndTime:   time.Now(),
 		Limit:     1,
 	}
-	_, err := h.storage.Telemetry.QueryMetrics(nil, query)
+	_, err := h.telemetryService.QueryMetrics(c.Request.Context(), query)
 	return err == nil
 }
 

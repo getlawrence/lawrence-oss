@@ -4,10 +4,17 @@
 # =============================================================================
 # Stage 1: Build Go Backend
 # =============================================================================
-FROM golang:1.23-alpine AS backend-builder
+FROM golang:1.24-bookworm AS backend-builder
 
-# Install build dependencies
-RUN apk add --no-cache git ca-certificates tzdata
+# Install build dependencies (including gcc/g++ for CGO, SQLite, and DuckDB)
+RUN apt-get update && apt-get install -y \
+    git \
+    ca-certificates \
+    tzdata \
+    gcc \
+    g++ \
+    libsqlite3-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
@@ -21,11 +28,8 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Temporarily comment out DuckDB imports to avoid CGO issues
-RUN find . -name "*.go" -exec sed -i 's|_ "github.com/marcboeker/go-duckdb"|// _ "github.com/marcboeker/go-duckdb"|g' {} \;
-
-# Build the application without CGO
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o lawrence ./cmd/all-in-one
+# Build the application with CGO enabled for DuckDB
+RUN CGO_ENABLED=1 GOOS=linux go build -a -o lawrence ./cmd/all-in-one
 
 # =============================================================================
 # Stage 2: Build React Frontend
@@ -53,18 +57,20 @@ RUN pnpm build
 # =============================================================================
 # Stage 3: Production Image
 # =============================================================================
-FROM alpine:3.18
+FROM debian:bookworm-slim
 
-# Install runtime dependencies
-RUN apk add --no-cache \
+# Install runtime dependencies (including sqlite and C++ libs for DuckDB)
+RUN apt-get update && apt-get install -y \
     ca-certificates \
     tzdata \
     curl \
-    && rm -rf /var/cache/apk/*
+    libsqlite3-0 \
+    libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
-RUN addgroup -g 1001 -S lawrence && \
-    adduser -u 1001 -S lawrence -G lawrence
+RUN groupadd -g 1001 lawrence && \
+    useradd -u 1001 -g lawrence -s /bin/bash -m lawrence
 
 # Set working directory
 WORKDIR /app
@@ -73,7 +79,7 @@ WORKDIR /app
 COPY --from=backend-builder /app/lawrence .
 
 # Copy frontend build
-COPY --from=frontend-builder /app/dist ./web/dist
+COPY --from=frontend-builder /app/dist ./ui/dist
 
 # Copy configuration
 COPY lawrence.yaml .

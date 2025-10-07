@@ -1,64 +1,140 @@
-import { NavLink } from 'react-router-dom';
-import { cn } from '@/lib/utils';
 import {
   Server,
   Users,
   FileText,
   BarChart3,
-  Settings
-} from 'lucide-react';
+  GitBranch,
+  Edit3,
+  Sparkle,
+} from "lucide-react";
+import * as React from "react";
+import { Link, useLocation } from "react-router-dom";
 
-const navigation = [
-  { name: 'Inventory', href: '/inventory', icon: Server },
-  { name: 'Groups', href: '/groups', icon: Users },
-  { name: 'Configs', href: '/configs', icon: FileText },
-  { name: 'Telemetry', href: '/telemetry', icon: BarChart3 },
-];
+import { ModeToggle } from "./mode-toggle";
 
-export function Sidebar() {
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarFooter,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarTrigger,
+  useSidebar,
+} from "@/components/ui/sidebar";
+
+interface MenuItem {
+  key: string;
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+export function AppSidebar() {
+  const location = useLocation();
+  const { state } = useSidebar();
+
+  const mainItems: MenuItem[] = [
+    {
+      key: "agents",
+      title: "Agents",
+      url: "/agents",
+      icon: Server,
+    },
+    {
+      key: "topology",
+      title: "Topology",
+      url: "/topology",
+      icon: GitBranch,
+    },
+    {
+      key: "groups",
+      title: "Groups",
+      url: "/groups",
+      icon: Users,
+    },
+    {
+      key: "configs",
+      title: "Configs",
+      url: "/configs",
+      icon: FileText,
+    },
+    {
+      key: "config-editor",
+      title: "Config Editor",
+      url: "/config-editor",
+      icon: Edit3,
+    },
+    {
+      key: "telemetry",
+      title: "Telemetry",
+      url: "/telemetry",
+      icon: BarChart3,
+    },
+  ];
+
   return (
-    <div className="flex flex-col w-64 bg-white border-r border-gray-200">
-      {/* Logo */}
-      <div className="flex items-center px-6 py-4 border-b border-gray-200">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Server className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900">Lawrence</h1>
-            <p className="text-xs text-gray-500">OSS Edition</p>
-          </div>
-        </div>
-      </div>
+    <Sidebar collapsible="icon" className="border-r border-border">
+      <SidebarHeader className="border-b border-border h-16 flex items-center justify-center relative">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            {state === "collapsed" ? (
+              <div className="relative group">
+                <div className="flex items-center justify-center h-8 w-8 rounded-md transition-colors group-hover:opacity-0">
+                  <Sparkle className="h-4 w-4 text-primary" />
+                </div>
+                <SidebarTrigger className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            ) : (
+              <SidebarMenuButton asChild>
+                <a href="/" className="flex items-center space-x-2">
+                  <Sparkle className="h-4 w-4 text-primary" />
+                  <span>Lawrence</span>
+                </a>
+              </SidebarMenuButton>
+            )}
+          </SidebarMenuItem>
+        </SidebarMenu>
+        {state === "expanded" && (
+          <SidebarTrigger className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6" />
+        )}
+      </SidebarHeader>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-4 py-4 space-y-1">
-        {navigation.map((item) => (
-          <NavLink
-            key={item.name}
-            to={item.href}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                isActive
-                  ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
-                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-              )
-            }
-          >
-            <item.icon className="mr-3 h-5 w-5" />
-            {item.name}
-          </NavLink>
-        ))}
-      </nav>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarMenu>
+            {mainItems.map((item) => {
+              const isActive = location.pathname === item.url;
+              return (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive}
+                    tooltip={item.title}
+                  >
+                    <Link to={item.url} className="relative">
+                      <item.icon />
+                      {state === "expanded" && <span>{item.title}</span>}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
+          </SidebarMenu>
+        </SidebarGroup>
+      </SidebarContent>
 
-      {/* Footer */}
-      <div className="px-4 py-4 border-t border-gray-200">
-        <div className="flex items-center space-x-2 text-sm text-gray-500">
-          <Settings className="h-4 w-4" />
-          <span>Version 1.0.0</span>
-        </div>
-      </div>
-    </div>
+      <SidebarFooter className="border-t border-border">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <ModeToggle iconOnly={state === "collapsed"} />
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+    </Sidebar>
   );
 }
