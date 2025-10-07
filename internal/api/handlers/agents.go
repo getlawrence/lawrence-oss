@@ -31,19 +31,19 @@ type GetAgentsRequest struct {
 
 // GetAgentsResponse represents the response for getting agents
 type GetAgentsResponse struct {
-	Agents      map[string]*services.Agent `json:"agents"`
-	TotalCount  int                         `json:"totalCount"`
-	ActiveCount int                         `json:"activeCount"`
-	InactiveCount int                       `json:"inactiveCount"`
+	Agents        map[string]*services.Agent `json:"agents"`
+	TotalCount    int                        `json:"totalCount"`
+	ActiveCount   int                        `json:"activeCount"`
+	InactiveCount int                        `json:"inactiveCount"`
 }
 
 // GetAgentStatsResponse represents agent statistics
 type GetAgentStatsResponse struct {
-	TotalAgents    int `json:"totalAgents"`
-	OnlineAgents   int `json:"onlineAgents"`
-	OfflineAgents  int `json:"offlineAgents"`
-	ErrorAgents    int `json:"errorAgents"`
-	GroupsCount    int `json:"groupsCount"`
+	TotalAgents   int `json:"totalAgents"`
+	OnlineAgents  int `json:"onlineAgents"`
+	OfflineAgents int `json:"offlineAgents"`
+	ErrorAgents   int `json:"errorAgents"`
+	GroupsCount   int `json:"groupsCount"`
 }
 
 // UpdateAgentGroupRequest represents the request to update agent group
@@ -64,7 +64,7 @@ func (h *AgentHandlers) HandleGetAgents(c *gin.Context) {
 	// Convert to map format expected by frontend
 	agentsMap := make(map[string]*services.Agent)
 	activeCount := 0
-	
+
 	for _, agent := range agents {
 		agentsMap[agent.ID.String()] = agent
 		if agent.Status == services.AgentStatusOnline {
@@ -73,9 +73,9 @@ func (h *AgentHandlers) HandleGetAgents(c *gin.Context) {
 	}
 
 	response := GetAgentsResponse{
-		Agents:       agentsMap,
-		TotalCount:   len(agents),
-		ActiveCount:  activeCount,
+		Agents:        agentsMap,
+		TotalCount:    len(agents),
+		ActiveCount:   activeCount,
 		InactiveCount: len(agents) - activeCount,
 	}
 

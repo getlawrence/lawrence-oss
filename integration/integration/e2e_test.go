@@ -162,7 +162,7 @@ func TestEndToEndAgentLifecycle(t *testing.T) {
 	var createdGroup map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&createdGroup)
 	require.NoError(t, err)
-	
+
 	groupID, ok := createdGroup["id"].(string)
 	require.True(t, ok)
 

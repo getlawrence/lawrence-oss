@@ -30,16 +30,16 @@ func NewTopologyHandlers(agentService services.AgentService, telemetryService se
 
 // TopologyNode represents a node in the topology graph
 type TopologyNode struct {
-	ID          string                 `json:"id"`
-	Type        string                 `json:"type"` // "agent", "group", "service"
-	Name        string                 `json:"name"`
-	Status      string                 `json:"status"`
-	GroupID     *string                `json:"group_id,omitempty"`
-	GroupName   *string                `json:"group_name,omitempty"`
-	Labels      map[string]string      `json:"labels"`
-	Metrics     *NodeMetrics           `json:"metrics,omitempty"`
-	LastSeen    *time.Time             `json:"last_seen,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	ID        string                 `json:"id"`
+	Type      string                 `json:"type"` // "agent", "group", "service"
+	Name      string                 `json:"name"`
+	Status    string                 `json:"status"`
+	GroupID   *string                `json:"group_id,omitempty"`
+	GroupName *string                `json:"group_name,omitempty"`
+	Labels    map[string]string      `json:"labels"`
+	Metrics   *NodeMetrics           `json:"metrics,omitempty"`
+	LastSeen  *time.Time             `json:"last_seen,omitempty"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // TopologyEdge represents a connection between nodes
@@ -62,11 +62,11 @@ type NodeMetrics struct {
 
 // TopologyResponse represents the complete topology graph
 type TopologyResponse struct {
-	Nodes      []TopologyNode `json:"nodes"`
-	Edges      []TopologyEdge `json:"edges"`
-	Groups     []GroupSummary `json:"groups"`
-	Services   []string       `json:"services"`
-	UpdatedAt  time.Time      `json:"updated_at"`
+	Nodes     []TopologyNode `json:"nodes"`
+	Edges     []TopologyEdge `json:"edges"`
+	Groups    []GroupSummary `json:"groups"`
+	Services  []string       `json:"services"`
+	UpdatedAt time.Time      `json:"updated_at"`
 }
 
 // GroupSummary represents a group with agent count
@@ -114,11 +114,11 @@ func (h *TopologyHandlers) HandleGetTopology(c *gin.Context) {
 	groupAgentCount := make(map[string]int)
 	for _, group := range groups {
 		nodes = append(nodes, TopologyNode{
-			ID:       "group-" + group.ID,
-			Type:     "group",
-			Name:     group.Name,
-			Status:   "active",
-			Labels:   group.Labels,
+			ID:     "group-" + group.ID,
+			Type:   "group",
+			Name:   group.Name,
+			Status: "active",
+			Labels: group.Labels,
 			Metadata: map[string]interface{}{
 				"created_at": group.CreatedAt,
 			},
@@ -371,8 +371,8 @@ func (h *TopologyHandlers) getAgentMetrics(ctx context.Context, agentID uuid.UUI
 		MetricCount:   metricCount,
 		LogCount:      logCount,
 		TraceCount:    traceCount,
-		ErrorRate:     0, // TODO: Calculate from logs/traces
-		Latency:       0, // TODO: Calculate from traces
+		ErrorRate:     0,                            // TODO: Calculate from logs/traces
+		Latency:       0,                            // TODO: Calculate from traces
 		ThroughputRPS: float64(metricCount) / 300.0, // rough estimate over 5 minutes
 	}
 }

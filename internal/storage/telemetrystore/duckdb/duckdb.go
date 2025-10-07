@@ -13,8 +13,8 @@ import (
 	"github.com/getlawrence/lawrence-oss/internal/storage/telemetrystore"
 	"github.com/google/uuid"
 	_ "github.com/marcboeker/go-duckdb"
-	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/plog"
+	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
 	"go.uber.org/zap"
 )
@@ -846,11 +846,11 @@ func (s *Storage) WriteLogsFromOTLP(ctx context.Context, logs []otlp.LogData) er
 
 // WriteMetricsFromOTLP writes metric data from OTLP parser format
 func (s *Storage) WriteMetricsFromOTLP(ctx context.Context, sums []otlp.MetricSumData, gauges []otlp.MetricGaugeData, histograms []otlp.MetricHistogramData) error {
-	s.logger.Debug("WriteMetricsFromOTLP called", 
+	s.logger.Debug("WriteMetricsFromOTLP called",
 		zap.Int("sums", len(sums)),
 		zap.Int("gauges", len(gauges)),
 		zap.Int("histograms", len(histograms)))
-	
+
 	// Write sums
 	if len(sums) > 0 {
 		s.logger.Debug("Writing sum metrics", zap.Int("count", len(sums)))
@@ -901,7 +901,7 @@ func (s *Storage) writeOTLPSums(ctx context.Context, sums []otlp.MetricSumData) 
 	`
 
 	s.logger.Debug("Starting writeOTLPSums transaction", zap.Int("count", len(sums)))
-	
+
 	// Process in smaller batches to avoid overwhelming the database
 	batchSize := 10
 	for i := 0; i < len(sums); i += batchSize {
@@ -909,10 +909,10 @@ func (s *Storage) writeOTLPSums(ctx context.Context, sums []otlp.MetricSumData) 
 		if end > len(sums) {
 			end = len(sums)
 		}
-		
+
 		batch := sums[i:end]
 		s.logger.Debug("Processing batch", zap.Int("start", i), zap.Int("end", end), zap.Int("batch_size", len(batch)))
-		
+
 		tx, err := s.db.BeginTx(ctx, nil)
 		if err != nil {
 			s.logger.Error("Failed to begin transaction", zap.Error(err))
@@ -955,10 +955,10 @@ func (s *Storage) writeOTLPSums(ctx context.Context, sums []otlp.MetricSumData) 
 			s.logger.Error("Failed to commit transaction", zap.Error(err))
 			return fmt.Errorf("failed to commit transaction: %w", err)
 		}
-		
+
 		s.logger.Debug("Batch committed successfully", zap.Int("batch_size", len(batch)))
 	}
-	
+
 	s.logger.Debug("All batches completed successfully")
 	return nil
 }

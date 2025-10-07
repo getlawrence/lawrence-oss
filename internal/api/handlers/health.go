@@ -29,8 +29,8 @@ func NewHealthHandlers(agentService services.AgentService, telemetryService serv
 // HealthResponse represents the health check response
 type HealthResponse struct {
 	Status    string            `json:"status"`
-	Timestamp time.Time        `json:"timestamp"`
-	Version   string           `json:"version"`
+	Timestamp time.Time         `json:"timestamp"`
+	Version   string            `json:"version"`
 	Services  map[string]string `json:"services"`
 }
 
@@ -51,8 +51,8 @@ func (h *HealthHandlers) HandleHealth(c *gin.Context) {
 		Timestamp: time.Now(),
 		Version:   "0.1.0",
 		Services: map[string]string{
-			"sqlite":  h.getHealthStatus(sqliteHealthy),
-			"duckdb":  h.getHealthStatus(duckdbHealthy),
+			"sqlite": h.getHealthStatus(sqliteHealthy),
+			"duckdb": h.getHealthStatus(duckdbHealthy),
 		},
 	}
 

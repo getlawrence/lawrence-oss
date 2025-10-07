@@ -21,22 +21,22 @@ type MockAgentService struct {
 	configs map[string]*services.Config
 
 	// Error flags for testing error cases
-	CreateAgentErr           error
-	GetAgentErr              error
-	ListAgentsErr            error
-	UpdateAgentStatusErr     error
-	UpdateAgentLastSeenErr   error
-	DeleteAgentErr           error
-	CreateGroupErr           error
-	GetGroupErr              error
-	GetGroupByNameErr        error
-	ListGroupsErr            error
-	DeleteGroupErr           error
-	CreateConfigErr          error
-	GetConfigErr             error
+	CreateAgentErr             error
+	GetAgentErr                error
+	ListAgentsErr              error
+	UpdateAgentStatusErr       error
+	UpdateAgentLastSeenErr     error
+	DeleteAgentErr             error
+	CreateGroupErr             error
+	GetGroupErr                error
+	GetGroupByNameErr          error
+	ListGroupsErr              error
+	DeleteGroupErr             error
+	CreateConfigErr            error
+	GetConfigErr               error
 	GetLatestConfigForAgentErr error
 	GetLatestConfigForGroupErr error
-	ListConfigsErr           error
+	ListConfigsErr             error
 }
 
 // NewMockAgentService creates a new mock agent service

@@ -33,29 +33,29 @@ const (
 	TokenIdentifier
 	TokenString
 	TokenNumber
-	TokenLBrace    // {
-	TokenRBrace    // }
-	TokenLBracket  // [
-	TokenRBracket  // ]
-	TokenLParen    // (
-	TokenRParen    // )
-	TokenComma     // ,
-	TokenEqual     // =
-	TokenNotEqual  // !=
-	TokenRegex     // =~
-	TokenNotRegex  // !~
-	TokenPlus      // +
-	TokenMinus     // -
-	TokenMultiply  // *
-	TokenDivide    // /
-	TokenLT        // <
-	TokenGT        // >
-	TokenLTE       // <=
-	TokenGTE       // >=
-	TokenAnd       // and
-	TokenOr        // or
-	TokenBy        // by
-	TokenPipe      // |
+	TokenLBrace   // {
+	TokenRBrace   // }
+	TokenLBracket // [
+	TokenRBracket // ]
+	TokenLParen   // (
+	TokenRParen   // )
+	TokenComma    // ,
+	TokenEqual    // =
+	TokenNotEqual // !=
+	TokenRegex    // =~
+	TokenNotRegex // !~
+	TokenPlus     // +
+	TokenMinus    // -
+	TokenMultiply // *
+	TokenDivide   // /
+	TokenLT       // <
+	TokenGT       // >
+	TokenLTE      // <=
+	TokenGTE      // >=
+	TokenAnd      // and
+	TokenOr       // or
+	TokenBy       // by
+	TokenPipe     // |
 )
 
 // NewParser creates a new parser for the given input

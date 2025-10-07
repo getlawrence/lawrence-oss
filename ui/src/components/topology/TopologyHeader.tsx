@@ -22,7 +22,7 @@ export function TopologyHeader({
         <p className="text-sm text-gray-600">Visualize your agent infrastructure</p>
       </div>
       <div className="flex items-center gap-3">
-        <Tabs value={topologyLevel} onValueChange={onTopologyLevelChange}>
+        <Tabs value={topologyLevel} onValueChange={(value) => onTopologyLevelChange(value as 'instance' | 'group')}>
           <TabsList>
             <TabsTrigger value="instance">Instance</TabsTrigger>
             <TabsTrigger value="group">Group</TabsTrigger>

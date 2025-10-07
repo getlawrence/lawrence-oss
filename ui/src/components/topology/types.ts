@@ -26,7 +26,7 @@ export interface GroupNodeData {
 export interface TopologyData {
   nodes: Array<{
     id: string;
-    type: 'agent' | 'group';
+    type: 'agent' | 'group' | 'service';
     name: string;
     status: string;
     group_name?: string;

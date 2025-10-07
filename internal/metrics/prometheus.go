@@ -29,9 +29,9 @@ func NewPrometheusFactory(namespace string, registry prometheus.Registerer) *Pro
 
 func (f *PrometheusFactory) Counter(options Options) Counter {
 	opts := prometheus.CounterOpts{
-		Namespace: f.namespace,
-		Name:      options.Name,
-		Help:      options.Help,
+		Namespace:   f.namespace,
+		Name:        options.Name,
+		Help:        options.Help,
 		ConstLabels: options.Tags,
 	}
 	counter := promauto.With(f.registry).NewCounter(opts)
@@ -40,9 +40,9 @@ func (f *PrometheusFactory) Counter(options Options) Counter {
 
 func (f *PrometheusFactory) Gauge(options Options) Gauge {
 	opts := prometheus.GaugeOpts{
-		Namespace: f.namespace,
-		Name:      options.Name,
-		Help:      options.Help,
+		Namespace:   f.namespace,
+		Name:        options.Name,
+		Help:        options.Help,
 		ConstLabels: options.Tags,
 	}
 	gauge := promauto.With(f.registry).NewGauge(opts)
@@ -51,11 +51,11 @@ func (f *PrometheusFactory) Gauge(options Options) Gauge {
 
 func (f *PrometheusFactory) Timer(options TimerOptions) Timer {
 	opts := prometheus.HistogramOpts{
-		Namespace: f.namespace,
-		Name:      options.Name,
-		Help:      options.Help,
+		Namespace:   f.namespace,
+		Name:        options.Name,
+		Help:        options.Help,
 		ConstLabels: options.Tags,
-		Buckets:   options.Buckets,
+		Buckets:     options.Buckets,
 	}
 	if len(opts.Buckets) == 0 {
 		// Default buckets for latency in seconds
@@ -67,11 +67,11 @@ func (f *PrometheusFactory) Timer(options TimerOptions) Timer {
 
 func (f *PrometheusFactory) Histogram(options HistogramOptions) Histogram {
 	opts := prometheus.HistogramOpts{
-		Namespace: f.namespace,
-		Name:      options.Name,
-		Help:      options.Help,
+		Namespace:   f.namespace,
+		Name:        options.Name,
+		Help:        options.Help,
 		ConstLabels: options.Tags,
-		Buckets:   options.Buckets,
+		Buckets:     options.Buckets,
 	}
 	if len(opts.Buckets) == 0 {
 		opts.Buckets = prometheus.DefBuckets

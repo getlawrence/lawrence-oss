@@ -74,12 +74,12 @@ type Trace struct {
 
 // MetricQuery represents a query for metrics
 type MetricQuery struct {
-	AgentID   *uuid.UUID
-	GroupID   *string
+	AgentID    *uuid.UUID
+	GroupID    *string
 	MetricName *string
-	StartTime time.Time
-	EndTime   time.Time
-	Limit     int
+	StartTime  time.Time
+	EndTime    time.Time
+	Limit      int
 }
 
 // LogQuery represents a query for logs
@@ -105,15 +105,15 @@ type TraceQuery struct {
 
 // Rollup represents pre-aggregated data
 type Rollup struct {
-	WindowStart time.Time     `json:"window_start"`
-	AgentID     *uuid.UUID    `json:"agent_id,omitempty"`
-	GroupID     *string       `json:"group_id,omitempty"`
-	MetricName  string        `json:"metric_name"`
-	Count       int64         `json:"count"`
-	Sum         float64       `json:"sum"`
-	Avg         float64       `json:"avg"`
-	Min         float64       `json:"min"`
-	Max         float64       `json:"max"`
+	WindowStart time.Time      `json:"window_start"`
+	AgentID     *uuid.UUID     `json:"agent_id,omitempty"`
+	GroupID     *string        `json:"group_id,omitempty"`
+	MetricName  string         `json:"metric_name"`
+	Count       int64          `json:"count"`
+	Sum         float64        `json:"sum"`
+	Avg         float64        `json:"avg"`
+	Min         float64        `json:"min"`
+	Max         float64        `json:"max"`
 	Interval    RollupInterval `json:"interval"`
 }
 
@@ -121,10 +121,10 @@ type Rollup struct {
 type RollupInterval string
 
 const (
-	RollupInterval1m  RollupInterval = "1m"
-	RollupInterval5m  RollupInterval = "5m"
-	RollupInterval1h  RollupInterval = "1h"
-	RollupInterval1d  RollupInterval = "1d"
+	RollupInterval1m RollupInterval = "1m"
+	RollupInterval5m RollupInterval = "5m"
+	RollupInterval1h RollupInterval = "1h"
+	RollupInterval1d RollupInterval = "1d"
 )
 
 // RollupQuery represents a query for rollups

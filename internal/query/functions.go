@@ -18,13 +18,13 @@ type Function struct {
 }
 
 var functions = map[string]*Function{
-	"sum":   sumFunction(),
-	"avg":   avgFunction(),
-	"min":   minFunction(),
-	"max":   maxFunction(),
-	"count": countFunction(),
-	"rate":  rateFunction(),
-	"increase": increaseFunction(),
+	"sum":                sumFunction(),
+	"avg":                avgFunction(),
+	"min":                minFunction(),
+	"max":                maxFunction(),
+	"count":              countFunction(),
+	"rate":               rateFunction(),
+	"increase":           increaseFunction(),
 	"histogram_quantile": histogramQuantileFunction(),
 }
 

@@ -51,11 +51,11 @@ service:
 `
 
 type Server struct {
-	logger        *zap.Logger
-	opampServer   server.OpAMPServer
-	agents        *Agents
-	agentService  services.AgentService
-	metrics       *metrics.OpAMPMetrics
+	logger       *zap.Logger
+	opampServer  server.OpAMPServer
+	agents       *Agents
+	agentService services.AgentService
+	metrics      *metrics.OpAMPMetrics
 }
 
 // zapToOpAmpLogger adapts zap.Logger to opamp's logger interface

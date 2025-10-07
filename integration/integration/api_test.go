@@ -125,7 +125,7 @@ func TestAPICreateGroup(t *testing.T) {
 	var createdGroup map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&createdGroup)
 	require.NoError(t, err)
-	
+
 	groupID, ok := createdGroup["id"].(string)
 	require.True(t, ok)
 	assert.Equal(t, "Test Group", createdGroup["name"])

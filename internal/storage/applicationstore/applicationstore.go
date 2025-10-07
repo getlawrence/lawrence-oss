@@ -27,7 +27,6 @@ type ApplicationStore interface {
 	GetLatestConfigForAgent(ctx context.Context, agentID uuid.UUID) (*Config, error)
 	GetLatestConfigForGroup(ctx context.Context, groupID string) (*Config, error)
 	ListConfigs(ctx context.Context, filter ConfigFilter) ([]*Config, error)
-
 }
 
 // Agent represents an OpenTelemetry agent
@@ -65,13 +64,13 @@ type Group struct {
 
 // Config represents an agent configuration
 type Config struct {
-	ID         string    `json:"id"`
+	ID         string     `json:"id"`
 	AgentID    *uuid.UUID `json:"agent_id,omitempty"`
-	GroupID    *string   `json:"group_id,omitempty"`
-	ConfigHash string    `json:"config_hash"`
-	Content    string    `json:"content"`
-	Version    int       `json:"version"`
-	CreatedAt  time.Time `json:"created_at"`
+	GroupID    *string    `json:"group_id,omitempty"`
+	ConfigHash string     `json:"config_hash"`
+	Content    string     `json:"content"`
+	Version    int        `json:"version"`
+	CreatedAt  time.Time  `json:"created_at"`
 }
 
 // ConfigFilter represents filters for listing configs

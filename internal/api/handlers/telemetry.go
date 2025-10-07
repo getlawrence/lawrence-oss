@@ -27,45 +27,45 @@ func NewTelemetryHandlers(telemetryService services.TelemetryQueryService, logge
 
 // QueryMetricsRequest represents the request for querying metrics
 type QueryMetricsRequest struct {
-	AgentID     *string    `json:"agent_id" binding:"omitempty,uuid"`
-	GroupID     *string    `json:"group_id" binding:"omitempty,uuid"`
-	MetricName  *string    `json:"metric_name"`
-	StartTime   time.Time  `json:"start_time" binding:"required"`
-	EndTime     time.Time  `json:"end_time" binding:"required"`
-	Limit       int        `json:"limit"`
-	UseRollups  bool       `json:"use_rollups"`
+	AgentID    *string   `json:"agent_id" binding:"omitempty,uuid"`
+	GroupID    *string   `json:"group_id" binding:"omitempty,uuid"`
+	MetricName *string   `json:"metric_name"`
+	StartTime  time.Time `json:"start_time" binding:"required"`
+	EndTime    time.Time `json:"end_time" binding:"required"`
+	Limit      int       `json:"limit"`
+	UseRollups bool      `json:"use_rollups"`
 }
 
 // QueryLogsRequest represents the request for querying logs
 type QueryLogsRequest struct {
-	AgentID     *string    `json:"agent_id" binding:"omitempty,uuid"`
-	GroupID     *string    `json:"group_id" binding:"omitempty,uuid"`
-	Severity    *string    `json:"severity"`
-	Search      *string    `json:"search"`
-	StartTime   time.Time  `json:"start_time" binding:"required"`
-	EndTime     time.Time  `json:"end_time" binding:"required"`
-	Limit       int        `json:"limit"`
+	AgentID   *string   `json:"agent_id" binding:"omitempty,uuid"`
+	GroupID   *string   `json:"group_id" binding:"omitempty,uuid"`
+	Severity  *string   `json:"severity"`
+	Search    *string   `json:"search"`
+	StartTime time.Time `json:"start_time" binding:"required"`
+	EndTime   time.Time `json:"end_time" binding:"required"`
+	Limit     int       `json:"limit"`
 }
 
 // QueryTracesRequest represents the request for querying traces
 type QueryTracesRequest struct {
-	AgentID     *string    `json:"agent_id" binding:"omitempty,uuid"`
-	GroupID     *string    `json:"group_id" binding:"omitempty,uuid"`
-	TraceID     *string    `json:"trace_id"`
-	ServiceName *string    `json:"service_name"`
-	StartTime   time.Time  `json:"start_time" binding:"required"`
-	EndTime     time.Time  `json:"end_time" binding:"required"`
-	Limit       int        `json:"limit"`
+	AgentID     *string   `json:"agent_id" binding:"omitempty,uuid"`
+	GroupID     *string   `json:"group_id" binding:"omitempty,uuid"`
+	TraceID     *string   `json:"trace_id"`
+	ServiceName *string   `json:"service_name"`
+	StartTime   time.Time `json:"start_time" binding:"required"`
+	EndTime     time.Time `json:"end_time" binding:"required"`
+	Limit       int       `json:"limit"`
 }
 
 // TelemetryOverviewResponse represents the telemetry overview
 type TelemetryOverviewResponse struct {
-	TotalMetrics    int64     `json:"totalMetrics"`
-	TotalLogs       int64     `json:"totalLogs"`
-	TotalTraces     int64     `json:"totalTraces"`
-	ActiveAgents    int       `json:"activeAgents"`
-	Services        []string  `json:"services"`
-	LastUpdated     time.Time `json:"lastUpdated"`
+	TotalMetrics int64     `json:"totalMetrics"`
+	TotalLogs    int64     `json:"totalLogs"`
+	TotalTraces  int64     `json:"totalTraces"`
+	ActiveAgents int       `json:"activeAgents"`
+	Services     []string  `json:"services"`
+	LastUpdated  time.Time `json:"lastUpdated"`
 }
 
 // ServicesResponse represents the services list

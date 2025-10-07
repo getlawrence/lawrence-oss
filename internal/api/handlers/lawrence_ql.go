@@ -61,8 +61,8 @@ type ValidateQueryResponse struct {
 
 // SuggestionsRequest represents a request for query suggestions
 type SuggestionsRequest struct {
-	Query      string `json:"query"`
-	CursorPos  int    `json:"cursor_pos"`
+	Query     string `json:"query"`
+	CursorPos int    `json:"cursor_pos"`
 }
 
 // SuggestionsResponse represents query suggestions response

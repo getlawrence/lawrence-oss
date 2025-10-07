@@ -69,7 +69,7 @@ func (s *Server) Start(port string) error {
 		Addr:    ":" + port,
 		Handler: s.router,
 	}
-	
+
 	s.logger.Info("Starting HTTP API server", zap.String("port", port))
 	return s.httpServer.ListenAndServe()
 }
@@ -77,11 +77,11 @@ func (s *Server) Start(port string) error {
 // Stop gracefully stops the HTTP server
 func (s *Server) Stop(ctx context.Context) error {
 	s.logger.Info("Stopping HTTP API server")
-	
+
 	// Create a context with timeout for graceful shutdown
 	shutdownCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	
+
 	return s.httpServer.Shutdown(shutdownCtx)
 }
 
@@ -189,12 +189,12 @@ func corsMiddleware() gin.HandlerFunc {
 		c.Header("Access-Control-Allow-Origin", "*")
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		
+
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(204)
 			return
 		}
-		
+
 		c.Next()
 	}
 }

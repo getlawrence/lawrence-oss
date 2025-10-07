@@ -417,8 +417,8 @@ func TestParseLogs_WithTraceContext(t *testing.T) {
 						},
 						LogRecords: []*logspb.LogRecord{
 							{
-								TimeUnixNano:   uint64(now.UnixNano()),
-								SeverityText:   "INFO",
+								TimeUnixNano: uint64(now.UnixNano()),
+								SeverityText: "INFO",
 								Body: &commonpb.AnyValue{
 									Value: &commonpb.AnyValue_StringValue{StringValue: "test log"},
 								},

@@ -47,10 +47,10 @@ type TestServer struct {
 	telemetryService services.TelemetryQueryService
 
 	// Servers
-	apiServer    *api.Server
-	opampServer  *opamp.Server
-	grpcServer   *receiver.GRPCServer
-	httpServer   *receiver.HTTPServer
+	apiServer   *api.Server
+	opampServer *opamp.Server
+	grpcServer  *receiver.GRPCServer
+	httpServer  *receiver.HTTPServer
 
 	// Metrics
 	opampMetrics *metrics.OpAMPMetrics
