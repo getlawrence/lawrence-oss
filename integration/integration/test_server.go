@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/getlawrence/lawrence-oss/internal/api"
+	"github.com/getlawrence/lawrence-oss/internal/metrics"
 	"github.com/getlawrence/lawrence-oss/internal/opamp"
 	"github.com/getlawrence/lawrence-oss/internal/otlp/receiver"
 	"github.com/getlawrence/lawrence-oss/internal/services"
@@ -23,6 +24,7 @@ import (
 	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore/sqlite"
 	"github.com/getlawrence/lawrence-oss/internal/storage/telemetrystore"
 	"github.com/getlawrence/lawrence-oss/internal/storage/telemetrystore/duckdb"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 )
 
@@ -49,6 +51,10 @@ type TestServer struct {
 	opampServer  *opamp.Server
 	grpcServer   *receiver.GRPCServer
 	httpServer   *receiver.HTTPServer
+
+	// Metrics
+	opampMetrics *metrics.OpAMPMetrics
+	otlpMetrics  *metrics.OTLPMetrics
 
 	// Utilities
 	logger  *zap.Logger
@@ -82,6 +88,9 @@ func NewTestServer(t *testing.T, useMemory bool) *TestServer {
 	} else {
 		ts.initDatabaseStorage()
 	}
+
+	// Initialize metrics
+	ts.initMetrics()
 
 	// Initialize services
 	ts.initServices()
@@ -119,6 +128,14 @@ func (ts *TestServer) initMemoryStorage() {
 	if err != nil {
 		ts.t.Fatalf("Failed to create telemetry writer: %v", err)
 	}
+}
+
+// initMetrics initializes metrics components
+func (ts *TestServer) initMetrics() {
+	registry := prometheus.NewRegistry()
+	metricsFactory := metrics.NewPrometheusFactory("lawrence", registry)
+	ts.opampMetrics = metrics.NewOpAMPMetrics(metricsFactory)
+	ts.otlpMetrics = metrics.NewOTLPMetrics(metricsFactory)
 }
 
 // initDatabaseStorage initializes file-based storage
@@ -170,22 +187,26 @@ func (ts *TestServer) initServers() {
 
 	// OpAMP Server
 	agents := opamp.NewAgents(ts.logger)
-	opampServer, err := opamp.NewServer(agents, ts.agentService, ts.logger)
+	opampServer, err := opamp.NewServer(agents, ts.agentService, ts.opampMetrics, ts.logger)
 	if err != nil {
 		ts.t.Fatalf("Failed to create OpAMP server: %v", err)
 	}
 	ts.opampServer = opampServer
 
-	// OTLP Receivers
-	writerAdapter := telemetrystore.NewWriterAdapter(ts.telemetryWriter)
+	// OTLP Receivers - create writer adapter from DuckDB factory
+	duckdbFactory, ok := ts.telemetryStoreFactory.(*duckdb.Factory)
+	if !ok {
+		ts.t.Fatalf("Expected DuckDB factory for telemetry store")
+	}
+	writerAdapter := duckdbFactory.CreateWriterAdapter()
 
-	grpcServer, err := receiver.NewGRPCServer(ts.OTLPGRPCPort, writerAdapter, nil, ts.logger)
+	grpcServer, err := receiver.NewGRPCServer(ts.OTLPGRPCPort, writerAdapter, writerAdapter, ts.otlpMetrics, ts.logger)
 	if err != nil {
 		ts.t.Fatalf("Failed to create gRPC server: %v", err)
 	}
 	ts.grpcServer = grpcServer
 
-	httpServer, err := receiver.NewHTTPServer(ts.OTLPHTTPPort, writerAdapter, nil, ts.logger)
+	httpServer, err := receiver.NewHTTPServer(ts.OTLPHTTPPort, writerAdapter, writerAdapter, ts.otlpMetrics, ts.logger)
 	if err != nil {
 		ts.t.Fatalf("Failed to create HTTP server: %v", err)
 	}

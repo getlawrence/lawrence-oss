@@ -124,9 +124,12 @@ func TestEndToEndTelemetryFlow(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, httpResp.StatusCode)
 
-	var metrics []map[string]interface{}
-	err = json.NewDecoder(httpResp.Body).Decode(&metrics)
+	var metricsResp map[string]interface{}
+	err = json.NewDecoder(httpResp.Body).Decode(&metricsResp)
 	require.NoError(t, err)
+
+	metrics, ok := metricsResp["metrics"].([]interface{})
+	require.True(t, ok)
 
 	// Verify we got the metric back
 	// Note: Actual verification depends on your API response format
@@ -141,7 +144,6 @@ func TestEndToEndAgentLifecycle(t *testing.T) {
 
 	// Step 1: Create a group
 	groupData := map[string]interface{}{
-		"id":   "e2e-group",
 		"name": "E2E Test Group",
 		"labels": map[string]string{
 			"env": "integration",
@@ -153,20 +155,31 @@ func TestEndToEndAgentLifecycle(t *testing.T) {
 
 	resp, err := ts.POST("/api/v1/groups", "application/json", bytes.NewReader(body))
 	require.NoError(t, err)
-	resp.Body.Close()
+	defer resp.Body.Close()
 	assert.Equal(t, http.StatusCreated, resp.StatusCode)
 
+	// Get the created group ID from response
+	var createdGroup map[string]interface{}
+	err = json.NewDecoder(resp.Body).Decode(&createdGroup)
+	require.NoError(t, err)
+	
+	groupID, ok := createdGroup["id"].(string)
+	require.True(t, ok)
+
 	// Step 2: Verify group was created
-	resp, err = ts.GET("/api/v1/groups/e2e-group")
+	resp, err = ts.GET("/api/v1/groups/" + groupID)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 	// Step 3: Create a config for the group
+	configContent := "receivers:\n  otlp:\n    protocols:\n      grpc:\n      http:\n"
 	configData := map[string]interface{}{
-		"group_id": "e2e-group",
-		"content":  "receivers:\n  otlp:\n    protocols:\n      grpc:\n      http:\n",
+		"group_id":    groupID,
+		"content":     configContent,
+		"config_hash": "test-hash-123",
+		"version":     1,
 	}
 
 	body, err = json.Marshal(configData)
@@ -186,17 +199,21 @@ func TestEndToEndAgentLifecycle(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var configs []map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&configs)
+	var configsResp map[string]interface{}
+	err = json.NewDecoder(resp.Body).Decode(&configsResp)
 	require.NoError(t, err)
 
+	configs, ok := configsResp["configs"].([]interface{})
+	require.True(t, ok)
+	t.Logf("Found %d configs", len(configs))
+
 	// Step 5: Delete the group
-	resp, err = ts.DELETE("/api/v1/groups/e2e-group")
+	resp, err = ts.DELETE("/api/v1/groups/" + groupID)
 	require.NoError(t, err)
 	resp.Body.Close()
 
 	// Verify deletion
-	resp, err = ts.GET("/api/v1/groups/e2e-group")
+	resp, err = ts.GET("/api/v1/groups/" + groupID)
 	require.NoError(t, err)
 	resp.Body.Close()
 
@@ -279,12 +296,23 @@ func TestEndToEndMultipleServices(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var servicesResp []string
+	var servicesResp map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&servicesResp)
 	require.NoError(t, err)
 
+	servicesInterface, ok := servicesResp["services"].([]interface{})
+	require.True(t, ok)
+
+	// Convert to []string for logging
+	var serviceNames []string
+	for _, s := range servicesInterface {
+		if service, ok := s.(string); ok {
+			serviceNames = append(serviceNames, service)
+		}
+	}
+
 	// Should have at least the services we sent
-	t.Logf("Found services: %v", servicesResp)
+	t.Logf("Found services: %v", serviceNames)
 }
 
 // TestEndToEndConcurrentWrites tests concurrent telemetry writes

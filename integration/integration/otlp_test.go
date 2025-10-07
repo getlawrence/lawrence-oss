@@ -147,7 +147,7 @@ func TestOTLPHTTPTraces(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, http.StatusAccepted, resp.StatusCode)
 }
 
 // TestOTLPGRPCMetrics tests sending metrics via gRPC
@@ -276,7 +276,7 @@ func TestOTLPHTTPMetrics(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, http.StatusAccepted, resp.StatusCode)
 }
 
 // TestOTLPGRPCLogs tests sending logs via gRPC
@@ -385,5 +385,5 @@ func TestOTLPHTTPLogs(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, http.StatusAccepted, resp.StatusCode)
 }

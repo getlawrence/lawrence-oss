@@ -89,10 +89,12 @@ func TestAPIGroups(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var groups []interface{}
-	err = json.NewDecoder(resp.Body).Decode(&groups)
+	var groupsResp map[string]interface{}
+	err = json.NewDecoder(resp.Body).Decode(&groupsResp)
 	require.NoError(t, err)
 
+	groups, ok := groupsResp["groups"].([]interface{})
+	require.True(t, ok)
 	assert.Empty(t, groups)
 }
 
@@ -104,7 +106,6 @@ func TestAPICreateGroup(t *testing.T) {
 
 	// Create a group
 	groupData := map[string]interface{}{
-		"id":   "test-group",
 		"name": "Test Group",
 		"labels": map[string]string{
 			"env": "test",
@@ -120,8 +121,17 @@ func TestAPICreateGroup(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, resp.StatusCode)
 
+	// Get the created group ID from response
+	var createdGroup map[string]interface{}
+	err = json.NewDecoder(resp.Body).Decode(&createdGroup)
+	require.NoError(t, err)
+	
+	groupID, ok := createdGroup["id"].(string)
+	require.True(t, ok)
+	assert.Equal(t, "Test Group", createdGroup["name"])
+
 	// Verify group was created
-	resp, err = ts.GET("/api/v1/groups/test-group")
+	resp, err = ts.GET("/api/v1/groups/" + groupID)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
@@ -131,7 +141,7 @@ func TestAPICreateGroup(t *testing.T) {
 	err = json.NewDecoder(resp.Body).Decode(&group)
 	require.NoError(t, err)
 
-	assert.Equal(t, "test-group", group["id"])
+	assert.Equal(t, groupID, group["id"])
 	assert.Equal(t, "Test Group", group["name"])
 }
 
@@ -148,10 +158,12 @@ func TestAPIConfigs(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var configs []interface{}
-	err = json.NewDecoder(resp.Body).Decode(&configs)
+	var configsResp map[string]interface{}
+	err = json.NewDecoder(resp.Body).Decode(&configsResp)
 	require.NoError(t, err)
 
+	configs, ok := configsResp["configs"].([]interface{})
+	require.True(t, ok)
 	assert.Empty(t, configs)
 }
 
@@ -227,6 +239,6 @@ func TestAPINotFound(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
-	// SPA catch-all will serve index.html
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	// API endpoints that don't exist should return 404
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
