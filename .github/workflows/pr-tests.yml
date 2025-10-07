@@ -46,6 +46,7 @@ jobs:
         file: ./coverage.out
         flags: go-backend
         name: go-backend-coverage
+        fail_ci_if_error: false
         
     - name: Format check
       run: make fmt && git diff --exit-code
@@ -68,11 +69,11 @@ jobs:
       with:
         node-version: '20'
         cache: 'npm'
-        cache-dependency-path: ui/package-lock.json
+        cache-dependency-path: ui/package.json
         
     - name: Install frontend dependencies
       working-directory: ui
-      run: npm ci
+      run: npm install
       
     - name: Run frontend linting
       working-directory: ui
@@ -96,6 +97,7 @@ jobs:
         directory: ui/coverage
         flags: frontend
         name: frontend-coverage
+        fail_ci_if_error: false
 
   test-integration:
     name: Integration Tests
@@ -165,12 +167,20 @@ jobs:
       with:
         scan-type: 'fs'
         scan-ref: '.'
+        format: 'table'
+        
+    - name: Run Trivy vulnerability scanner (SARIF)
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
         format: 'sarif'
         output: 'trivy-results.sarif'
         
     - name: Upload Trivy scan results to GitHub Security tab
       uses: github/codeql-action/upload-sarif@v3
       if: always()
+      continue-on-error: true
       with:
         sarif_file: 'trivy-results.sarif'
 
@@ -194,12 +204,12 @@ jobs:
       with:
         node-version: '20'
         cache: 'npm'
-        cache-dependency-path: ui/package-lock.json
+        cache-dependency-path: ui/package.json
         
     - name: Install dependencies
       run: |
         go mod download
-        cd ui && npm ci
+        cd ui && npm install
         
     - name: Build full application
       run: make build
