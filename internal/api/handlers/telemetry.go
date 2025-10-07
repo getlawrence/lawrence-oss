@@ -271,4 +271,3 @@ func (h *TelemetryHandlers) HandleGetServices(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 }
-

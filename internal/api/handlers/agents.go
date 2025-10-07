@@ -157,4 +157,3 @@ func (h *AgentHandlers) HandleGetAgentStats(c *gin.Context) {
 
 	c.JSON(http.StatusOK, stats)
 }
-

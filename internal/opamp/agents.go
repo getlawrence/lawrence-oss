@@ -54,7 +54,6 @@ func (agents *Agents) SetCustomConfigForAgent(
 	}
 }
 
-
 func (agents *Agents) FindAgent(agentId uuid.UUID) *Agent {
 	agents.mux.RLock()
 	defer agents.mux.RUnlock()

@@ -135,4 +135,3 @@ func (agent *Agent) AddStatusUpdateWatcher(ch chan<- struct{}) {
 	defer agent.mux.Unlock()
 	agent.statusUpdateWatchers = append(agent.statusUpdateWatchers, ch)
 }
-
