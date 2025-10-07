@@ -135,7 +135,7 @@ func (s *Storage) writeMetricSums(ctx context.Context, sums []telemetrystore.Met
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
@@ -182,7 +182,7 @@ func (s *Storage) writeMetricGauges(ctx context.Context, gauges []telemetrystore
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
@@ -233,7 +233,7 @@ func (s *Storage) WriteLogs(ctx context.Context, logs []telemetrystore.Log) erro
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
@@ -287,7 +287,7 @@ func (s *Storage) WriteTraces(ctx context.Context, traces []telemetrystore.Trace
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
@@ -381,7 +381,7 @@ func (s *Storage) QueryMetrics(ctx context.Context, query telemetrystore.MetricQ
 		}
 
 		m.AgentID, _ = uuid.Parse(agentIDStr)
-		json.Unmarshal([]byte(attrsJSON), &m.Labels)
+		_ = json.Unmarshal([]byte(attrsJSON), &m.Labels)
 
 		metrics = append(metrics, m)
 	}
@@ -438,7 +438,7 @@ func (s *Storage) QueryLogs(ctx context.Context, query telemetrystore.LogQuery) 
 		}
 
 		l.AgentID, _ = uuid.Parse(agentIDStr)
-		json.Unmarshal([]byte(attrsJSON), &l.Attributes)
+		_ = json.Unmarshal([]byte(attrsJSON), &l.Attributes)
 
 		logs = append(logs, l)
 	}
@@ -498,7 +498,7 @@ func (s *Storage) QueryTraces(ctx context.Context, query telemetrystore.TraceQue
 		if parentSpanID.Valid {
 			t.ParentSpanID = &parentSpanID.String
 		}
-		json.Unmarshal([]byte(attrsJSON), &t.Attributes)
+		_ = json.Unmarshal([]byte(attrsJSON), &t.Attributes)
 
 		traces = append(traces, t)
 	}
@@ -734,7 +734,7 @@ func (s *Storage) WriteTracesFromOTLP(ctx context.Context, traces []otlp.TraceDa
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
@@ -797,7 +797,7 @@ func (s *Storage) WriteLogsFromOTLP(ctx context.Context, logs []otlp.LogData) er
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
@@ -921,7 +921,7 @@ func (s *Storage) writeOTLPSums(ctx context.Context, sums []otlp.MetricSumData) 
 
 		stmt, err := tx.PrepareContext(ctx, query)
 		if err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			s.logger.Error("Failed to prepare statement", zap.Error(err))
 			return fmt.Errorf("failed to prepare statement: %w", err)
 		}
@@ -944,7 +944,7 @@ func (s *Storage) writeOTLPSums(ctx context.Context, sums []otlp.MetricSumData) 
 			)
 			if err != nil {
 				stmt.Close()
-				tx.Rollback()
+				_ = tx.Rollback()
 				s.logger.Error("Failed to insert sum metric", zap.Error(err), zap.Int("batch_index", j), zap.String("metric_name", m.MetricName))
 				return fmt.Errorf("failed to insert sum metric: %w", err)
 			}
@@ -975,7 +975,7 @@ func (s *Storage) writeOTLPGauges(ctx context.Context, gauges []otlp.MetricGauge
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {
@@ -1020,7 +1020,7 @@ func (s *Storage) writeOTLPHistograms(ctx context.Context, histograms []otlp.Met
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.PrepareContext(ctx, query)
 	if err != nil {

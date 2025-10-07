@@ -34,7 +34,7 @@ func TestOTLPGRPCTraces(t *testing.T) {
 	ts.Start()
 
 	// Connect to gRPC server
-	conn, err := grpc.Dial(
+	conn, err := grpc.NewClient(
 		fmt.Sprintf("localhost:%d", ts.OTLPGRPCPort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -157,7 +157,7 @@ func TestOTLPGRPCMetrics(t *testing.T) {
 	ts.Start()
 
 	// Connect to gRPC server
-	conn, err := grpc.Dial(
+	conn, err := grpc.NewClient(
 		fmt.Sprintf("localhost:%d", ts.OTLPGRPCPort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -285,7 +285,7 @@ func TestOTLPGRPCLogs(t *testing.T) {
 	defer ts.Stop()
 	ts.Start()
 
-	conn, err := grpc.Dial(
+	conn, err := grpc.NewClient(
 		fmt.Sprintf("localhost:%d", ts.OTLPGRPCPort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)

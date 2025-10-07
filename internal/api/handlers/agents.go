@@ -158,10 +158,3 @@ func (h *AgentHandlers) HandleGetAgentStats(c *gin.Context) {
 	c.JSON(http.StatusOK, stats)
 }
 
-// Helper function to convert string pointer to string
-func stringPtrToString(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
-}

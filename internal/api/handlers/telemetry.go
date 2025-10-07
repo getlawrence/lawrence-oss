@@ -272,23 +272,3 @@ func (h *TelemetryHandlers) HandleGetServices(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// parseTimeRange parses time range string to duration
-func parseTimeRange(timeRange string) (time.Duration, error) {
-	switch timeRange {
-	case "5m":
-		return 5 * time.Minute, nil
-	case "15m":
-		return 15 * time.Minute, nil
-	case "1h":
-		return 1 * time.Hour, nil
-	case "6h":
-		return 6 * time.Hour, nil
-	case "24h":
-		return 24 * time.Hour, nil
-	case "7d":
-		return 7 * 24 * time.Hour, nil
-	default:
-		// Try to parse as duration string
-		return time.ParseDuration(timeRange)
-	}
-}

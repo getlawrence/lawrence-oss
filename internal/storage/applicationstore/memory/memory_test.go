@@ -69,7 +69,7 @@ func withMemoryStore(f func(store *Store)) {
 func withPopulatedMemoryStore(f func(store *Store)) {
 	store := NewStore()
 	agent := makeTestAgent()
-	store.CreateAgent(context.Background(), agent)
+	_ = store.CreateAgent(context.Background(), agent)
 	f(store)
 }
 

@@ -136,13 +136,3 @@ func (agent *Agent) AddStatusUpdateWatcher(ch chan<- struct{}) {
 	agent.statusUpdateWatchers = append(agent.statusUpdateWatchers, ch)
 }
 
-// notifyStatusWatchers notifies all watchers that the status has been updated
-func (agent *Agent) notifyStatusWatchers() {
-	for _, ch := range agent.statusUpdateWatchers {
-		select {
-		case ch <- struct{}{}:
-		default:
-		}
-	}
-	agent.statusUpdateWatchers = nil
-}

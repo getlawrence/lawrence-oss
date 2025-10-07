@@ -4,6 +4,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -38,8 +39,8 @@ func TestHandleGetAgents(t *testing.T) {
 	agent1 := testutils.MakeTestAgentWithStatus(uuid.New(), services.AgentStatusOnline)
 	agent2 := testutils.MakeTestAgentWithStatus(uuid.New(), services.AgentStatusOffline)
 
-	mockService.CreateAgent(nil, agent1)
-	mockService.CreateAgent(nil, agent2)
+	_ = mockService.CreateAgent(context.TODO(), agent1)
+	_ = mockService.CreateAgent(context.TODO(), agent2)
 
 	// Create test request
 	w := httptest.NewRecorder()
@@ -91,7 +92,7 @@ func TestHandleGetAgent(t *testing.T) {
 	// Create test agent
 	agentID := uuid.New()
 	agent := testutils.MakeTestAgent(agentID)
-	mockService.CreateAgent(nil, agent)
+	_ = mockService.CreateAgent(context.TODO(), agent)
 
 	// Create test request
 	w := httptest.NewRecorder()
@@ -186,16 +187,16 @@ func TestHandleGetAgentStats(t *testing.T) {
 	agent3 := testutils.MakeTestAgentWithStatus(uuid.New(), services.AgentStatusOffline)
 	agent4 := testutils.MakeTestAgentWithStatus(uuid.New(), services.AgentStatusError)
 
-	mockService.CreateAgent(nil, agent1)
-	mockService.CreateAgent(nil, agent2)
-	mockService.CreateAgent(nil, agent3)
-	mockService.CreateAgent(nil, agent4)
+	_ = mockService.CreateAgent(context.TODO(), agent1)
+	_ = mockService.CreateAgent(context.TODO(), agent2)
+	_ = mockService.CreateAgent(context.TODO(), agent3)
+	_ = mockService.CreateAgent(context.TODO(), agent4)
 
 	// Create test groups
 	group1 := testutils.MakeTestGroup("group-1")
 	group2 := testutils.MakeTestGroup("group-2")
-	mockService.CreateGroup(nil, group1)
-	mockService.CreateGroup(nil, group2)
+	_ = mockService.CreateGroup(context.TODO(), group1)
+	_ = mockService.CreateGroup(context.TODO(), group2)
 
 	// Create test request
 	w := httptest.NewRecorder()
@@ -247,7 +248,7 @@ func TestHandleGetAgentStats_GroupsError(t *testing.T) {
 
 	// Create test agent
 	agent := testutils.MakeTestAgent(uuid.New())
-	mockService.CreateAgent(nil, agent)
+	_ = mockService.CreateAgent(context.TODO(), agent)
 
 	// Set error flag for groups only
 	mockService.ListGroupsErr = fmt.Errorf("groups error")

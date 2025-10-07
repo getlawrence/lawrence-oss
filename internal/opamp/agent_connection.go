@@ -10,7 +10,7 @@ import (
 
 // SendToAgent sends a message to the connected agent
 func (agent *Agent) SendToAgent(msg *protobufs.ServerToAgent) {
-	agent.conn.Send(context.Background(), msg)
+	_ = agent.conn.Send(context.Background(), msg)
 }
 
 // OfferConnectionSettings sends connection settings to the agent

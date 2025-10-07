@@ -54,7 +54,7 @@ func main() {
 	rootCmd.PersistentFlags().String("log-format", "json", "Log format (json, console)")
 
 	// Bind flags to viper
-	viper.BindPFlags(rootCmd.PersistentFlags())
+	_ = viper.BindPFlags(rootCmd.PersistentFlags())
 
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal(err)
@@ -74,7 +74,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	logger.Info("Starting Lawrence OSS",
 		zap.String("version", version),
@@ -129,7 +129,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		opampServer.Stop(ctx)
+		_ = opampServer.Stop(ctx)
 	}()
 
 	// Initialize OTLP receivers
@@ -143,7 +143,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		grpcServer.Stop(ctx)
+		_ = grpcServer.Stop(ctx)
 	}()
 
 	httpServer, err := receiver.NewHTTPServer(4318, writerAdapter, writerAdapter, otlpMetrics, logger)
@@ -156,7 +156,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		httpServer.Stop(ctx)
+		_ = httpServer.Stop(ctx)
 	}()
 
 	// Initialize HTTP API server
@@ -172,7 +172,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		apiServer.Stop(ctx)
+		_ = apiServer.Stop(ctx)
 	}()
 
 	// Start background services

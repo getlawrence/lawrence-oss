@@ -246,19 +246,19 @@ func (ts *TestServer) Stop() {
 	defer cancel()
 
 	if ts.apiServer != nil {
-		ts.apiServer.Stop(ctx)
+		_ = ts.apiServer.Stop(ctx)
 	}
 
 	if ts.opampServer != nil {
-		ts.opampServer.Stop(ctx)
+		_ = ts.opampServer.Stop(ctx)
 	}
 
 	if ts.grpcServer != nil {
-		ts.grpcServer.Stop(ctx)
+		_ = ts.grpcServer.Stop(ctx)
 	}
 
 	if ts.httpServer != nil {
-		ts.httpServer.Stop(ctx)
+		_ = ts.httpServer.Stop(ctx)
 	}
 
 	// Close storage factories

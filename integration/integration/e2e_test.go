@@ -30,7 +30,7 @@ func TestEndToEndTelemetryFlow(t *testing.T) {
 	ts.Start()
 
 	// Step 1: Send telemetry data via OTLP
-	conn, err := grpc.Dial(
+	conn, err := grpc.NewClient(
 		fmt.Sprintf("localhost:%d", ts.OTLPGRPCPort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -226,7 +226,7 @@ func TestEndToEndMultipleServices(t *testing.T) {
 	defer ts.Stop()
 	ts.Start()
 
-	conn, err := grpc.Dial(
+	conn, err := grpc.NewClient(
 		fmt.Sprintf("localhost:%d", ts.OTLPGRPCPort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -321,7 +321,7 @@ func TestEndToEndConcurrentWrites(t *testing.T) {
 	defer ts.Stop()
 	ts.Start()
 
-	conn, err := grpc.Dial(
+	conn, err := grpc.NewClient(
 		fmt.Sprintf("localhost:%d", ts.OTLPGRPCPort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)

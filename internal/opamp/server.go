@@ -123,7 +123,7 @@ func (s *Server) Start(port int) error {
 
 func (s *Server) Stop(ctx context.Context) error {
 	s.logger.Info("Stopping OpAMP server...")
-	s.opampServer.Stop(ctx)
+	_ = s.opampServer.Stop(ctx)
 	return nil
 }
 

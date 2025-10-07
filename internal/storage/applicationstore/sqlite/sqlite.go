@@ -184,8 +184,8 @@ func (s *Storage) GetAgent(ctx context.Context, id uuid.UUID) (*applicationstore
 	}
 
 	agent.ID = id
-	json.Unmarshal([]byte(labelsJSON), &agent.Labels)
-	json.Unmarshal([]byte(capabilitiesJSON), &agent.Capabilities)
+	_ = json.Unmarshal([]byte(labelsJSON), &agent.Labels)
+	_ = json.Unmarshal([]byte(capabilitiesJSON), &agent.Capabilities)
 
 	return &agent, nil
 }
@@ -226,8 +226,8 @@ func (s *Storage) ListAgents(ctx context.Context) ([]*applicationstore.Agent, er
 		}
 
 		agent.ID, _ = uuid.Parse(agentIDStr)
-		json.Unmarshal([]byte(labelsJSON), &agent.Labels)
-		json.Unmarshal([]byte(capabilitiesJSON), &agent.Capabilities)
+		_ = json.Unmarshal([]byte(labelsJSON), &agent.Labels)
+		_ = json.Unmarshal([]byte(capabilitiesJSON), &agent.Capabilities)
 
 		agents = append(agents, &agent)
 	}
@@ -331,7 +331,7 @@ func (s *Storage) GetGroup(ctx context.Context, id string) (*applicationstore.Gr
 		return nil, fmt.Errorf("failed to get group: %w", err)
 	}
 
-	json.Unmarshal([]byte(labelsJSON), &group.Labels)
+	_ = json.Unmarshal([]byte(labelsJSON), &group.Labels)
 	return &group, nil
 }
 
@@ -360,7 +360,7 @@ func (s *Storage) ListGroups(ctx context.Context) ([]*applicationstore.Group, er
 			return nil, fmt.Errorf("failed to scan group: %w", err)
 		}
 
-		json.Unmarshal([]byte(labelsJSON), &group.Labels)
+		_ = json.Unmarshal([]byte(labelsJSON), &group.Labels)
 		groups = append(groups, &group)
 	}
 
