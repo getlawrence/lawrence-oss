@@ -91,6 +91,7 @@ func (s *Server) registerRoutes() {
 	agentHandlers := handlers.NewAgentHandlers(s.agentService, s.logger)
 	configHandlers := handlers.NewConfigHandlers(s.agentService, s.logger)
 	telemetryHandlers := handlers.NewTelemetryHandlers(s.telemetryService, s.logger)
+	lawrenceQLHandlers := handlers.NewLawrenceQLHandlers(s.telemetryService, s.logger)
 	groupHandlers := handlers.NewGroupHandlers(s.agentService, s.logger)
 	topologyHandlers := handlers.NewTopologyHandlers(s.agentService, s.telemetryService, s.logger)
 	healthHandlers := handlers.NewHealthHandlers(s.agentService, s.telemetryService, s.logger)
@@ -128,11 +129,19 @@ func (s *Server) registerRoutes() {
 		// Telemetry routes
 		telemetry := v1.Group("/telemetry")
 		{
+			// Legacy endpoints
 			telemetry.POST("/metrics/query", telemetryHandlers.HandleQueryMetrics)
 			telemetry.POST("/logs/query", telemetryHandlers.HandleQueryLogs)
 			telemetry.POST("/traces/query", telemetryHandlers.HandleQueryTraces)
 			telemetry.GET("/overview", telemetryHandlers.HandleGetTelemetryOverview)
 			telemetry.GET("/services", telemetryHandlers.HandleGetServices)
+
+			// Lawrence QL endpoints
+			telemetry.POST("/query", lawrenceQLHandlers.HandleLawrenceQLQuery)
+			telemetry.POST("/query/validate", lawrenceQLHandlers.HandleValidateQuery)
+			telemetry.POST("/query/suggestions", lawrenceQLHandlers.HandleGetSuggestions)
+			telemetry.GET("/query/templates", lawrenceQLHandlers.HandleGetTemplates)
+			telemetry.GET("/query/functions", lawrenceQLHandlers.HandleGetFunctions)
 		}
 
 		// Group routes

@@ -38,9 +38,9 @@ export function AppSidebar() {
 
   const mainItems: MenuItem[] = [
     {
-      key: 'inventory',
-      title: 'Inventory',
-      url: '/inventory',
+      key: 'agents',
+      title: 'Agents',
+      url: '/agents',
       icon: Server,
     },
     {

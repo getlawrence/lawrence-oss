@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 import Layout from './layout';
-import InventoryPage from './pages/Inventory';
+import AgentsPage from './pages/Agents';
 import GroupsPage from './pages/Groups';
 import GroupDetailsPage from './pages/GroupDetails';
 import ConfigsPage from './pages/Configs';
@@ -22,11 +22,11 @@ function App() {
           <Router>
             <Routes>
               {/* Main application routes */}
-              <Route
+              <Route  
                 element={<Layout />}
               >
-                <Route path="/" element={<InventoryPage />} />
-                <Route path="/inventory" element={<InventoryPage />} />
+                <Route path="/" element={<AgentsPage />} />
+                <Route path="/agents" element={<AgentsPage />} />
                 <Route path="/groups" element={<GroupsPage />} />
                 <Route path="/groups/:groupId" element={<GroupDetailsPage />} />
                 <Route path="/configs" element={<ConfigsPage />} />
