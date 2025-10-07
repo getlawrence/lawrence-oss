@@ -59,6 +59,11 @@ RUN pnpm build
 # =============================================================================
 FROM debian:bookworm-slim
 
+# OCI labels for GitHub Container Registry
+LABEL org.opencontainers.image.source="https://github.com/getlawrence/lawrence-oss"
+LABEL org.opencontainers.image.description="OpenTelemetry agent management platform with built-in observability backend"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
+
 # Install runtime dependencies (including sqlite and C++ libs for DuckDB)
 RUN apt-get update && apt-get install -y \
     ca-certificates \
