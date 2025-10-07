@@ -1,190 +1,125 @@
-# Lawrence All-in-One OSS
+# Lawrence OSS
 
-A lightweight, self-contained observability platform for OpenTelemetry. Run everything in a single binary or Docker container.
+An open-source OpenTelemetry agent management platform with built-in observability backend.
 
-## Features
+## Overview
 
-- 🚀 **Single Binary Deployment** - Everything in one executable
-- 📊 **OTLP Ingestion** - Native support for traces, metrics, and logs
-- 🔧 **OpAMP Agent Management** - Manage and configure OpenTelemetry collectors
-- 💾 **Embedded Storage** - SQLite for app data, DuckDB for telemetry
-- 📈 **Pre-aggregated Rollups** - Fast queries for historical data
-- 🎨 **Built-in UI** - React-based web interface
-- 🐳 **Docker Ready** - Single container deployment
+Lawrence OSS manages OpenTelemetry collectors via OpAMP protocol and stores their telemetry data for analysis. It runs as a single Go binary or Docker container with embedded storage.
 
-## Quick Start
+**What it does:**
+- Manages OpenTelemetry collector agents remotely via OpAMP
+- Ingests telemetry (traces, metrics, logs) via OTLP
+- Stores agent configurations and telemetry data
+- Provides a web UI for visualization and management
 
-### Using Docker
+**How it works:**
+1. Collectors connect to Lawrence's OpAMP server for remote management
+2. Collectors send their internal telemetry to Lawrence's OTLP endpoint
+3. Lawrence stores telemetry in DuckDB and serves it through a REST API
+4. The React UI queries the API to display agents, telemetry, and topology
+
+## Getting Started
+
+### Run with Docker Compose
 
 ```bash
-docker run -p 8080:8080 -p 4317:4317 -p 4318:4318 \
-  -v $(pwd)/data:/data \
-  lawrence/all-in-one:latest
+# Clone the repository
+git clone https://github.com/getlawrence/lawrence-oss.git
+cd lawrence-oss
+
+# Start Lawrence
+docker compose up -d lawrence
+
+# Access the UI
+open http://localhost:8080
 ```
 
-### Using Binary
+### Connect Your Agents
 
-```bash
-# Download latest release
-curl -LO https://github.com/getlawrence/lawrence-oss/releases/latest/download/lawrence-oss
+Configure your OpenTelemetry collector to connect to Lawrence:
 
-# Run
-./lawrence-oss
+```yaml
+# collector-config.yaml
+extensions:
+  opamp:
+    server:
+      ws:
+        endpoint: ws://localhost:4320/v1/opamp
 
-# Or with custom config
-./lawrence-oss --config ./lawrence.yaml
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+exporters:
+  otlp:
+    endpoint: localhost:4317
+    tls:
+      insecure: true
+
+service:
+  extensions: [opamp, health_check]
+
+  # Export internal collector telemetry to Lawrence
+  telemetry:
+    metrics:
+      readers:
+        - periodic:
+            exporter:
+              otlp:
+                protocol: grpc
+                endpoint: localhost:4317
+                tls:
+                  insecure: true
+
+    logs:
+      processors:
+        - batch:
+            exporter:
+              otlp:
+                protocol: grpc
+                endpoint: localhost:4317
+                tls:
+                  insecure: true
+
+  pipelines:
+    # Your data pipelines here
+    metrics:
+      receivers: [otlp]
+      exporters: [otlp]
 ```
 
-### Building from Source
-
+Start your collector:
 ```bash
-# Build UI
-make ui
-
-# Build binary
-make build
-
-# Run
-./bin/lawrence
+otelcol-contrib --config collector-config.yaml
 ```
 
 ## Architecture
 
-```
-┌─────────────────────────────┐
-│ Lawrence All-in-One         │
-│-----------------------------│
-│ Go single process           │
-│                             │
-│ ┌───────────┐  ┌──────────┐ │
-│ │ OTLP      │  │ OpAMP    │ │
-│ │ Collector │  │ Server   │ │
-│ └───────────┘  └──────────┘ │
-│        │           │         │
-│ ┌──────────────────────────┐ │
-│ │ Storage                  │ │
-│ │  - AppStorage (SQLite)   │ │
-│ │  - TelemetryStorage      │ │
-│ │    (DuckDB)              │ │
-│ └──────────────────────────┘ │
-│        │                     │
-│ ┌───────────┐                │
-│ │ Backend   │                │
-│ │ API       │                │
-│ └───────────┘                │
-│        │                      │
-│ ┌───────────┐                 │
-│ │ Web UI    │                 │
-│ │ (React)   │                 │
-│ └───────────┘                 │
-└─────────────────────────────┘
-```
+Lawrence consists of several integrated components running in a single process:
 
-## Configuration
+**OpAMP Server** (port 4320)
+- Accepts WebSocket connections from OpenTelemetry collectors
+- Distributes configurations to connected agents
+- Tracks agent status and capabilities
 
-Create a `lawrence.yaml` configuration file:
+**OTLP Receiver** (ports 4317/4318)
+- Ingests traces, metrics, and logs via gRPC and HTTP
+- Stores raw telemetry in DuckDB
+- Runs background rollup jobs for aggregated metrics
 
-```yaml
-server:
-  http_port: 8080
-  opamp_port: 4320
+**Storage Layer**
+- SQLite: Agent metadata, groups, configurations
+- DuckDB: Raw telemetry and pre-aggregated rollups
 
-otlp:
-  grpc_endpoint: 0.0.0.0:4317
-  http_endpoint: 0.0.0.0:4318
+**REST API** (port 8080)
+- Serves agent data, telemetry queries, and topology
+- Provides configuration management endpoints
+- Supports Lawrence QL query language
 
-storage:
-  app:
-    type: sqlite
-    path: ./data/app.db
-  telemetry:
-    type: duckdb
-    path: ./data/telemetry.db
-
-retention:
-  raw_metrics: 24h
-  raw_logs: 24h
-  rollups_1m: 7d
-  rollups_5m: 30d
-
-rollups:
-  enabled: true
-  interval_1m: "*/1 * * * *"
-  interval_5m: "*/5 * * * *"
-```
-
-## API Endpoints
-
-### Agents
-- `GET /api/v1/agents` - List all agents
-- `GET /api/v1/agents/:id` - Get agent details
-
-### Configs
-- `GET /api/v1/configs` - List configs
-- `GET /api/v1/configs/:id` - Get config
-- `POST /api/v1/configs` - Create config
-
-### Telemetry
-- `POST /api/v1/metrics/query` - Query metrics
-- `POST /api/v1/logs/query` - Query logs
-- `GET /api/v1/metrics/rollups` - Get rollups
-
-## Development
-
-### Prerequisites
-- Go 1.23+
-- Node.js 20+
-- Make
-
-### Commands
-
-```bash
-# Install dependencies
-make deps
-
-# Build UI
-make ui
-
-# Build Go binary
-make build
-
-# Run locally
-make run
-
-# Run tests
-make test
-
-# Build Docker image
-make docker
-
-# Clean build artifacts
-make clean
-```
-
-## Storage
-
-### SQLite (App Data)
-- Agents
-- Groups
-- Configs
-- Config history
-
-### DuckDB (Telemetry Data)
-- Raw metrics/logs (recent)
-- Pre-aggregated rollups
-- Agent-level rollups
-- Group-level rollups
+**Web UI**
+- React-based interface for agent management
+- Query builder for telemetry exploration
+- Topology visualization
 
 ## License
 
 Apache 2.0
-
-## Contributing
-
-Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md)
-
-## Support
-
-- 📖 [Documentation](https://docs.getlawrence.com)
-- 💬 [Discord Community](https://discord.gg/lawrence)
-- 🐛 [Issue Tracker](https://github.com/getlawrence/lawrence-oss/issues)

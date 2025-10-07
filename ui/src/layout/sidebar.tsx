@@ -91,7 +91,7 @@ export function AppSidebar() {
               <SidebarMenuButton asChild>
                 <a href="/" className="flex items-center space-x-2">
                   <Sparkle className="h-4 w-4 text-primary" />
-                  <span>Lawrence OSS</span>
+                  <span>Lawrence</span>
                 </a>
               </SidebarMenuButton>
             )}
