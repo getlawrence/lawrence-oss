@@ -7,21 +7,22 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"github.com/getlawrence/lawrence-oss/internal/storage"
-	"github.com/getlawrence/lawrence-oss/internal/storage/interfaces"
+	"github.com/getlawrence/lawrence-oss/internal/services"
 )
 
 // HealthHandlers handles health check endpoints
 type HealthHandlers struct {
-	storage *storage.Container
-	logger  *zap.Logger
+	agentService     services.AgentService
+	telemetryService services.TelemetryQueryService
+	logger           *zap.Logger
 }
 
 // NewHealthHandlers creates a new health handlers instance
-func NewHealthHandlers(storage *storage.Container, logger *zap.Logger) *HealthHandlers {
+func NewHealthHandlers(agentService services.AgentService, telemetryService services.TelemetryQueryService, logger *zap.Logger) *HealthHandlers {
 	return &HealthHandlers{
-		storage: storage,
-		logger:  logger,
+		agentService:     agentService,
+		telemetryService: telemetryService,
+		logger:           logger,
 	}
 }
 
@@ -67,19 +68,19 @@ func (h *HealthHandlers) HandleHealth(c *gin.Context) {
 // checkSQLiteHealth checks if SQLite is healthy
 func (h *HealthHandlers) checkSQLiteHealth(c *gin.Context) bool {
 	// Try to get a simple count from agents table
-	_, err := h.storage.App.ListAgents(c.Request.Context())
+	_, err := h.agentService.ListAgents(c.Request.Context())
 	return err == nil
 }
 
 // checkDuckDBHealth checks if DuckDB is healthy
 func (h *HealthHandlers) checkDuckDBHealth(c *gin.Context) bool {
 	// Try to query a simple metric count
-	query := interfaces.MetricQuery{
+	query := services.MetricQuery{
 		StartTime: time.Now().Add(-1 * time.Minute),
 		EndTime:   time.Now(),
 		Limit:     1,
 	}
-	_, err := h.storage.Telemetry.QueryMetrics(c.Request.Context(), query)
+	_, err := h.telemetryService.QueryMetrics(c.Request.Context(), query)
 	return err == nil
 }
 

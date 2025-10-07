@@ -2,7 +2,11 @@ import { Monitor, Moon, Sun } from 'lucide-react';
 
 import { useTheme } from '@/components/ThemeProvider';
 
-export function ModeToggle() {
+interface ModeToggleProps {
+  iconOnly?: boolean;
+}
+
+export function ModeToggle({ iconOnly = false }: ModeToggleProps) {
   const { theme, setTheme } = useTheme();
 
   const cycleTheme = () => {
@@ -34,7 +38,7 @@ export function ModeToggle() {
       className="flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground rounded-sm transition-colors"
     >
       {getIcon()}
-      <span>Toggle theme</span>
+      {!iconOnly && <span>Toggle theme</span>}
     </button>
   );
 }

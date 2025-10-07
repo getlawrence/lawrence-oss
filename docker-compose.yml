@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   lawrence:
     build:
@@ -26,6 +24,42 @@ services:
       start_period: 40s
     networks:
       - lawrence-network
+
+  # Development UI server with hot-reloading
+  ui-dev:
+    image: node:20-alpine
+    container_name: lawrence-ui-dev
+    working_dir: /app
+    command: sh -c "npm install -g pnpm && pnpm install && pnpm dev --host"
+    ports:
+      - "5173:5173"    # Vite dev server
+    volumes:
+      - ./ui:/app
+      - /app/node_modules  # Prevent overwriting node_modules
+    environment:
+      - VITE_API_URL=http://localhost:8080
+    depends_on:
+      - lawrence
+    networks:
+      - lawrence-network
+    restart: unless-stopped
+
+  # Demo OpenTelemetry Collector with OpAMP support
+  demo-collector:
+    image: otel/opentelemetry-collector-contrib:0.134.1
+    container_name: demo-collector
+    command: ['--config', '/etc/otelcol-contrib/config.yaml']
+    ports:
+      - "4319:4317"    # OTLP gRPC receiver
+      - "4321:4318"    # OTLP HTTP receiver
+      - "13133:13133"  # Health check
+    volumes:
+      - ./collector/demo-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    depends_on:
+      - lawrence
+    networks:
+      - lawrence-network
+    restart: unless-stopped
 
   # Optional: Add a reverse proxy for production
   nginx:

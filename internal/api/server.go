@@ -8,41 +8,58 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 
 	"github.com/getlawrence/lawrence-oss/internal/api/handlers"
-	"github.com/getlawrence/lawrence-oss/internal/storage"
+	"github.com/getlawrence/lawrence-oss/internal/metrics"
+	"github.com/getlawrence/lawrence-oss/internal/services"
 )
 
 // Server represents the HTTP API server
 type Server struct {
-	router     *gin.Engine
-	storage    *storage.Container
-	logger     *zap.Logger
-	httpServer *http.Server
+	router           *gin.Engine
+	agentService     services.AgentService
+	telemetryService services.TelemetryQueryService
+	logger           *zap.Logger
+	httpServer       *http.Server
+	metrics          *metrics.APIMetrics
+	registry         *prometheus.Registry
 }
 
 // NewServer creates a new API server
-func NewServer(storage *storage.Container, logger *zap.Logger) *Server {
+func NewServer(agentService services.AgentService, telemetryService services.TelemetryQueryService, logger *zap.Logger) *Server {
 	// Set Gin to release mode for production
 	gin.SetMode(gin.ReleaseMode)
-	
+
 	router := gin.New()
-	
+
+	// Initialize metrics
+	registry := prometheus.NewRegistry()
+	metricsFactory := metrics.NewPrometheusFactory("lawrence", registry)
+	apiMetrics := metrics.NewAPIMetrics(metricsFactory)
+
 	// Add middleware
 	router.Use(gin.Recovery())
 	router.Use(corsMiddleware())
 	router.Use(loggingMiddleware(logger))
-	
+
 	server := &Server{
-		router:  router,
-		storage: storage,
-		logger:  logger,
+		router:           router,
+		agentService:     agentService,
+		telemetryService: telemetryService,
+		logger:           logger,
+		metrics:          apiMetrics,
+		registry:         registry,
 	}
-	
+
+	// Add metrics middleware
+	router.Use(server.metricsMiddleware())
+
 	// Register routes
 	server.registerRoutes()
-	
+
 	return server
 }
 
@@ -71,12 +88,15 @@ func (s *Server) Stop(ctx context.Context) error {
 // registerRoutes registers all API routes
 func (s *Server) registerRoutes() {
 	// Initialize handlers
-	agentHandlers := handlers.NewAgentHandlers(s.storage, s.logger)
-	configHandlers := handlers.NewConfigHandlers(s.storage, s.logger)
-	telemetryHandlers := handlers.NewTelemetryHandlers(s.storage, s.logger)
-	groupHandlers := handlers.NewGroupHandlers(s.storage, s.logger)
-	topologyHandlers := handlers.NewTopologyHandlers(s.storage, s.logger)
-	healthHandlers := handlers.NewHealthHandlers(s.storage, s.logger)
+	agentHandlers := handlers.NewAgentHandlers(s.agentService, s.logger)
+	configHandlers := handlers.NewConfigHandlers(s.agentService, s.logger)
+	telemetryHandlers := handlers.NewTelemetryHandlers(s.telemetryService, s.logger)
+	groupHandlers := handlers.NewGroupHandlers(s.agentService, s.logger)
+	topologyHandlers := handlers.NewTopologyHandlers(s.agentService, s.telemetryService, s.logger)
+	healthHandlers := handlers.NewHealthHandlers(s.agentService, s.telemetryService, s.logger)
+
+	// Metrics endpoint
+	s.router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(s.registry, promhttp.HandlerOpts{})))
 
 	// Health check
 	s.router.GET("/health", healthHandlers.HandleHealth)
@@ -182,4 +202,57 @@ func loggingMiddleware(logger *zap.Logger) gin.HandlerFunc {
 		)
 		return ""
 	})
+}
+
+// metricsMiddleware tracks request metrics
+func (s *Server) metricsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+
+		// Process request
+		c.Next()
+
+		// Track metrics
+		duration := time.Since(start)
+		s.metrics.RequestCount.Inc(1)
+		s.metrics.RequestDuration.Record(duration)
+
+		// Track errors
+		if c.Writer.Status() >= 400 {
+			s.metrics.RequestErrors.Inc(1)
+		}
+
+		// Track specific endpoint metrics
+		path := c.FullPath()
+		switch {
+		case path == "/health":
+			s.metrics.HealthCheckCount.Inc(1)
+		case path == "/api/v1/agents/:id":
+			s.metrics.AgentGetCount.Inc(1)
+		case path == "/api/v1/agents":
+			s.metrics.AgentListCount.Inc(1)
+		case path == "/api/v1/groups/:id":
+			s.metrics.GroupGetCount.Inc(1)
+		case path == "/api/v1/groups":
+			if c.Request.Method == "GET" {
+				s.metrics.GroupListCount.Inc(1)
+			} else if c.Request.Method == "POST" {
+				s.metrics.GroupCreateCount.Inc(1)
+			}
+		case path == "/api/v1/configs/:id":
+			s.metrics.ConfigGetCount.Inc(1)
+		case path == "/api/v1/configs":
+			if c.Request.Method == "GET" {
+				s.metrics.ConfigListCount.Inc(1)
+			} else if c.Request.Method == "POST" {
+				s.metrics.ConfigCreateCount.Inc(1)
+			}
+		case path == "/api/v1/telemetry/metrics/query":
+			s.metrics.TelemetryQueryCount.Inc(1)
+			s.metrics.TelemetryQueryDuration.Record(duration)
+		case path == "/api/v1/topology":
+			s.metrics.TopologyQueryCount.Inc(1)
+			s.metrics.TopologyQueryDuration.Record(duration)
+		}
+	}
 }

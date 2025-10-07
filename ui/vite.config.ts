@@ -15,6 +15,16 @@ export default defineConfig({
       usePolling: true,
       interval: 1000,
     },
+    proxy: {
+      '/api': {
+        target: 'http://lawrence:8080',
+        changeOrigin: true,
+      },
+      '/health': {
+        target: 'http://lawrence:8080',
+        changeOrigin: true,
+      },
+    },
   },
   optimizeDeps: {
     include: [

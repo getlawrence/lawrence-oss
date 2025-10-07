@@ -5,22 +5,23 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	"github.com/getlawrence/lawrence-oss/internal/storage"
+	"github.com/getlawrence/lawrence-oss/internal/services"
 )
 
 // TelemetryHandlers handles telemetry-related API endpoints
 type TelemetryHandlers struct {
-	storage *storage.Container
-	logger  *zap.Logger
+	telemetryService services.TelemetryQueryService
+	logger           *zap.Logger
 }
 
 // NewTelemetryHandlers creates a new telemetry handlers instance
-func NewTelemetryHandlers(storage *storage.Container, logger *zap.Logger) *TelemetryHandlers {
+func NewTelemetryHandlers(telemetryService services.TelemetryQueryService, logger *zap.Logger) *TelemetryHandlers {
 	return &TelemetryHandlers{
-		storage: storage,
-		logger:  logger,
+		telemetryService: telemetryService,
+		logger:           logger,
 	}
 }
 
@@ -89,38 +90,29 @@ func (h *TelemetryHandlers) HandleQueryMetrics(c *gin.Context) {
 		req.Limit = 10000
 	}
 
-	// Build query
-	query := `
-		SELECT timestamp, agent_id, group_id, service_name, metric_name, value, metric_attributes
-		FROM (
-			SELECT timestamp, agent_id, group_id, service_name, metric_name, value, metric_attributes FROM metrics_sum
-			UNION ALL
-			SELECT timestamp, agent_id, group_id, service_name, metric_name, value, metric_attributes FROM metrics_gauge
-		) AS all_metrics
-		WHERE timestamp >= ? AND timestamp <= ?
-	`
-	args := []interface{}{req.StartTime, req.EndTime}
-
+	// Convert agent ID from string to UUID
+	var agentID *uuid.UUID
 	if req.AgentID != nil {
-		query += ` AND agent_id = ?`
-		args = append(args, *req.AgentID)
+		parsedID, err := uuid.Parse(*req.AgentID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid agent ID format"})
+			return
+		}
+		agentID = &parsedID
 	}
 
-	if req.GroupID != nil {
-		query += ` AND group_id = ?`
-		args = append(args, *req.GroupID)
+	// Convert request to service query
+	query := services.MetricQuery{
+		AgentID:    agentID,
+		GroupID:    req.GroupID,
+		MetricName: req.MetricName,
+		StartTime:  req.StartTime,
+		EndTime:    req.EndTime,
+		Limit:      req.Limit,
 	}
 
-	if req.MetricName != nil {
-		query += ` AND metric_name = ?`
-		args = append(args, *req.MetricName)
-	}
-
-	query += ` ORDER BY timestamp DESC LIMIT ?`
-	args = append(args, req.Limit)
-
-	// Execute query
-	rows, err := h.storage.Telemetry.QueryRaw(c.Request.Context(), query, args...)
+	// Execute query through service
+	metrics, err := h.telemetryService.QueryMetrics(c.Request.Context(), query)
 	if err != nil {
 		h.logger.Error("Failed to query metrics", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query metrics"})
@@ -128,8 +120,8 @@ func (h *TelemetryHandlers) HandleQueryMetrics(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"metrics": rows,
-		"count":   len(rows),
+		"metrics": metrics,
+		"count":   len(metrics),
 	})
 }
 
@@ -149,39 +141,30 @@ func (h *TelemetryHandlers) HandleQueryLogs(c *gin.Context) {
 		req.Limit = 10000
 	}
 
-	// Build query
-	query := `
-		SELECT timestamp, agent_id, group_id, service_name, severity_text, severity_number, body, trace_id, span_id, log_attributes
-		FROM logs
-		WHERE timestamp >= ? AND timestamp <= ?
-	`
-	args := []interface{}{req.StartTime, req.EndTime}
-
+	// Convert agent ID from string to UUID
+	var agentID *uuid.UUID
 	if req.AgentID != nil {
-		query += ` AND agent_id = ?`
-		args = append(args, *req.AgentID)
+		parsedID, err := uuid.Parse(*req.AgentID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid agent ID format"})
+			return
+		}
+		agentID = &parsedID
 	}
 
-	if req.GroupID != nil {
-		query += ` AND group_id = ?`
-		args = append(args, *req.GroupID)
+	// Convert request to service query
+	query := services.LogQuery{
+		AgentID:   agentID,
+		GroupID:   req.GroupID,
+		Severity:  req.Severity,
+		Search:    req.Search,
+		StartTime: req.StartTime,
+		EndTime:   req.EndTime,
+		Limit:     req.Limit,
 	}
 
-	if req.Severity != nil {
-		query += ` AND severity_text = ?`
-		args = append(args, *req.Severity)
-	}
-
-	if req.Search != nil && *req.Search != "" {
-		query += ` AND body LIKE ?`
-		args = append(args, "%"+*req.Search+"%")
-	}
-
-	query += ` ORDER BY timestamp DESC LIMIT ?`
-	args = append(args, req.Limit)
-
-	// Execute query
-	rows, err := h.storage.Telemetry.QueryRaw(c.Request.Context(), query, args...)
+	// Execute query through service
+	logs, err := h.telemetryService.QueryLogs(c.Request.Context(), query)
 	if err != nil {
 		h.logger.Error("Failed to query logs", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query logs"})
@@ -189,8 +172,8 @@ func (h *TelemetryHandlers) HandleQueryLogs(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"logs":  rows,
-		"count": len(rows),
+		"logs":  logs,
+		"count": len(logs),
 	})
 }
 
@@ -210,40 +193,29 @@ func (h *TelemetryHandlers) HandleQueryTraces(c *gin.Context) {
 		req.Limit = 10000
 	}
 
-	// Build query
-	query := `
-		SELECT timestamp, agent_id, group_id, trace_id, span_id, parent_span_id,
-		       service_name, span_name, duration, status_code, span_attributes
-		FROM traces
-		WHERE timestamp >= ? AND timestamp <= ?
-	`
-	args := []interface{}{req.StartTime, req.EndTime}
-
+	// Convert agent ID from string to UUID
+	var agentID *uuid.UUID
 	if req.AgentID != nil {
-		query += ` AND agent_id = ?`
-		args = append(args, *req.AgentID)
+		parsedID, err := uuid.Parse(*req.AgentID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid agent ID format"})
+			return
+		}
+		agentID = &parsedID
 	}
 
-	if req.GroupID != nil {
-		query += ` AND group_id = ?`
-		args = append(args, *req.GroupID)
+	// Convert request to service query
+	query := services.TraceQuery{
+		AgentID:   agentID,
+		GroupID:   req.GroupID,
+		TraceID:   req.TraceID,
+		StartTime: req.StartTime,
+		EndTime:   req.EndTime,
+		Limit:     req.Limit,
 	}
 
-	if req.TraceID != nil {
-		query += ` AND trace_id = ?`
-		args = append(args, *req.TraceID)
-	}
-
-	if req.ServiceName != nil {
-		query += ` AND service_name = ?`
-		args = append(args, *req.ServiceName)
-	}
-
-	query += ` ORDER BY timestamp DESC LIMIT ?`
-	args = append(args, req.Limit)
-
-	// Execute query
-	rows, err := h.storage.Telemetry.QueryRaw(c.Request.Context(), query, args...)
+	// Execute query through service
+	traces, err := h.telemetryService.QueryTraces(c.Request.Context(), query)
 	if err != nil {
 		h.logger.Error("Failed to query traces", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query traces"})
@@ -251,8 +223,8 @@ func (h *TelemetryHandlers) HandleQueryTraces(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"traces": rows,
-		"count":  len(rows),
+		"traces": traces,
+		"count":  len(traces),
 	})
 }
 
@@ -260,72 +232,21 @@ func (h *TelemetryHandlers) HandleQueryTraces(c *gin.Context) {
 func (h *TelemetryHandlers) HandleGetTelemetryOverview(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// Get counts from DuckDB
-	var metricsCount, logsCount, tracesCount int64
-
-	// Count metrics
-	metricsQuery := `SELECT COUNT(*) FROM (SELECT 1 FROM metrics_sum UNION ALL SELECT 1 FROM metrics_gauge) AS all_metrics`
-	if rows, err := h.storage.Telemetry.QueryRaw(ctx, metricsQuery); err == nil && len(rows) > 0 {
-		if count, ok := rows[0]["count"].(int64); ok {
-			metricsCount = count
-		}
-	}
-
-	// Count logs
-	logsQuery := `SELECT COUNT(*) FROM logs`
-	if rows, err := h.storage.Telemetry.QueryRaw(ctx, logsQuery); err == nil && len(rows) > 0 {
-		if count, ok := rows[0]["count"].(int64); ok {
-			logsCount = count
-		}
-	}
-
-	// Count traces
-	tracesQuery := `SELECT COUNT(*) FROM traces`
-	if rows, err := h.storage.Telemetry.QueryRaw(ctx, tracesQuery); err == nil && len(rows) > 0 {
-		if count, ok := rows[0]["count"].(int64); ok {
-			tracesCount = count
-		}
-	}
-
-	// Get active agents count
-	agents, _ := h.storage.App.ListAgents(ctx)
-	activeAgents := 0
-	for _, agent := range agents {
-		if agent.Status == "online" {
-			activeAgents++
-		}
-	}
-
-	// Get unique services
-	servicesQuery := `
-		SELECT DISTINCT service_name FROM (
-			SELECT service_name FROM metrics_sum
-			UNION
-			SELECT service_name FROM metrics_gauge
-			UNION
-			SELECT service_name FROM logs
-			UNION
-			SELECT service_name FROM traces
-		) AS all_services
-		WHERE service_name IS NOT NULL
-		ORDER BY service_name
-	`
-	var services []string
-	if rows, err := h.storage.Telemetry.QueryRaw(ctx, servicesQuery); err == nil {
-		for _, row := range rows {
-			if svc, ok := row["service_name"].(string); ok && svc != "" {
-				services = append(services, svc)
-			}
-		}
+	// Get overview from service
+	overview, err := h.telemetryService.GetTelemetryOverview(ctx)
+	if err != nil {
+		h.logger.Error("Failed to get telemetry overview", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get telemetry overview"})
+		return
 	}
 
 	response := TelemetryOverviewResponse{
-		TotalMetrics: metricsCount,
-		TotalLogs:    logsCount,
-		TotalTraces:  tracesCount,
-		ActiveAgents: activeAgents,
-		Services:     services,
-		LastUpdated:  time.Now(),
+		TotalMetrics: overview.TotalMetrics,
+		TotalLogs:    overview.TotalLogs,
+		TotalTraces:  overview.TotalTraces,
+		ActiveAgents: overview.ActiveAgents,
+		Services:     overview.Services,
+		LastUpdated:  overview.LastUpdated,
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -335,33 +256,12 @@ func (h *TelemetryHandlers) HandleGetTelemetryOverview(c *gin.Context) {
 func (h *TelemetryHandlers) HandleGetServices(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// Get unique services from all telemetry tables
-	query := `
-		SELECT DISTINCT service_name FROM (
-			SELECT service_name FROM metrics_sum
-			UNION
-			SELECT service_name FROM metrics_gauge
-			UNION
-			SELECT service_name FROM logs
-			UNION
-			SELECT service_name FROM traces
-		) AS all_services
-		WHERE service_name IS NOT NULL AND service_name != ''
-		ORDER BY service_name
-	`
-
-	rows, err := h.storage.Telemetry.QueryRaw(ctx, query)
+	// Get services from service
+	services, err := h.telemetryService.GetServices(ctx)
 	if err != nil {
 		h.logger.Error("Failed to get services", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get services"})
 		return
-	}
-
-	var services []string
-	for _, row := range rows {
-		if svc, ok := row["service_name"].(string); ok && svc != "" {
-			services = append(services, svc)
-		}
 	}
 
 	response := ServicesResponse{

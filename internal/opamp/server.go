@@ -4,12 +4,16 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/open-telemetry/opamp-go/protobufs"
 	"github.com/open-telemetry/opamp-go/server"
 	"github.com/open-telemetry/opamp-go/server/types"
 	"go.uber.org/zap"
+
+	"github.com/getlawrence/lawrence-oss/internal/metrics"
+	"github.com/getlawrence/lawrence-oss/internal/services"
 )
 
 // DefaultOTelConfig provides the default OpenTelemetry Collector configuration
@@ -47,9 +51,11 @@ service:
 `
 
 type Server struct {
-	logger      *zap.Logger
-	opampServer server.OpAMPServer
-	agents      *Agents
+	logger        *zap.Logger
+	opampServer   server.OpAMPServer
+	agents        *Agents
+	agentService  services.AgentService
+	metrics       *metrics.OpAMPMetrics
 }
 
 // zapToOpAmpLogger adapts zap.Logger to opamp's logger interface
@@ -65,10 +71,12 @@ func (z *zapToOpAmpLogger) Errorf(ctx context.Context, format string, args ...in
 	z.Sugar().Errorf(format, args...)
 }
 
-func NewServer(agents *Agents, logger *zap.Logger) (*Server, error) {
+func NewServer(agents *Agents, agentService services.AgentService, metricsInstance *metrics.OpAMPMetrics, logger *zap.Logger) (*Server, error) {
 	s := &Server{
-		logger: logger,
-		agents: agents,
+		logger:       logger,
+		agents:       agents,
+		agentService: agentService,
+		metrics:      metricsInstance,
 	}
 
 	// Create the OpAMP server
@@ -80,10 +88,19 @@ func NewServer(agents *Agents, logger *zap.Logger) (*Server, error) {
 func (s *Server) Start(port int) error {
 	s.logger.Info("Starting OpAMP server...", zap.Int("port", port))
 
+	// Record server start time
+	if s.metrics != nil {
+		s.metrics.ServerStartTime.Update(time.Now().Unix())
+	}
+
 	settings := server.StartSettings{
 		Settings: server.Settings{
 			Callbacks: server.CallbacksStruct{
 				OnConnectingFunc: func(request *http.Request) types.ConnectionResponse {
+					// Track connection attempts
+					if s.metrics != nil {
+						s.metrics.AgentConnectionsTotal.Inc(1)
+					}
 					return types.ConnectionResponse{
 						Accept: true,
 						ConnectionCallbacks: server.ConnectionCallbacksStruct{
@@ -111,23 +128,90 @@ func (s *Server) Stop(ctx context.Context) error {
 }
 
 func (s *Server) onDisconnect(conn types.Connection) {
+	// Track disconnections
+	if s.metrics != nil {
+		s.metrics.AgentDisconnectsTotal.Inc(1)
+	}
+
+	// Get agents before removing connection
+	s.agents.mux.Lock()
+	agentsToMarkOffline := s.agents.connections[conn]
+	s.agents.mux.Unlock()
+
+	// Mark all agents on this connection as offline in storage
+	if s.agentService != nil {
+		ctx := context.Background()
+		for agentId := range agentsToMarkOffline {
+			if err := s.agentService.UpdateAgentStatus(ctx, agentId, services.AgentStatusOffline); err != nil {
+				s.logger.Error("Failed to mark agent offline on disconnect",
+					zap.String("agentId", agentId.String()),
+					zap.Error(err))
+			}
+		}
+	}
+
 	s.agents.RemoveConnection(conn)
+
+	// Update current connections gauge
+	if s.metrics != nil {
+		s.metrics.AgentConnections.Update(int64(len(s.agents.GetAllAgentsReadonlyClone())))
+	}
 }
 
 func (s *Server) onMessage(ctx context.Context, conn types.Connection, msg *protobufs.AgentToServer) *protobufs.ServerToAgent {
+	start := time.Now()
 	response := &protobufs.ServerToAgent{}
 	instanceId := uuid.UUID(msg.InstanceUid)
+
+	// Track message received
+	if s.metrics != nil {
+		s.metrics.MessagesReceived.Inc(1)
+	}
 
 	// Process the message
 	agent := s.agents.FindOrCreateAgent(instanceId, conn)
 	if agent == nil {
+		if s.metrics != nil {
+			s.metrics.MessageErrors.Inc(1)
+		}
 		return response
+	}
+
+	// Update connections gauge
+	if s.metrics != nil {
+		s.metrics.AgentConnections.Update(int64(len(s.agents.GetAllAgentsReadonlyClone())))
+	}
+
+	// Track status update if present
+	if msg.AgentDescription != nil || msg.RemoteConfigStatus != nil {
+		if s.metrics != nil {
+			s.metrics.StatusUpdateReceived.Inc(1)
+		}
+	}
+
+	// Track health report if present
+	if msg.Health != nil {
+		if s.metrics != nil {
+			s.metrics.HealthReportReceived.Inc(1)
+		}
 	}
 
 	// Process agent grouping if agent description changed
 	s.processAgentGrouping(ctx, agent, msg)
 
 	agent.UpdateStatus(msg, response)
+
+	// Persist agent to storage
+	if s.agentService != nil {
+		s.persistAgent(ctx, agent, msg)
+	}
+
+	// Track message sent
+	if s.metrics != nil {
+		s.metrics.MessagesSent.Inc(1)
+		s.metrics.MessageProcessDuration.Record(time.Since(start))
+	}
+
 	return response
 }
 
@@ -235,12 +319,12 @@ func (s *Server) extractGroupInfo(desc *protobufs.AgentDescription) (groupID str
 	// Look for group information in identifying or non-identifying attributes
 	attrs := append(desc.IdentifyingAttributes, desc.NonIdentifyingAttributes...)
 	for _, attr := range attrs {
-		if attr.Key == "group.id" || attr.Key == "service.group.id" {
+		if attr.Key == "group.id" || attr.Key == "service.group.id" || attr.Key == "agent.group_id" {
 			if attr.Value != nil && attr.Value.GetStringValue() != "" {
 				groupID = attr.Value.GetStringValue()
 			}
 		}
-		if attr.Key == "group.name" || attr.Key == "service.group.name" {
+		if attr.Key == "group.name" || attr.Key == "service.group.name" || attr.Key == "agent.group_name" {
 			if attr.Value != nil && attr.Value.GetStringValue() != "" {
 				groupName = attr.Value.GetStringValue()
 			}
@@ -259,4 +343,211 @@ func (s *Server) getConfigForAgent(ctx context.Context, agent *Agent) string {
 	s.logger.Debug("Using default config for agent",
 		zap.String("agentId", agent.InstanceIdStr))
 	return DefaultOTelConfig
+}
+
+// persistAgent persists agent information to storage
+func (s *Server) persistAgent(ctx context.Context, agent *Agent, msg *protobufs.AgentToServer) {
+	// Check if agent already exists in storage
+	existingAgent, err := s.agentService.GetAgent(ctx, agent.InstanceId)
+	if err != nil {
+		s.logger.Debug("Error checking existing agent",
+			zap.String("agentId", agent.InstanceIdStr),
+			zap.Error(err))
+	}
+
+	now := time.Now()
+
+	// Extract agent details
+	name := s.extractAgentName(msg.AgentDescription)
+	labels := s.extractAgentLabels(msg.AgentDescription)
+	version := s.extractAgentVersion(msg.AgentDescription)
+	capabilities := s.extractAgentCapabilities(msg.Capabilities)
+	status := s.determineAgentStatus(msg)
+
+	if existingAgent == nil {
+		// Auto-create group if it doesn't exist
+		if agent.GroupName != nil && *agent.GroupName != "" {
+			existingGroup, err := s.agentService.GetGroupByName(ctx, *agent.GroupName)
+			if err != nil {
+				s.logger.Debug("Error checking existing group",
+					zap.String("groupName", *agent.GroupName),
+					zap.Error(err))
+			}
+
+			if existingGroup == nil {
+				// Group doesn't exist, create it
+				newGroup := &services.Group{
+					ID:        uuid.New().String(),
+					Name:      *agent.GroupName,
+					Labels:    make(map[string]string),
+					CreatedAt: now,
+					UpdatedAt: now,
+				}
+
+				if err := s.agentService.CreateGroup(ctx, newGroup); err != nil {
+					s.logger.Error("Failed to auto-create group",
+						zap.String("groupName", *agent.GroupName),
+						zap.Error(err))
+				} else {
+					s.logger.Info("Auto-created group for agent",
+						zap.String("groupName", *agent.GroupName),
+						zap.String("groupId", newGroup.ID))
+					// Update agent's GroupID
+					agent.GroupID = &newGroup.ID
+				}
+			} else {
+				// Group exists, set GroupID
+				agent.GroupID = &existingGroup.ID
+			}
+		}
+
+		// Create new agent
+		serviceAgent := &services.Agent{
+			ID:           agent.InstanceId,
+			Name:         name,
+			Labels:       labels,
+			Status:       services.AgentStatus(status),
+			LastSeen:     now,
+			GroupID:      agent.GroupID,
+			GroupName:    agent.GroupName,
+			Version:      version,
+			Capabilities: capabilities,
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		}
+
+		if err := s.agentService.CreateAgent(ctx, serviceAgent); err != nil {
+			s.logger.Error("Failed to create agent in storage",
+				zap.String("agentId", agent.InstanceIdStr),
+				zap.Error(err))
+		} else {
+			s.logger.Info("Agent persisted to storage",
+				zap.String("agentId", agent.InstanceIdStr),
+				zap.String("name", name))
+		}
+	} else {
+		// Update existing agent
+		if err := s.agentService.UpdateAgentStatus(ctx, agent.InstanceId, services.AgentStatus(status)); err != nil {
+			s.logger.Error("Failed to update agent status",
+				zap.String("agentId", agent.InstanceIdStr),
+				zap.Error(err))
+		}
+
+		if err := s.agentService.UpdateAgentLastSeen(ctx, agent.InstanceId, now); err != nil {
+			s.logger.Error("Failed to update agent last seen",
+				zap.String("agentId", agent.InstanceIdStr),
+				zap.Error(err))
+		}
+	}
+}
+
+// extractAgentName extracts the agent name from agent description
+func (s *Server) extractAgentName(desc *protobufs.AgentDescription) string {
+	if desc == nil {
+		return "unknown"
+	}
+
+	// Look for service.name or agent.name
+	attrs := append(desc.IdentifyingAttributes, desc.NonIdentifyingAttributes...)
+	for _, attr := range attrs {
+		if attr.Key == "service.name" || attr.Key == "agent.name" {
+			if attr.Value != nil && attr.Value.GetStringValue() != "" {
+				return attr.Value.GetStringValue()
+			}
+		}
+	}
+
+	return "unknown"
+}
+
+// extractAgentLabels extracts labels from agent description
+func (s *Server) extractAgentLabels(desc *protobufs.AgentDescription) map[string]string {
+	labels := make(map[string]string)
+
+	if desc == nil {
+		return labels
+	}
+
+	// Extract all non-identifying attributes as labels
+	for _, attr := range desc.NonIdentifyingAttributes {
+		if attr.Value != nil {
+			labels[attr.Key] = attr.Value.GetStringValue()
+		}
+	}
+
+	return labels
+}
+
+// extractAgentVersion extracts version from agent description
+func (s *Server) extractAgentVersion(desc *protobufs.AgentDescription) string {
+	if desc == nil {
+		return "unknown"
+	}
+
+	// Look for service.version or agent.version
+	attrs := append(desc.IdentifyingAttributes, desc.NonIdentifyingAttributes...)
+	for _, attr := range attrs {
+		if attr.Key == "service.version" || attr.Key == "agent.version" {
+			if attr.Value != nil && attr.Value.GetStringValue() != "" {
+				return attr.Value.GetStringValue()
+			}
+		}
+	}
+
+	return "unknown"
+}
+
+// extractAgentCapabilities extracts capabilities from OpAMP message
+func (s *Server) extractAgentCapabilities(caps uint64) []string {
+	capabilities := []string{}
+
+	// Map OpAMP capabilities to strings
+	if caps&uint64(protobufs.AgentCapabilities_AgentCapabilities_ReportsStatus) != 0 {
+		capabilities = append(capabilities, "reports_status")
+	}
+	if caps&uint64(protobufs.AgentCapabilities_AgentCapabilities_AcceptsRemoteConfig) != 0 {
+		capabilities = append(capabilities, "accepts_remote_config")
+	}
+	if caps&uint64(protobufs.AgentCapabilities_AgentCapabilities_ReportsEffectiveConfig) != 0 {
+		capabilities = append(capabilities, "reports_effective_config")
+	}
+	if caps&uint64(protobufs.AgentCapabilities_AgentCapabilities_ReportsOwnTraces) != 0 {
+		capabilities = append(capabilities, "reports_own_traces")
+	}
+	if caps&uint64(protobufs.AgentCapabilities_AgentCapabilities_ReportsOwnMetrics) != 0 {
+		capabilities = append(capabilities, "reports_own_metrics")
+	}
+	if caps&uint64(protobufs.AgentCapabilities_AgentCapabilities_ReportsOwnLogs) != 0 {
+		capabilities = append(capabilities, "reports_own_logs")
+	}
+	if caps&uint64(protobufs.AgentCapabilities_AgentCapabilities_AcceptsPackages) != 0 {
+		capabilities = append(capabilities, "accepts_packages")
+	}
+	if caps&uint64(protobufs.AgentCapabilities_AgentCapabilities_ReportsPackageStatuses) != 0 {
+		capabilities = append(capabilities, "reports_package_statuses")
+	}
+	if caps&uint64(protobufs.AgentCapabilities_AgentCapabilities_ReportsHealth) != 0 {
+		capabilities = append(capabilities, "reports_health")
+	}
+	if caps&uint64(protobufs.AgentCapabilities_AgentCapabilities_ReportsRemoteConfig) != 0 {
+		capabilities = append(capabilities, "reports_remote_config")
+	}
+
+	return capabilities
+}
+
+// determineAgentStatus determines agent status from OpAMP message
+func (s *Server) determineAgentStatus(msg *protobufs.AgentToServer) services.AgentStatus {
+	// If we're receiving a message, the agent is connected
+	// Check health status if provided
+	if msg.Health != nil {
+		if msg.Health.Healthy {
+			return services.AgentStatusOnline
+		}
+		return services.AgentStatusError
+	}
+
+	// No health info means agent is connected but not reporting health
+	// This is normal for initial connections, so mark as online
+	return services.AgentStatusOnline
 }

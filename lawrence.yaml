@@ -26,5 +26,5 @@ rollups:
   interval_5m: "*/5 * * * *"
 
 logging:
-  level: info
+  level: debug
   format: json

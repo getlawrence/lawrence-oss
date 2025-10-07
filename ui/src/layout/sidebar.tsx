@@ -1,5 +1,4 @@
 import {
-  Settings,
   Server,
   Users,
   FileText,
@@ -7,19 +6,11 @@ import {
   GitBranch,
   Edit3,
   Sparkle,
-  ChevronDown,
 } from 'lucide-react';
 import * as React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 import { ModeToggle } from './mode-toggle';
-
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
   Sidebar,
   SidebarContent,
@@ -135,40 +126,7 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-border">
         <SidebarMenu>
           <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton>
-                  {state === 'expanded' ? (
-                    <>
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <div className="w-5 h-5 bg-muted rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-medium">L</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="truncate text-sm font-medium">Lawrence OSS</div>
-                          <div className="truncate text-xs text-muted-foreground">
-                            Version 1.0.0
-                          </div>
-                        </div>
-                      </div>
-                      <ChevronDown className="ml-auto" />
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
-                        <span className="text-xs font-medium text-primary">L</span>
-                      </div>
-                      <ChevronDown className="ml-auto" />
-                    </>
-                  )}
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-[calc(var(--radix-popper-anchor-width)-1rem)]">
-                <DropdownMenuItem asChild>
-                  <ModeToggle />
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <ModeToggle iconOnly={state === 'collapsed'} />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

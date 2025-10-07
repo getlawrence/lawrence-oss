@@ -9,21 +9,22 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	"github.com/getlawrence/lawrence-oss/internal/storage"
-	"github.com/getlawrence/lawrence-oss/internal/storage/interfaces"
+	"github.com/getlawrence/lawrence-oss/internal/services"
 )
 
 // TopologyHandlers handles topology-related API endpoints
 type TopologyHandlers struct {
-	storage *storage.Container
-	logger  *zap.Logger
+	agentService     services.AgentService
+	telemetryService services.TelemetryQueryService
+	logger           *zap.Logger
 }
 
 // NewTopologyHandlers creates a new topology handlers instance
-func NewTopologyHandlers(storage *storage.Container, logger *zap.Logger) *TopologyHandlers {
+func NewTopologyHandlers(agentService services.AgentService, telemetryService services.TelemetryQueryService, logger *zap.Logger) *TopologyHandlers {
 	return &TopologyHandlers{
-		storage: storage,
-		logger:  logger,
+		agentService:     agentService,
+		telemetryService: telemetryService,
+		logger:           logger,
 	}
 }
 
@@ -89,7 +90,7 @@ func (h *TopologyHandlers) HandleGetTopology(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get all agents
-	agents, err := h.storage.App.ListAgents(ctx)
+	agents, err := h.agentService.ListAgents(ctx)
 	if err != nil {
 		h.logger.Error("Failed to get agents for topology", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch topology"})
@@ -97,7 +98,7 @@ func (h *TopologyHandlers) HandleGetTopology(c *gin.Context) {
 	}
 
 	// Get all groups
-	groups, err := h.storage.App.ListGroups(ctx)
+	groups, err := h.agentService.ListGroups(ctx)
 	if err != nil {
 		h.logger.Error("Failed to get groups for topology", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch topology"})
@@ -190,7 +191,7 @@ func (h *TopologyHandlers) HandleGetTopology(c *gin.Context) {
 		ORDER BY service_name
 	`
 	var services []string
-	if rows, err := h.storage.Telemetry.QueryRaw(ctx, servicesQuery); err == nil {
+	if rows, err := h.telemetryService.QueryRaw(ctx, servicesQuery); err == nil {
 		for _, row := range rows {
 			if svc, ok := row["service_name"].(string); ok && svc != "" {
 				services = append(services, svc)
@@ -226,7 +227,7 @@ func (h *TopologyHandlers) HandleGetAgentTopology(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get agent
-	agent, err := h.storage.App.GetAgent(ctx, agentID)
+	agent, err := h.agentService.GetAgent(ctx, agentID)
 	if err != nil {
 		h.logger.Error("Failed to get agent", zap.String("agent_id", agentIDStr), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch agent"})
@@ -242,7 +243,7 @@ func (h *TopologyHandlers) HandleGetAgentTopology(c *gin.Context) {
 	metrics := h.getAgentMetrics(ctx, agentID)
 
 	// Get pipeline info (from config if available)
-	config, _ := h.storage.App.GetLatestConfigForAgent(ctx, agentID)
+	config, _ := h.agentService.GetLatestConfigForAgent(ctx, agentID)
 	var pipelineInfo map[string]interface{}
 	if config != nil {
 		pipelineInfo = map[string]interface{}{
@@ -272,7 +273,7 @@ func (h *TopologyHandlers) HandleGetGroupTopology(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Get group
-	group, err := h.storage.App.GetGroup(ctx, groupID)
+	group, err := h.agentService.GetGroup(ctx, groupID)
 	if err != nil {
 		h.logger.Error("Failed to get group", zap.String("group_id", groupID), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch group"})
@@ -285,14 +286,14 @@ func (h *TopologyHandlers) HandleGetGroupTopology(c *gin.Context) {
 	}
 
 	// Get all agents in this group
-	allAgents, err := h.storage.App.ListAgents(ctx)
+	allAgents, err := h.agentService.ListAgents(ctx)
 	if err != nil {
 		h.logger.Error("Failed to get agents", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch agents"})
 		return
 	}
 
-	var groupAgents []*interfaces.Agent
+	var groupAgents []*services.Agent
 	for _, agent := range allAgents {
 		if agent.GroupID != nil && *agent.GroupID == groupID {
 			groupAgents = append(groupAgents, agent)
@@ -311,7 +312,7 @@ func (h *TopologyHandlers) HandleGetGroupTopology(c *gin.Context) {
 		) AS all_metrics
 	`
 	var metricCount int64
-	if rows, err := h.storage.Telemetry.QueryRaw(ctx, metricsQuery, groupID, startTime, endTime, groupID, startTime, endTime); err == nil && len(rows) > 0 {
+	if rows, err := h.telemetryService.QueryRaw(ctx, metricsQuery, groupID, startTime, endTime, groupID, startTime, endTime); err == nil && len(rows) > 0 {
 		if count, ok := rows[0]["count"].(int64); ok {
 			metricCount = count
 		}
@@ -342,7 +343,7 @@ func (h *TopologyHandlers) getAgentMetrics(ctx context.Context, agentID uuid.UUI
 	`
 	var metricCount int64
 	agentIDStr := agentID.String()
-	if rows, err := h.storage.Telemetry.QueryRaw(ctx, metricsQuery, agentIDStr, startTime, endTime, agentIDStr, startTime, endTime); err == nil && len(rows) > 0 {
+	if rows, err := h.telemetryService.QueryRaw(ctx, metricsQuery, agentIDStr, startTime, endTime, agentIDStr, startTime, endTime); err == nil && len(rows) > 0 {
 		if count, ok := rows[0]["count"].(int64); ok {
 			metricCount = count
 		}
@@ -351,7 +352,7 @@ func (h *TopologyHandlers) getAgentMetrics(ctx context.Context, agentID uuid.UUI
 	// Count logs
 	logsQuery := `SELECT COUNT(*) as count FROM logs WHERE agent_id = ? AND timestamp >= ? AND timestamp <= ?`
 	var logCount int64
-	if rows, err := h.storage.Telemetry.QueryRaw(ctx, logsQuery, agentIDStr, startTime, endTime); err == nil && len(rows) > 0 {
+	if rows, err := h.telemetryService.QueryRaw(ctx, logsQuery, agentIDStr, startTime, endTime); err == nil && len(rows) > 0 {
 		if count, ok := rows[0]["count"].(int64); ok {
 			logCount = count
 		}
@@ -360,7 +361,7 @@ func (h *TopologyHandlers) getAgentMetrics(ctx context.Context, agentID uuid.UUI
 	// Count traces
 	tracesQuery := `SELECT COUNT(*) as count FROM traces WHERE agent_id = ? AND timestamp >= ? AND timestamp <= ?`
 	var traceCount int64
-	if rows, err := h.storage.Telemetry.QueryRaw(ctx, tracesQuery, agentIDStr, startTime, endTime); err == nil && len(rows) > 0 {
+	if rows, err := h.telemetryService.QueryRaw(ctx, tracesQuery, agentIDStr, startTime, endTime); err == nil && len(rows) > 0 {
 		if count, ok := rows[0]["count"].(int64); ok {
 			traceCount = count
 		}

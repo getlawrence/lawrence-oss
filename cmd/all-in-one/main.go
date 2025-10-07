@@ -9,14 +9,17 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
 	"github.com/getlawrence/lawrence-oss/internal/api"
 	"github.com/getlawrence/lawrence-oss/internal/app"
+	"github.com/getlawrence/lawrence-oss/internal/metrics"
 	"github.com/getlawrence/lawrence-oss/internal/opamp"
 	"github.com/getlawrence/lawrence-oss/internal/otlp/receiver"
+	"github.com/getlawrence/lawrence-oss/internal/services"
 	"github.com/getlawrence/lawrence-oss/internal/storage"
 	"github.com/getlawrence/lawrence-oss/internal/utils"
 )
@@ -77,34 +80,46 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 		zap.String("version", version),
 		zap.String("config", configPath))
 
-	// Initialize storage container
+	// Initialize storage factories
 	logger.Info("Initializing storage layer")
-	storageContainer, err := storage.NewContainer(
-		config.Storage.App.Path,
-		config.Storage.Telemetry.Path,
-		logger,
-	)
+
+	// Create application store
+	appStoreFactory := storage.NewSQLiteApplicationStoreFactory(config.Storage.App.Path, logger)
+	appStore, err := appStoreFactory.CreateApplicationStore()
 	if err != nil {
-		logger.Fatal("Failed to initialize storage", zap.Error(err))
-	}
-	defer storageContainer.Close()
-
-	// Create telemetry writer for OTLP receivers
-	writer := storageContainer.GetTelemetryWriter()
-	if writer == nil {
-		logger.Fatal("Failed to get telemetry writer from storage container")
+		logger.Fatal("Failed to create application store", zap.Error(err))
 	}
 
-	// Cast to the correct type
-	telemetryWriter, ok := writer.(receiver.TelemetryWriter)
-	if !ok {
-		logger.Fatal("Telemetry writer does not implement TelemetryWriter interface")
+	// Create telemetry store
+	telemetryStoreFactory := storage.NewDuckDBTelemetryStoreFactory(config.Storage.Telemetry.Path, logger)
+	telemetryReader, err := telemetryStoreFactory.CreateTelemetryReader()
+	if err != nil {
+		logger.Fatal("Failed to create telemetry reader", zap.Error(err))
 	}
+
+	// Create writer adapter for OTLP receivers (handles both sync and async writes)
+	writerAdapter := telemetryStoreFactory.CreateWriterAdapter()
+
+	// Initialize metrics
+	logger.Info("Initializing metrics")
+	registry := prometheus.NewRegistry()
+	metricsFactory := metrics.NewPrometheusFactory("lawrence", registry)
+	opampMetrics := metrics.NewOpAMPMetrics(metricsFactory)
+	otlpMetrics := metrics.NewOTLPMetrics(metricsFactory)
+
+	// Initialize service layer
+	logger.Info("Initializing service layer")
+
+	// Create agent service
+	agentService := services.NewAgentService(appStore, logger)
+
+	// Create telemetry query service
+	telemetryService := services.NewTelemetryQueryService(telemetryReader, agentService, logger)
 
 	// Initialize OpAMP server
 	logger.Info("Initializing OpAMP server")
 	agents := opamp.NewAgents(logger)
-	opampServer, err := opamp.NewServer(agents, logger)
+	opampServer, err := opamp.NewServer(agents, agentService, opampMetrics, logger)
 	if err != nil {
 		logger.Fatal("Failed to create OpAMP server", zap.Error(err))
 	}
@@ -118,7 +133,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	}()
 
 	// Initialize OTLP receivers
-	grpcServer, err := receiver.NewGRPCServer(4317, telemetryWriter, logger)
+	grpcServer, err := receiver.NewGRPCServer(4317, writerAdapter, writerAdapter, otlpMetrics, logger)
 	if err != nil {
 		logger.Fatal("Failed to create gRPC server", zap.Error(err))
 	}
@@ -131,7 +146,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 		grpcServer.Stop(ctx)
 	}()
 
-	httpServer, err := receiver.NewHTTPServer(4318, telemetryWriter, logger)
+	httpServer, err := receiver.NewHTTPServer(4318, writerAdapter, writerAdapter, otlpMetrics, logger)
 	if err != nil {
 		logger.Fatal("Failed to create HTTP server", zap.Error(err))
 	}
@@ -146,7 +161,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 
 	// Initialize HTTP API server
 	logger.Info("Initializing HTTP API server")
-	apiServer := api.NewServer(storageContainer, logger)
+	apiServer := api.NewServer(agentService, telemetryService, logger)
 
 	// Start API server in a goroutine
 	go func() {
@@ -161,8 +176,8 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	}()
 
 	// Start background services
-	go startRollupGenerator(storageContainer, config, logger)
-	go startCleanupTask(storageContainer, config, logger)
+	go startRollupGenerator(telemetryService, config, logger)
+	go startCleanupTask(telemetryService, config, logger)
 
 	logger.Info("Lawrence OSS is running",
 		zap.Int("opamp_port", config.Server.OpAMPPort),
@@ -234,7 +249,7 @@ func configCommand() *cobra.Command {
 }
 
 // startRollupGenerator periodically generates rollups for metrics
-func startRollupGenerator(container *storage.Container, config *app.Config, logger *zap.Logger) {
+func startRollupGenerator(telemetryService services.TelemetryQueryService, config *app.Config, logger *zap.Logger) {
 	if !config.Rollups.Enabled {
 		logger.Info("Rollup generation is disabled")
 		return
@@ -249,18 +264,18 @@ func startRollupGenerator(container *storage.Container, config *app.Config, logg
 		now := time.Now()
 
 		// Generate rollups based on time intervals
-		if err := generateRollup(ctx, container, "1m", now, logger); err != nil {
+		if err := generateRollup(ctx, telemetryService, "1m", now, logger); err != nil {
 			logger.Error("Failed to generate 1m rollup", zap.Error(err))
 		}
 
 		if now.Minute()%5 == 0 {
-			if err := generateRollup(ctx, container, "5m", now, logger); err != nil {
+			if err := generateRollup(ctx, telemetryService, "5m", now, logger); err != nil {
 				logger.Error("Failed to generate 5m rollup", zap.Error(err))
 			}
 		}
 
 		if now.Minute() == 0 {
-			if err := generateRollup(ctx, container, "1h", now, logger); err != nil {
+			if err := generateRollup(ctx, telemetryService, "1h", now, logger); err != nil {
 				logger.Error("Failed to generate 1h rollup", zap.Error(err))
 			}
 		}
@@ -268,14 +283,14 @@ func startRollupGenerator(container *storage.Container, config *app.Config, logg
 }
 
 // generateRollup generates a single rollup for the given interval
-func generateRollup(ctx context.Context, container *storage.Container, interval string, now time.Time, logger *zap.Logger) error {
+func generateRollup(ctx context.Context, telemetryService services.TelemetryQueryService, interval string, now time.Time, logger *zap.Logger) error {
 	// TODO: Implement rollup generation
 	logger.Debug("Generating rollup", zap.String("interval", interval))
 	return nil
 }
 
 // startCleanupTask periodically cleans up old data
-func startCleanupTask(container *storage.Container, config *app.Config, logger *zap.Logger) {
+func startCleanupTask(telemetryService services.TelemetryQueryService, config *app.Config, logger *zap.Logger) {
 	logger.Info("Starting cleanup task")
 	ticker := time.NewTicker(1 * time.Hour)
 	defer ticker.Stop()
@@ -284,7 +299,7 @@ func startCleanupTask(container *storage.Container, config *app.Config, logger *
 		ctx := context.Background()
 		retention := 24 * time.Hour // TODO: Parse from config
 
-		if err := container.Telemetry.CleanupOldData(ctx, retention); err != nil {
+		if err := telemetryService.CleanupOldData(ctx, retention); err != nil {
 			logger.Error("Failed to cleanup old telemetry data", zap.Error(err))
 		} else {
 			logger.Debug("Cleaned up old telemetry data", zap.Duration("retention", retention))

@@ -53,7 +53,7 @@ export function AgentDetailsDrawer({ agentId, open, onOpenChange }: AgentDetails
         end_time: endTime.toISOString(),
         limit: 100,
       });
-      setMetricsData(result.metrics);
+      setMetricsData(result.metrics || []);
       return result;
     }
   );
@@ -72,7 +72,7 @@ export function AgentDetailsDrawer({ agentId, open, onOpenChange }: AgentDetails
         end_time: endTime.toISOString(),
         limit: 100,
       });
-      setLogsData(result.logs);
+      setLogsData(result.logs || []);
       return result;
     }
   );
@@ -94,7 +94,8 @@ export function AgentDetailsDrawer({ agentId, open, onOpenChange }: AgentDetails
     }
   };
 
-  const getSeverityColor = (severity: string) => {
+  const getSeverityColor = (severity?: string) => {
+    if (!severity) return 'text-gray-600 bg-gray-50';
     switch (severity.toUpperCase()) {
       case 'ERROR':
       case 'FATAL':
@@ -112,7 +113,7 @@ export function AgentDetailsDrawer({ agentId, open, onOpenChange }: AgentDetails
 
   // Prepare chart data for metrics
   const chartData = useMemo(() => {
-    if (!metricsData.length) return [];
+    if (!metricsData || !metricsData.length) return [];
 
     // Group by timestamp and aggregate
     const grouped = metricsData.reduce((acc, metric) => {
@@ -292,7 +293,7 @@ export function AgentDetailsDrawer({ agentId, open, onOpenChange }: AgentDetails
                       <div key={idx} className="py-3 border-b last:border-0">
                         <div className="flex items-start gap-2">
                           <Badge className={`text-xs ${getSeverityColor(log.severity_text)}`}>
-                            {log.severity_text}
+                            {log.severity_text || 'UNKNOWN'}
                           </Badge>
                           <div className="flex-1 text-sm">
                             <div className="font-mono text-xs break-all">{log.body}</div>

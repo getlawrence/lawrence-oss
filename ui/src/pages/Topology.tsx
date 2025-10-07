@@ -3,8 +3,6 @@ import useSWR from 'swr';
 import {
   ReactFlow,
   Background,
-  Controls,
-  MiniMap,
   type Node,
   type Edge,
   useNodesState,
@@ -13,12 +11,13 @@ import {
   Position,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RefreshCw, Server, Users, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { getTopology } from '@/api/topology';
 import { AgentDetailsDrawer } from '@/components/AgentDetailsDrawer';
+import { DisplaySidebar } from '@/components/topology/DisplaySidebar';
 
 // Custom Node Component for Agents
 const AgentNode = ({ data }: { data: any }) => {
@@ -84,6 +83,7 @@ export default function TopologyPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [topologyLevel, setTopologyLevel] = useState<'instance' | 'group'>('instance');
 
   const { data: topologyData, error, mutate } = useSWR(
     'topology',
@@ -107,6 +107,26 @@ export default function TopologyPage() {
     const groupNodes = nodes.filter(n => n.type === 'group');
 
     const flowNodes: Node[] = [];
+
+    // Filter nodes based on topology level
+    if (topologyLevel === 'group') {
+      // Only show group nodes
+      groupNodes.forEach((node, idx) => {
+        flowNodes.push({
+          id: node.id,
+          type: 'group',
+          data: {
+            name: node.name,
+            status: node.status,
+            agent_count: topologyData.groups?.find(g => g.id === node.id.replace('group-', ''))?.agent_count || 0,
+          },
+          position: { x: idx * 300 + 50, y: 150 },
+          sourcePosition: Position.Bottom,
+          targetPosition: Position.Top,
+        });
+      });
+      return flowNodes;
+    }
 
     // Position groups in top row
     groupNodes.forEach((node, idx) => {
@@ -147,12 +167,22 @@ export default function TopologyPage() {
     });
 
     return flowNodes;
-  }, [topologyData]);
+  }, [topologyData, topologyLevel]);
 
   const initialEdges: Edge[] = useMemo(() => {
     if (!topologyData?.edges || !Array.isArray(topologyData.edges)) return [];
 
-    return topologyData.edges.map((edge, idx) => ({
+    // Filter edges based on topology level
+    const filteredEdges = topologyData.edges.filter(edge => {
+      if (topologyLevel === 'group') {
+        // Only show edges between groups
+        return edge.source.startsWith('group-') && edge.target.startsWith('group-');
+      }
+      // Instance level: show all edges
+      return true;
+    });
+
+    return filteredEdges.map((edge, idx) => ({
       id: `edge-${idx}`,
       source: edge.source,
       target: edge.target,
@@ -168,7 +198,7 @@ export default function TopologyPage() {
         strokeWidth: 2,
       },
     }));
-  }, [topologyData]);
+  }, [topologyData, topologyLevel]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -203,108 +233,65 @@ export default function TopologyPage() {
     );
   }
 
-  const stats = topologyData && topologyData.nodes && Array.isArray(topologyData.nodes)
-    ? {
-        totalAgents: topologyData.nodes.filter(n => n.type === 'agent').length,
-        totalGroups: topologyData.nodes.filter(n => n.type === 'group').length,
-        onlineAgents: topologyData.nodes.filter(n => n.type === 'agent' && n.status === 'online').length,
-        services: topologyData.services && Array.isArray(topologyData.services) ? topologyData.services.length : 0,
-      }
-    : { totalAgents: 0, totalGroups: 0, onlineAgents: 0, services: 0 };
+  const handleNodeSelect = (node: { id: string; type: 'group' | 'agent'; name: string; data: any }) => {
+    if (node.type === 'agent') {
+      setSelectedAgentId(node.id);
+      setDrawerOpen(true);
+    }
+  };
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="h-full w-full flex flex-col -m-4">
       {/* Header */}
-      <div className="border-b bg-white p-4">
-        <div className="container mx-auto flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">Topology</h1>
-            <p className="text-gray-600">Visualize your agent infrastructure</p>
-          </div>
-          <Button onClick={handleRefresh} disabled={refreshing}>
+      <div className="h-16 border-b bg-white px-4 flex items-center justify-between flex-shrink-0">
+        <div>
+          <h1 className="text-2xl font-bold">Topology</h1>
+          <p className="text-sm text-gray-600">Visualize your agent infrastructure</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Tabs value={topologyLevel} onValueChange={(value) => setTopologyLevel(value as 'instance' | 'group')}>
+            <TabsList>
+              <TabsTrigger value="instance">Instance</TabsTrigger>
+              <TabsTrigger value="group">Group</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Button onClick={handleRefresh} disabled={refreshing} size="sm">
             <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>
       </div>
 
-      {/* Stats Bar */}
-      <div className="border-b bg-gray-50 p-4">
-        <div className="container mx-auto grid grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Agents</CardTitle>
-              <Server className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalAgents}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Online</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.onlineAgents}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Groups</CardTitle>
-              <Users className="h-4 w-4 text-purple-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">{stats.totalGroups}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Services</CardTitle>
-              <Server className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{stats.services}</div>
-            </CardContent>
-          </Card>
+      <div className="flex-1 flex min-h-0">
+        {/* Display Sidebar */}
+        <DisplaySidebar onNodeSelect={handleNodeSelect} className="w-80 flex-shrink-0" />
+
+        {/* Main Content - Topology Canvas */}
+        <div className="flex-1 relative bg-gray-100">
+          {topologyData && (
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onNodeClick={onNodeClick}
+              nodeTypes={nodeTypes}
+              fitView
+              minZoom={0.2}
+              maxZoom={2}
+            >
+              <Background />
+            </ReactFlow>
+          )}
         </div>
-      </div>
 
-      {/* Topology Canvas */}
-      <div className="flex-1 bg-gray-100">
-        {topologyData && (
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onNodeClick={onNodeClick}
-            nodeTypes={nodeTypes}
-            fitView
-            minZoom={0.2}
-            maxZoom={2}
-          >
-            <Background />
-            <Controls />
-            <MiniMap
-              nodeColor={(node) => {
-                if (node.type === 'group') return '#a855f7';
-                if (node.data.status === 'online') return '#22c55e';
-                if (node.data.status === 'offline') return '#9ca3af';
-                return '#ef4444';
-              }}
-              maskColor="rgba(0, 0, 0, 0.1)"
-            />
-          </ReactFlow>
-        )}
+        {/* Agent Details Drawer */}
+        <AgentDetailsDrawer
+          agentId={selectedAgentId}
+          open={drawerOpen}
+          onOpenChange={setDrawerOpen}
+        />
       </div>
-
-      {/* Agent Details Drawer */}
-      <AgentDetailsDrawer
-        agentId={selectedAgentId}
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-      />
     </div>
   );
 }

@@ -14,21 +14,20 @@ import (
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 
-	"github.com/getlawrence/lawrence-oss/internal/storage"
-	"github.com/getlawrence/lawrence-oss/internal/storage/interfaces"
+	"github.com/getlawrence/lawrence-oss/internal/services"
 )
 
 // ConfigHandlers handles config-related API endpoints
 type ConfigHandlers struct {
-	storage *storage.Container
-	logger  *zap.Logger
+	agentService services.AgentService
+	logger       *zap.Logger
 }
 
 // NewConfigHandlers creates a new config handlers instance
-func NewConfigHandlers(storage *storage.Container, logger *zap.Logger) *ConfigHandlers {
+func NewConfigHandlers(agentService services.AgentService, logger *zap.Logger) *ConfigHandlers {
 	return &ConfigHandlers{
-		storage: storage,
-		logger:  logger,
+		agentService: agentService,
+		logger:       logger,
 	}
 }
 
@@ -84,14 +83,14 @@ func (h *ConfigHandlers) HandleGetConfigs(c *gin.Context) {
 	}
 
 	// Build filter
-	filter := interfaces.ConfigFilter{
+	filter := services.ConfigFilter{
 		AgentID: agentUUID,
 		GroupID: groupID,
 		Limit:   limit,
 	}
 
-	// Get configs from storage
-	configs, err := h.storage.App.ListConfigs(c.Request.Context(), filter)
+	// Get configs from service
+	configs, err := h.agentService.ListConfigs(c.Request.Context(), filter)
 	if err != nil {
 		h.logger.Error("Failed to get configs", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch configs"})
@@ -116,7 +115,7 @@ func (h *ConfigHandlers) HandleCreateConfig(c *gin.Context) {
 	configID := uuid.New().String()
 
 	// Create config
-	config := &interfaces.Config{
+	config := &services.Config{
 		ID:         configID,
 		AgentID:    req.AgentID,
 		GroupID:    req.GroupID,
@@ -126,8 +125,8 @@ func (h *ConfigHandlers) HandleCreateConfig(c *gin.Context) {
 		CreatedAt:  time.Now(),
 	}
 
-	// Save config to storage
-	err := h.storage.App.CreateConfig(c.Request.Context(), config)
+	// Save config to service
+	err := h.agentService.CreateConfig(c.Request.Context(), config)
 	if err != nil {
 		h.logger.Error("Failed to create config", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create config"})
@@ -145,8 +144,8 @@ func (h *ConfigHandlers) HandleGetConfig(c *gin.Context) {
 		return
 	}
 
-	// Get config from storage
-	config, err := h.storage.App.GetConfig(c.Request.Context(), configID)
+	// Get config from service
+	config, err := h.agentService.GetConfig(c.Request.Context(), configID)
 	if err != nil {
 		h.logger.Error("Failed to get config", zap.String("config_id", configID), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch config"})
@@ -176,7 +175,7 @@ func (h *ConfigHandlers) HandleUpdateConfig(c *gin.Context) {
 	}
 
 	// Get existing config
-	existingConfig, err := h.storage.App.GetConfig(c.Request.Context(), configID)
+	existingConfig, err := h.agentService.GetConfig(c.Request.Context(), configID)
 	if err != nil {
 		h.logger.Error("Failed to get config", zap.String("config_id", configID), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch config"})
@@ -198,7 +197,7 @@ func (h *ConfigHandlers) HandleUpdateConfig(c *gin.Context) {
 	newConfigID := uuid.New().String()
 	configHash := hashConfig(req.Content)
 
-	newConfig := &interfaces.Config{
+	newConfig := &services.Config{
 		ID:         newConfigID,
 		AgentID:    existingConfig.AgentID,
 		GroupID:    existingConfig.GroupID,
@@ -209,7 +208,7 @@ func (h *ConfigHandlers) HandleUpdateConfig(c *gin.Context) {
 	}
 
 	// Save new config version
-	err = h.storage.App.CreateConfig(c.Request.Context(), newConfig)
+	err = h.agentService.CreateConfig(c.Request.Context(), newConfig)
 	if err != nil {
 		h.logger.Error("Failed to create config version", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create config version"})
@@ -274,7 +273,7 @@ func (h *ConfigHandlers) HandleGetConfigVersions(c *gin.Context) {
 	}
 
 	// Build filter
-	filter := interfaces.ConfigFilter{
+	filter := services.ConfigFilter{
 		Limit: 100,
 	}
 
@@ -292,7 +291,7 @@ func (h *ConfigHandlers) HandleGetConfigVersions(c *gin.Context) {
 	}
 
 	// Get config versions
-	configs, err := h.storage.App.ListConfigs(c.Request.Context(), filter)
+	configs, err := h.agentService.ListConfigs(c.Request.Context(), filter)
 	if err != nil {
 		h.logger.Error("Failed to get config versions", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch config versions"})

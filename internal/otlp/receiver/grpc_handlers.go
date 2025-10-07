@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/getlawrence/lawrence-oss/internal/metrics"
 	"github.com/getlawrence/lawrence-oss/internal/otlp/parser"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
@@ -18,51 +19,63 @@ import (
 // TraceService implements the OTLP Trace Service gRPC interface
 type TraceService struct {
 	coltracepb.UnimplementedTraceServiceServer
-	writer TelemetryWriter
-	parser *parser.OTLPParser
-	logger *zap.Logger
+	writer      TelemetryWriter
+	asyncWriter AsyncTelemetryWriter
+	parser      *parser.OTLPParser
+	logger      *zap.Logger
+	metrics     *metrics.OTLPMetrics
 }
 
 // MetricsService implements the OTLP Metrics Service gRPC interface
 type MetricsService struct {
 	colmetricspb.UnimplementedMetricsServiceServer
-	writer TelemetryWriter
-	parser *parser.OTLPParser
-	logger *zap.Logger
+	writer      TelemetryWriter
+	asyncWriter AsyncTelemetryWriter
+	parser      *parser.OTLPParser
+	logger      *zap.Logger
+	metrics     *metrics.OTLPMetrics
 }
 
 // LogsService implements the OTLP Logs Service gRPC interface
 type LogsService struct {
 	collogspb.UnimplementedLogsServiceServer
-	writer TelemetryWriter
-	parser *parser.OTLPParser
-	logger *zap.Logger
+	writer      TelemetryWriter
+	asyncWriter AsyncTelemetryWriter
+	parser      *parser.OTLPParser
+	logger      *zap.Logger
+	metrics     *metrics.OTLPMetrics
 }
 
 // NewTraceService creates a new TraceService instance
-func NewTraceService(writer TelemetryWriter, parser *parser.OTLPParser, logger *zap.Logger) *TraceService {
+func NewTraceService(writer TelemetryWriter, asyncWriter AsyncTelemetryWriter, parser *parser.OTLPParser, metricsInstance *metrics.OTLPMetrics, logger *zap.Logger) *TraceService {
 	return &TraceService{
-		writer: writer,
-		parser: parser,
-		logger: logger,
+		writer:      writer,
+		asyncWriter: asyncWriter,
+		parser:      parser,
+		logger:      logger,
+		metrics:     metricsInstance,
 	}
 }
 
 // NewMetricsService creates a new MetricsService instance
-func NewMetricsService(writer TelemetryWriter, parser *parser.OTLPParser, logger *zap.Logger) *MetricsService {
+func NewMetricsService(writer TelemetryWriter, asyncWriter AsyncTelemetryWriter, parser *parser.OTLPParser, metricsInstance *metrics.OTLPMetrics, logger *zap.Logger) *MetricsService {
 	return &MetricsService{
-		writer: writer,
-		parser: parser,
-		logger: logger,
+		writer:      writer,
+		asyncWriter: asyncWriter,
+		parser:      parser,
+		logger:      logger,
+		metrics:     metricsInstance,
 	}
 }
 
 // NewLogsService creates a new LogsService instance
-func NewLogsService(writer TelemetryWriter, parser *parser.OTLPParser, logger *zap.Logger) *LogsService {
+func NewLogsService(writer TelemetryWriter, asyncWriter AsyncTelemetryWriter, parser *parser.OTLPParser, metricsInstance *metrics.OTLPMetrics, logger *zap.Logger) *LogsService {
 	return &LogsService{
-		writer: writer,
-		parser: parser,
-		logger: logger,
+		writer:      writer,
+		asyncWriter: asyncWriter,
+		parser:      parser,
+		logger:      logger,
+		metrics:     metricsInstance,
 	}
 }
 
@@ -72,10 +85,19 @@ func (s *TraceService) Export(ctx context.Context, req *coltracepb.ExportTraceSe
 	s.logger.Debug("Processing gRPC trace export request",
 		zap.Int("resource_spans_count", len(req.ResourceSpans)))
 
+	// Track gRPC request
+	if s.metrics != nil {
+		s.metrics.GRPCRequestsTotal.Inc(1)
+	}
+
 	// Serialize the request to protobuf bytes
 	data, err := proto.Marshal(req)
 	if err != nil {
 		s.logger.Error("Failed to marshal trace request", zap.Error(err))
+		if s.metrics != nil {
+			s.metrics.GRPCRequestErrors.Inc(1)
+			s.metrics.TracesErrors.Inc(1)
+		}
 		return &coltracepb.ExportTraceServiceResponse{
 			PartialSuccess: &coltracepb.ExportTracePartialSuccess{
 				RejectedSpans: int64(len(req.ResourceSpans)),
@@ -84,10 +106,19 @@ func (s *TraceService) Export(ctx context.Context, req *coltracepb.ExportTraceSe
 		}, nil
 	}
 
-	// Parse traces (OSS: use "default" as agent ID for now, will be enhanced later)
-	traces, err := s.parser.ParseTraces(data, "default")
+	// Track bytes received
+	if s.metrics != nil {
+		s.metrics.TraceBytes.Inc(int64(len(data)))
+	}
+
+	// Parse traces (agent ID will be extracted from service.instance.id)
+	traces, err := s.parser.ParseTraces(data)
 	if err != nil {
 		s.logger.Error("Failed to parse trace data", zap.Error(err))
+		if s.metrics != nil {
+			s.metrics.ParserErrors.Inc(1)
+			s.metrics.TracesErrors.Inc(1)
+		}
 		return &coltracepb.ExportTraceServiceResponse{
 			PartialSuccess: &coltracepb.ExportTracePartialSuccess{
 				RejectedSpans: int64(len(req.ResourceSpans)),
@@ -96,15 +127,36 @@ func (s *TraceService) Export(ctx context.Context, req *coltracepb.ExportTraceSe
 		}, nil
 	}
 
-	// Write to storage
-	if err := s.writer.WriteTraces(ctx, traces); err != nil {
-		s.logger.Error("Failed to write traces to storage", zap.Error(err))
+	// Track received and processed traces
+	if s.metrics != nil {
+		s.metrics.TracesReceived.Inc(int64(len(traces)))
+	}
+
+	// Create OTLP traces data for async writing
+	otlpTracesData := &parser.OTLPTracesData{
+		Traces: traces,
+	}
+
+	// Write to storage asynchronously
+	writeStart := time.Now()
+	if err := s.asyncWriter.WriteTracesAsync(otlpTracesData); err != nil {
+		s.logger.Error("Failed to queue traces for async writing", zap.Error(err))
+		if s.metrics != nil {
+			s.metrics.StorageWriteErrors.Inc(1)
+			s.metrics.TracesErrors.Inc(1)
+		}
 		return &coltracepb.ExportTraceServiceResponse{
 			PartialSuccess: &coltracepb.ExportTracePartialSuccess{
 				RejectedSpans: int64(len(req.ResourceSpans)),
-				ErrorMessage:  "Failed to write to storage",
+				ErrorMessage:  "Failed to queue for storage",
 			},
 		}, nil
+	}
+
+	// Track storage write latency and processed traces
+	if s.metrics != nil {
+		s.metrics.StorageWriteLatency.Record(time.Since(writeStart))
+		s.metrics.TracesProcessed.Inc(int64(len(traces)))
 	}
 
 	duration := time.Since(start)
@@ -112,6 +164,12 @@ func (s *TraceService) Export(ctx context.Context, req *coltracepb.ExportTraceSe
 		zap.Int("resource_spans_count", len(req.ResourceSpans)),
 		zap.Int("traces_count", len(traces)),
 		zap.Duration("duration", duration))
+
+	// Track request duration
+	if s.metrics != nil {
+		s.metrics.GRPCRequestDuration.Record(duration)
+		s.metrics.TraceProcessDuration.Record(duration)
+	}
 
 	return &coltracepb.ExportTraceServiceResponse{}, nil
 }
@@ -134,8 +192,8 @@ func (s *MetricsService) Export(ctx context.Context, req *colmetricspb.ExportMet
 		}, nil
 	}
 
-	// Parse metrics
-	sums, gauges, histograms, err := s.parser.ParseMetrics(data, "default")
+	// Parse metrics (agent ID will be extracted from service.instance.id)
+	sums, gauges, histograms, err := s.parser.ParseMetrics(data)
 	if err != nil {
 		s.logger.Error("Failed to parse metrics data", zap.Error(err))
 		return &colmetricspb.ExportMetricsServiceResponse{
@@ -146,13 +204,20 @@ func (s *MetricsService) Export(ctx context.Context, req *colmetricspb.ExportMet
 		}, nil
 	}
 
-	// Write to storage
-	if err := s.writer.WriteMetrics(ctx, sums, gauges, histograms); err != nil {
-		s.logger.Error("Failed to write metrics to storage", zap.Error(err))
+	// Create OTLP metrics data for async writing
+	otlpMetricsData := &parser.OTLPMetricsData{
+		Sums:       sums,
+		Gauges:     gauges,
+		Histograms: histograms,
+	}
+
+	// Write to storage asynchronously
+	if err := s.asyncWriter.WriteMetricsAsync(otlpMetricsData); err != nil {
+		s.logger.Error("Failed to queue metrics for async writing", zap.Error(err))
 		return &colmetricspb.ExportMetricsServiceResponse{
 			PartialSuccess: &colmetricspb.ExportMetricsPartialSuccess{
 				RejectedDataPoints: int64(countMetricDataPoints(req.ResourceMetrics)),
-				ErrorMessage:       "Failed to write to storage",
+				ErrorMessage:       "Failed to queue for storage",
 			},
 		}, nil
 	}
@@ -186,8 +251,8 @@ func (s *LogsService) Export(ctx context.Context, req *collogspb.ExportLogsServi
 		}, nil
 	}
 
-	// Parse logs
-	logs, err := s.parser.ParseLogs(data, "default")
+	// Parse logs (agent ID will be extracted from service.instance.id)
+	logs, err := s.parser.ParseLogs(data)
 	if err != nil {
 		s.logger.Error("Failed to parse logs data", zap.Error(err))
 		return &collogspb.ExportLogsServiceResponse{
@@ -198,13 +263,18 @@ func (s *LogsService) Export(ctx context.Context, req *collogspb.ExportLogsServi
 		}, nil
 	}
 
-	// Write to storage
-	if err := s.writer.WriteLogs(ctx, logs); err != nil {
-		s.logger.Error("Failed to write logs to storage", zap.Error(err))
+	// Create OTLP logs data for async writing
+	otlpLogsData := &parser.OTLPLogsData{
+		Logs: logs,
+	}
+
+	// Write to storage asynchronously
+	if err := s.asyncWriter.WriteLogsAsync(otlpLogsData); err != nil {
+		s.logger.Error("Failed to queue logs for async writing", zap.Error(err))
 		return &collogspb.ExportLogsServiceResponse{
 			PartialSuccess: &collogspb.ExportLogsPartialSuccess{
 				RejectedLogRecords: int64(countLogRecords(req.ResourceLogs)),
-				ErrorMessage:       "Failed to write to storage",
+				ErrorMessage:       "Failed to queue for storage",
 			},
 		}, nil
 	}

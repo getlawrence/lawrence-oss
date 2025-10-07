@@ -23,6 +23,21 @@ type OTLPParser struct {
 	logger *zap.Logger
 }
 
+// OTLP data structures for async processing
+type OTLPTracesData struct {
+	Traces []otlp.TraceData
+}
+
+type OTLPMetricsData struct {
+	Sums       []otlp.MetricSumData
+	Gauges     []otlp.MetricGaugeData
+	Histograms []otlp.MetricHistogramData
+}
+
+type OTLPLogsData struct {
+	Logs []otlp.LogData
+}
+
 // NewOTLPParser creates a new OTLP parser
 func NewOTLPParser(logger *zap.Logger) *OTLPParser {
 	return &OTLPParser{
@@ -31,7 +46,7 @@ func NewOTLPParser(logger *zap.Logger) *OTLPParser {
 }
 
 // ParseTraces parses OTLP traces data
-func (p *OTLPParser) ParseTraces(data []byte, agentID string) ([]otlp.TraceData, error) {
+func (p *OTLPParser) ParseTraces(data []byte) ([]otlp.TraceData, error) {
 	var request coltracepb.ExportTraceServiceRequest
 	if err := proto.Unmarshal(data, &request); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal traces: %w", err)
@@ -41,6 +56,9 @@ func (p *OTLPParser) ParseTraces(data []byte, agentID string) ([]otlp.TraceData,
 	for _, resourceSpans := range request.ResourceSpans {
 		resource := resourceSpans.Resource
 		resourceAttrs := attributesToMap(resource.Attributes)
+
+		// Extract agent ID from resource attributes
+		extractedAgentID := getAgentID(resourceAttrs)
 
 		for _, scopeSpans := range resourceSpans.ScopeSpans {
 			scope := scopeSpans.Scope
@@ -93,7 +111,7 @@ func (p *OTLPParser) ParseTraces(data []byte, agentID string) ([]otlp.TraceData,
 					StatusMessage:      getStatusMessage(span.Status),
 					Events:             events,
 					Links:              links,
-					AgentID:            agentID,
+					AgentID:            extractedAgentID,
 					GroupID:            groupID,
 					GroupName:          groupName,
 				}
@@ -106,7 +124,7 @@ func (p *OTLPParser) ParseTraces(data []byte, agentID string) ([]otlp.TraceData,
 }
 
 // ParseMetrics parses OTLP metrics data
-func (p *OTLPParser) ParseMetrics(data []byte, agentID string) ([]otlp.MetricSumData, []otlp.MetricGaugeData, []otlp.MetricHistogramData, error) {
+func (p *OTLPParser) ParseMetrics(data []byte) ([]otlp.MetricSumData, []otlp.MetricGaugeData, []otlp.MetricHistogramData, error) {
 	var request colmetricspb.ExportMetricsServiceRequest
 	if err := proto.Unmarshal(data, &request); err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to unmarshal metrics: %w", err)
@@ -119,6 +137,9 @@ func (p *OTLPParser) ParseMetrics(data []byte, agentID string) ([]otlp.MetricSum
 	for _, resourceMetrics := range request.ResourceMetrics {
 		resource := resourceMetrics.Resource
 		resourceAttrs := attributesToMap(resource.Attributes)
+
+		// Extract agent ID from resource attributes
+		extractedAgentID := getAgentID(resourceAttrs)
 
 		for _, scopeMetrics := range resourceMetrics.ScopeMetrics {
 			scope := scopeMetrics.Scope
@@ -153,7 +174,7 @@ func (p *OTLPParser) ParseMetrics(data []byte, agentID string) ([]otlp.MetricSum
 							Flags:                  uint32(dp.Flags),
 							AggregationTemporality: int32(sum.AggregationTemporality),
 							IsMonotonic:            sum.IsMonotonic,
-							AgentID:                agentID,
+							AgentID:                extractedAgentID,
 							GroupID:                groupID,
 							GroupName:              groupName,
 						}
@@ -183,7 +204,7 @@ func (p *OTLPParser) ParseMetrics(data []byte, agentID string) ([]otlp.MetricSum
 							Flags:                  uint32(dp.Flags),
 							AggregationTemporality: 0,     // Not applicable for gauge
 							IsMonotonic:            false, // Gauges are not monotonic
-							AgentID:                agentID,
+							AgentID:                extractedAgentID,
 							GroupID:                groupID,
 							GroupName:              groupName,
 						}
@@ -217,7 +238,7 @@ func (p *OTLPParser) ParseMetrics(data []byte, agentID string) ([]otlp.MetricSum
 							Min:                    dp.GetMin(),
 							Max:                    dp.GetMax(),
 							AggregationTemporality: int32(histogram.AggregationTemporality),
-							AgentID:                agentID,
+							AgentID:                extractedAgentID,
 							GroupID:                groupID,
 							GroupName:              groupName,
 						}
@@ -232,7 +253,7 @@ func (p *OTLPParser) ParseMetrics(data []byte, agentID string) ([]otlp.MetricSum
 }
 
 // ParseLogs parses OTLP logs data
-func (p *OTLPParser) ParseLogs(data []byte, agentID string) ([]otlp.LogData, error) {
+func (p *OTLPParser) ParseLogs(data []byte) ([]otlp.LogData, error) {
 	var request collogspb.ExportLogsServiceRequest
 	if err := proto.Unmarshal(data, &request); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal logs: %w", err)
@@ -242,6 +263,9 @@ func (p *OTLPParser) ParseLogs(data []byte, agentID string) ([]otlp.LogData, err
 	for _, resourceLogs := range request.ResourceLogs {
 		resource := resourceLogs.Resource
 		resourceAttrs := attributesToMap(resource.Attributes)
+
+		// Extract agent ID from resource attributes
+		extractedAgentID := getAgentID(resourceAttrs)
 
 		for _, scopeLogs := range resourceLogs.ScopeLogs {
 			scope := scopeLogs.Scope
@@ -270,7 +294,7 @@ func (p *OTLPParser) ParseLogs(data []byte, agentID string) ([]otlp.LogData, err
 					ScopeVersion:       scope.Version,
 					ScopeAttributes:    scopeAttrs,
 					LogAttributes:      logAttrs,
-					AgentID:            agentID,
+					AgentID:            extractedAgentID,
 					GroupID:            groupID,
 					GroupName:          groupName,
 				}
@@ -331,6 +355,14 @@ func getServiceName(attrs map[string]string) string {
 		return serviceName
 	}
 	return "unknown-service"
+}
+
+// getAgentID extracts agent ID from service.instance.id attribute
+func getAgentID(attrs map[string]string) string {
+	if agentID, exists := attrs["service.instance.id"]; exists && agentID != "" {
+		return agentID
+	}
+	return "default"
 }
 
 // extractGroupInfo extracts group ID and name from resource attributes
