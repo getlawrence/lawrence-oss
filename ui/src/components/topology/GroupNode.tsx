@@ -1,5 +1,6 @@
-import { Users } from 'lucide-react';
-import type { GroupNodeData } from './types';
+import { Users } from "lucide-react";
+
+import type { GroupNodeData } from "./types";
 
 interface GroupNodeProps {
   data: GroupNodeData;

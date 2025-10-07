@@ -1,8 +1,9 @@
-import { Card } from "../ui/card";
-import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
-import type { QueryTemplate } from "../../api/lawrence-ql";
 import { Play } from "lucide-react";
+
+import type { QueryTemplate } from "../../api/lawrence-ql";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { Card } from "../ui/card";
 
 interface QueryTemplatesProps {
   templates: QueryTemplate[];
@@ -20,7 +21,7 @@ export function QueryTemplates({ templates, onSelect }: QueryTemplatesProps) {
       acc[category].push(template);
       return acc;
     },
-    {} as Record<string, QueryTemplate[]>
+    {} as Record<string, QueryTemplate[]>,
   );
 
   return (
@@ -30,7 +31,10 @@ export function QueryTemplates({ templates, onSelect }: QueryTemplatesProps) {
           <h3 className="text-lg font-semibold mb-3 capitalize">{category}</h3>
           <div className="grid gap-3">
             {categoryTemplates.map((template) => (
-              <Card key={template.id} className="p-4 hover:bg-muted/50 transition-colors">
+              <Card
+                key={template.id}
+                className="p-4 hover:bg-muted/50 transition-colors"
+              >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-2">

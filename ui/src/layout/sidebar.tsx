@@ -6,11 +6,12 @@ import {
   GitBranch,
   Edit3,
   Sparkle,
-} from 'lucide-react';
-import * as React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+} from "lucide-react";
+import * as React from "react";
+import { Link, useLocation } from "react-router-dom";
 
-import { ModeToggle } from './mode-toggle';
+import { ModeToggle } from "./mode-toggle";
+
 import {
   Sidebar,
   SidebarContent,
@@ -23,7 +24,7 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
   useSidebar,
-} from '@/components/ui/sidebar';
+} from "@/components/ui/sidebar";
 
 interface MenuItem {
   key: string;
@@ -38,39 +39,39 @@ export function AppSidebar() {
 
   const mainItems: MenuItem[] = [
     {
-      key: 'agents',
-      title: 'Agents',
-      url: '/agents',
+      key: "agents",
+      title: "Agents",
+      url: "/agents",
       icon: Server,
     },
     {
-      key: 'topology',
-      title: 'Topology',
-      url: '/topology',
+      key: "topology",
+      title: "Topology",
+      url: "/topology",
       icon: GitBranch,
     },
     {
-      key: 'groups',
-      title: 'Groups',
-      url: '/groups',
+      key: "groups",
+      title: "Groups",
+      url: "/groups",
       icon: Users,
     },
     {
-      key: 'configs',
-      title: 'Configs',
-      url: '/configs',
+      key: "configs",
+      title: "Configs",
+      url: "/configs",
       icon: FileText,
     },
     {
-      key: 'config-editor',
-      title: 'Config Editor',
-      url: '/config-editor',
+      key: "config-editor",
+      title: "Config Editor",
+      url: "/config-editor",
       icon: Edit3,
     },
     {
-      key: 'telemetry',
-      title: 'Telemetry',
-      url: '/telemetry',
+      key: "telemetry",
+      title: "Telemetry",
+      url: "/telemetry",
       icon: BarChart3,
     },
   ];
@@ -80,7 +81,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-border h-16 flex items-center justify-center relative">
         <SidebarMenu>
           <SidebarMenuItem>
-            {state === 'collapsed' ? (
+            {state === "collapsed" ? (
               <div className="relative group">
                 <div className="flex items-center justify-center h-8 w-8 rounded-md transition-colors group-hover:opacity-0">
                   <Sparkle className="h-4 w-4 text-primary" />
@@ -97,7 +98,7 @@ export function AppSidebar() {
             )}
           </SidebarMenuItem>
         </SidebarMenu>
-        {state === 'expanded' && (
+        {state === "expanded" && (
           <SidebarTrigger className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6" />
         )}
       </SidebarHeader>
@@ -106,14 +107,18 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarMenu>
-            {mainItems.map(item => {
+            {mainItems.map((item) => {
               const isActive = location.pathname === item.url;
               return (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive}
+                    tooltip={item.title}
+                  >
                     <Link to={item.url} className="relative">
                       <item.icon />
-                      {state === 'expanded' && <span>{item.title}</span>}
+                      {state === "expanded" && <span>{item.title}</span>}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -126,7 +131,7 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-border">
         <SidebarMenu>
           <SidebarMenuItem>
-            <ModeToggle iconOnly={state === 'collapsed'} />
+            <ModeToggle iconOnly={state === "collapsed"} />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

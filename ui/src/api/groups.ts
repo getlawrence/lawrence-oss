@@ -1,6 +1,7 @@
-import { apiGet, apiPost, apiDelete } from './base';
-import type { Config } from './configs';
-import type { Agent } from '../types/agent';
+import type { Agent } from "../types/agent";
+
+import { apiGet, apiPost, apiDelete } from "./base";
+import type { Config } from "./configs";
 
 export interface Group {
   id: string;
@@ -36,7 +37,7 @@ export interface GetGroupAgentsResponse {
 
 // Get all groups
 export const getGroups = (): Promise<GetGroupsResponse> => {
-  return apiGet<GetGroupsResponse>('/groups');
+  return apiGet<GetGroupsResponse>("/groups");
 };
 
 // Get group by ID
@@ -46,7 +47,7 @@ export const getGroup = (id: string): Promise<Group> => {
 
 // Create new group
 export const createGroup = (data: CreateGroupRequest): Promise<Group> => {
-  return apiPost<Group>('/groups', data);
+  return apiPost<Group>("/groups", data);
 };
 
 // Delete group
@@ -55,7 +56,10 @@ export const deleteGroup = (id: string): Promise<void> => {
 };
 
 // Assign config to group
-export const assignConfigToGroup = (groupId: string, data: AssignConfigRequest): Promise<AssignConfigResponse> => {
+export const assignConfigToGroup = (
+  groupId: string,
+  data: AssignConfigRequest,
+): Promise<AssignConfigResponse> => {
   return apiPost<AssignConfigResponse>(`/groups/${groupId}/config`, data);
 };
 
@@ -65,6 +69,8 @@ export const getGroupConfig = (groupId: string): Promise<Config> => {
 };
 
 // Get agents in group
-export const getGroupAgents = (groupId: string): Promise<GetGroupAgentsResponse> => {
+export const getGroupAgents = (
+  groupId: string,
+): Promise<GetGroupAgentsResponse> => {
   return apiGet<GetGroupAgentsResponse>(`/groups/${groupId}/agents`);
 };

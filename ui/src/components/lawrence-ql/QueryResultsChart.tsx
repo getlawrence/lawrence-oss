@@ -1,6 +1,5 @@
+import { TrendingUp, BarChart3, Activity } from "lucide-react";
 import { useMemo } from "react";
-import { Card } from "../ui/card";
-import { Badge } from "../ui/badge";
 import {
   LineChart,
   Line,
@@ -15,8 +14,10 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+
 import type { QueryResult } from "../../api/lawrence-ql";
-import { TrendingUp, BarChart3, Activity } from "lucide-react";
+import { Badge } from "../ui/badge";
+import { Card } from "../ui/card";
 
 interface QueryResultsChartProps {
   results: QueryResult[];
@@ -51,9 +52,10 @@ export function QueryResultsChart({
         : "value";
 
       // Convert value to number
-      const numValue = typeof result.value === "number"
-        ? result.value
-        : parseFloat(String(result.value)) || 0;
+      const numValue =
+        typeof result.value === "number"
+          ? result.value
+          : parseFloat(String(result.value)) || 0;
 
       dataPoint[seriesKey] = numValue;
     });

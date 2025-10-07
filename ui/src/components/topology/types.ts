@@ -1,6 +1,6 @@
 export interface TopologyNode {
   id: string;
-  type: 'group' | 'agent';
+  type: "group" | "agent";
   name: string;
   data: any;
 }
@@ -26,11 +26,11 @@ export interface GroupNodeData {
 export interface TopologyData {
   nodes: Array<{
     id: string;
-    type: 'agent' | 'group' | 'service';
+    type: "agent" | "group" | "service";
     name: string;
     status: string;
     group_name?: string;
-    metrics?: AgentNodeData['metrics'];
+    metrics?: AgentNodeData["metrics"];
     labels?: Record<string, string>;
   }>;
   edges: Array<{

@@ -1,27 +1,3 @@
-import { useState, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
-import useSWR from 'swr';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   RefreshCw,
   Users,
@@ -32,41 +8,94 @@ import {
   BarChart3,
   Settings,
   FileText,
-} from 'lucide-react';
-import { getGroupTopology } from '@/api/topology';
-import { getGroup, assignConfigToGroup, getGroupConfig, getGroupAgents } from '@/api/groups';
-import { getConfigs } from '@/api/configs';
-import { queryMetrics, type MetricData } from '@/api/telemetry';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+} from "lucide-react";
+import { useState, useMemo } from "react";
+import { useParams } from "react-router-dom";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
+import useSWR from "swr";
+
+import { getConfigs } from "@/api/configs";
+import {
+  getGroup,
+  assignConfigToGroup,
+  getGroupConfig,
+  getGroupAgents,
+} from "@/api/groups";
+import { queryMetrics, type MetricData } from "@/api/telemetry";
+import { getGroupTopology } from "@/api/topology";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function GroupDetailsPage() {
   const { groupId } = useParams<{ groupId: string }>();
   const [refreshing, setRefreshing] = useState(false);
   const [showConfigDialog, setShowConfigDialog] = useState(false);
-  const [selectedConfigId, setSelectedConfigId] = useState('');
+  const [selectedConfigId, setSelectedConfigId] = useState("");
   const [metricsData, setMetricsData] = useState<MetricData[]>([]);
 
-  const { data: groupData, error, mutate } = useSWR(
-    groupId ? `group-${groupId}` : null,
-    () => groupId ? getGroup(groupId) : null
+  const {
+    data: groupData,
+    error,
+    mutate,
+  } = useSWR(groupId ? `group-${groupId}` : null, () =>
+    groupId ? getGroup(groupId) : null,
   );
 
-  useSWR(
-    groupId ? `group-topology-${groupId}` : null,
-    () => groupId ? getGroupTopology(groupId) : null
+  useSWR(groupId ? `group-topology-${groupId}` : null, () =>
+    groupId ? getGroupTopology(groupId) : null,
   );
 
   const { data: agentsData } = useSWR(
     groupId ? `group-agents-${groupId}` : null,
-    () => groupId ? getGroupAgents(groupId) : null
+    () => (groupId ? getGroupAgents(groupId) : null),
   );
 
   const { data: configData } = useSWR(
     groupId ? `group-config-${groupId}` : null,
-    () => groupId ? getGroupConfig(groupId).catch(() => null) : null
+    () => (groupId ? getGroupConfig(groupId).catch(() => null) : null),
   );
 
-  const { data: allConfigsData } = useSWR('all-configs', getConfigs);
+  const { data: allConfigsData } = useSWR("all-configs", getConfigs);
 
   // Fetch group metrics
   useSWR(
@@ -85,7 +114,7 @@ export default function GroupDetailsPage() {
       setMetricsData(result.metrics);
       return result;
     },
-    { refreshInterval: 60000 }
+    { refreshInterval: 60000 },
   );
 
   const handleRefresh = async () => {
@@ -101,20 +130,20 @@ export default function GroupDetailsPage() {
       await assignConfigToGroup(groupId, { config_id: selectedConfigId });
       setShowConfigDialog(false);
       mutate();
-      alert('Configuration assigned successfully!');
+      alert("Configuration assigned successfully!");
     } catch (error) {
-      console.error('Failed to assign config:', error);
-      alert('Failed to assign configuration');
+      console.error("Failed to assign config:", error);
+      alert("Failed to assign configuration");
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'online':
+      case "online":
         return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'offline':
+      case "offline":
         return <XCircle className="h-4 w-4 text-gray-500" />;
-      case 'error':
+      case "error":
         return <AlertCircle className="h-4 w-4 text-red-500" />;
       default:
         return <Server className="h-4 w-4 text-gray-400" />;
@@ -126,18 +155,26 @@ export default function GroupDetailsPage() {
     if (!metricsData.length) return [];
 
     // Group by 15-minute intervals
-    const grouped = metricsData.reduce((acc, metric) => {
-      const time = new Date(metric.timestamp);
-      const interval = new Date(Math.floor(time.getTime() / (15 * 60 * 1000)) * (15 * 60 * 1000));
-      const key = interval.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const grouped = metricsData.reduce(
+      (acc, metric) => {
+        const time = new Date(metric.timestamp);
+        const interval = new Date(
+          Math.floor(time.getTime() / (15 * 60 * 1000)) * (15 * 60 * 1000),
+        );
+        const key = interval.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
 
-      if (!acc[key]) {
-        acc[key] = { time: key, count: 0, totalValue: 0 };
-      }
-      acc[key].count += 1;
-      acc[key].totalValue += metric.value;
-      return acc;
-    }, {} as Record<string, { time: string; count: number; totalValue: number }>);
+        if (!acc[key]) {
+          acc[key] = { time: key, count: 0, totalValue: 0 };
+        }
+        acc[key].count += 1;
+        acc[key].totalValue += metric.value;
+        return acc;
+      },
+      {} as Record<string, { time: string; count: number; totalValue: number }>,
+    );
 
     return Object.values(grouped).sort((a, b) => a.time.localeCompare(b.time));
   }, [metricsData]);
@@ -146,7 +183,9 @@ export default function GroupDetailsPage() {
     return (
       <div className="container mx-auto p-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Error Loading Group</h1>
+          <h1 className="text-2xl font-bold text-red-600 mb-4">
+            Error Loading Group
+          </h1>
           <p className="text-gray-600">{error.message}</p>
           <Button onClick={handleRefresh} className="mt-4">
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -171,9 +210,9 @@ export default function GroupDetailsPage() {
   const agents = agentsData?.agents || [];
   const agentStats = {
     total: agents.length,
-    online: agents.filter(a => a.status === 'online').length,
-    offline: agents.filter(a => a.status === 'offline').length,
-    error: agents.filter(a => a.status === 'error').length,
+    online: agents.filter((a) => a.status === "online").length,
+    offline: agents.filter((a) => a.status === "offline").length,
+    error: agents.filter((a) => a.status === "error").length,
   };
 
   return (
@@ -203,31 +242,43 @@ export default function GroupDetailsPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4">
-                <Select value={selectedConfigId} onValueChange={setSelectedConfigId}>
+                <Select
+                  value={selectedConfigId}
+                  onValueChange={setSelectedConfigId}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a configuration" />
                   </SelectTrigger>
                   <SelectContent>
                     {allConfigsData?.configs.map((config) => (
                       <SelectItem key={config.id} value={config.id}>
-                        Version {config.version} - {new Date(config.created_at).toLocaleDateString()}
+                        Version {config.version} -{" "}
+                        {new Date(config.created_at).toLocaleDateString()}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowConfigDialog(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowConfigDialog(false)}
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleAssignConfig} disabled={!selectedConfigId}>
+                <Button
+                  onClick={handleAssignConfig}
+                  disabled={!selectedConfigId}
+                >
                   Assign
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
           <Button onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
         </div>
@@ -250,7 +301,9 @@ export default function GroupDetailsPage() {
             <CheckCircle className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{agentStats.online}</div>
+            <div className="text-2xl font-bold text-green-600">
+              {agentStats.online}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -259,7 +312,9 @@ export default function GroupDetailsPage() {
             <XCircle className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-600">{agentStats.offline}</div>
+            <div className="text-2xl font-bold text-gray-600">
+              {agentStats.offline}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -268,7 +323,9 @@ export default function GroupDetailsPage() {
             <BarChart3 className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{metricsData.length}</div>
+            <div className="text-2xl font-bold text-blue-600">
+              {metricsData.length}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -284,7 +341,9 @@ export default function GroupDetailsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Agents in Group</CardTitle>
-              <CardDescription>{agents.length} agents currently in this group</CardDescription>
+              <CardDescription>
+                {agents.length} agents currently in this group
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {agents.length === 0 ? (
@@ -311,16 +370,26 @@ export default function GroupDetailsPage() {
                             {getStatusIcon(agent.status)}
                           </div>
                         </TableCell>
-                        <TableCell className="font-medium">{agent.name}</TableCell>
+                        <TableCell className="font-medium">
+                          {agent.name}
+                        </TableCell>
                         <TableCell>{agent.version}</TableCell>
-                        <TableCell>{new Date(agent.last_seen).toLocaleString()}</TableCell>
+                        <TableCell>
+                          {new Date(agent.last_seen).toLocaleString()}
+                        </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
-                            {Object.entries(agent.labels).slice(0, 2).map(([key, value]) => (
-                              <Badge key={key} variant="outline" className="text-xs">
-                                {key}={value}
-                              </Badge>
-                            ))}
+                            {Object.entries(agent.labels)
+                              .slice(0, 2)
+                              .map(([key, value]) => (
+                                <Badge
+                                  key={key}
+                                  variant="outline"
+                                  className="text-xs"
+                                >
+                                  {key}={value}
+                                </Badge>
+                              ))}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -336,17 +405,25 @@ export default function GroupDetailsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Group Metrics Timeline</CardTitle>
-              <CardDescription>Aggregated metrics from all agents in the last 4 hours</CardDescription>
+              <CardDescription>
+                Aggregated metrics from all agents in the last 4 hours
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="time" style={{ fontSize: '11px' }} />
-                    <YAxis style={{ fontSize: '11px' }} />
+                    <XAxis dataKey="time" style={{ fontSize: "11px" }} />
+                    <YAxis style={{ fontSize: "11px" }} />
                     <Tooltip />
-                    <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} name="Metric Count" />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      name="Metric Count"
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
@@ -382,18 +459,27 @@ export default function GroupDetailsPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Created:</span>
-                    <span className="text-sm">{new Date(configData.created_at).toLocaleString()}</span>
+                    <span className="text-sm">
+                      {new Date(configData.created_at).toLocaleString()}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Hash:</span>
-                    <span className="text-sm font-mono text-xs">{configData.config_hash.substring(0, 16)}...</span>
+                    <span className="text-sm font-mono text-xs">
+                      {configData.config_hash.substring(0, 16)}...
+                    </span>
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-8">
                   <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">No configuration assigned to this group</p>
-                  <Button onClick={() => setShowConfigDialog(true)} className="mt-4">
+                  <p className="text-gray-600">
+                    No configuration assigned to this group
+                  </p>
+                  <Button
+                    onClick={() => setShowConfigDialog(true)}
+                    className="mt-4"
+                  >
                     <Settings className="h-4 w-4 mr-2" />
                     Assign Config
                   </Button>

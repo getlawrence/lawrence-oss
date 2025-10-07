@@ -1,8 +1,9 @@
-import { Card } from "../ui/card";
-import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
-import type { QueryHistoryItem } from "../../hooks/useLawrenceQL";
 import { Play, Clock, Database } from "lucide-react";
+
+import type { QueryHistoryItem } from "../../hooks/useLawrenceQL";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { Card } from "../ui/card";
 
 interface QueryHistoryProps {
   history: QueryHistoryItem[];

@@ -21,13 +21,13 @@ ui:
 build: ui
 	@echo "Building $(BINARY_NAME)..."
 	@mkdir -p $(BUILD_DIR)
-	go build -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/allinone
+	go build -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/all-in-one
 
 # Build for Linux (for Docker)
 build-linux:
 	@echo "Building $(BINARY_NAME) for Linux..."
 	@mkdir -p $(BUILD_DIR)
-	GOOS=linux GOARCH=amd64 go build -o $(BUILD_DIR)/$(BINARY_NAME)-linux ./cmd/allinone
+	GOOS=linux GOARCH=amd64 go build -o $(BUILD_DIR)/$(BINARY_NAME)-linux ./cmd/all-in-one
 
 # Run locally
 run: build

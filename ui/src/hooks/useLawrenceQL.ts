@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import useSWR from "swr";
+
 import {
   executeLawrenceQL,
   validateQuery,
@@ -61,29 +62,34 @@ export function useLawrenceQL() {
           ...prev.slice(0, 49), // Keep last 50 queries
         ]);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to execute query");
+        setError(
+          err instanceof Error ? err.message : "Failed to execute query",
+        );
         setResults(null);
       } finally {
         setIsExecuting(false);
       }
     },
-    [query]
+    [query],
   );
 
   // Validate query
-  const validate = useCallback(async (queryToValidate?: string) => {
-    const q = queryToValidate || query;
-    if (!q.trim()) return { valid: false, error: "Query cannot be empty" };
+  const validate = useCallback(
+    async (queryToValidate?: string) => {
+      const q = queryToValidate || query;
+      if (!q.trim()) return { valid: false, error: "Query cannot be empty" };
 
-    try {
-      return await validateQuery(q);
-    } catch (err) {
-      return {
-        valid: false,
-        error: err instanceof Error ? err.message : "Validation failed",
-      };
-    }
-  }, [query]);
+      try {
+        return await validateQuery(q);
+      } catch (err) {
+        return {
+          valid: false,
+          error: err instanceof Error ? err.message : "Validation failed",
+        };
+      }
+    },
+    [query],
+  );
 
   // Get suggestions
   const getSuggestions = useCallback(
@@ -97,7 +103,7 @@ export function useLawrenceQL() {
         return [];
       }
     },
-    [query]
+    [query],
   );
 
   // Clear results
@@ -132,7 +138,7 @@ export function useLawrenceQL() {
 export function useQueryTemplates() {
   const { data, error, isLoading } = useSWR<{ templates: QueryTemplate[] }>(
     "/telemetry/query/templates",
-    getQueryTemplates
+    getQueryTemplates,
   );
 
   return {
@@ -148,7 +154,7 @@ export function useQueryTemplates() {
 export function useQueryFunctions() {
   const { data, error, isLoading } = useSWR<{ functions: FunctionInfo[] }>(
     "/telemetry/query/functions",
-    getQueryFunctions
+    getQueryFunctions,
   );
 
   return {
@@ -179,18 +185,24 @@ export function useSavedQueries() {
 
       const updated = [...savedQueries, newQuery];
       setSavedQueries(updated);
-      localStorage.setItem("lawrence-ql-saved-queries", JSON.stringify(updated));
+      localStorage.setItem(
+        "lawrence-ql-saved-queries",
+        JSON.stringify(updated),
+      );
     },
-    [savedQueries]
+    [savedQueries],
   );
 
   const deleteQuery = useCallback(
     (id: string) => {
       const updated = savedQueries.filter((q) => q.id !== id);
       setSavedQueries(updated);
-      localStorage.setItem("lawrence-ql-saved-queries", JSON.stringify(updated));
+      localStorage.setItem(
+        "lawrence-ql-saved-queries",
+        JSON.stringify(updated),
+      );
     },
-    [savedQueries]
+    [savedQueries],
   );
 
   return {

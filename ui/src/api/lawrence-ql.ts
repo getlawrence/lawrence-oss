@@ -65,7 +65,7 @@ export interface FunctionsResponse {
  * Execute a Lawrence QL query
  */
 export async function executeLawrenceQL(
-  request: LawrenceQLRequest
+  request: LawrenceQLRequest,
 ): Promise<LawrenceQLResponse> {
   return apiPost<LawrenceQLResponse>("/telemetry/query", request);
 }
@@ -73,7 +73,9 @@ export async function executeLawrenceQL(
 /**
  * Validate a Lawrence QL query
  */
-export async function validateQuery(query: string): Promise<ValidateQueryResponse> {
+export async function validateQuery(
+  query: string,
+): Promise<ValidateQueryResponse> {
   return apiPost<ValidateQueryResponse>("/telemetry/query/validate", { query });
 }
 
@@ -82,7 +84,7 @@ export async function validateQuery(query: string): Promise<ValidateQueryRespons
  */
 export async function getQuerySuggestions(
   query: string,
-  cursorPos: number
+  cursorPos: number,
 ): Promise<SuggestionsResponse> {
   return apiPost<SuggestionsResponse>("/telemetry/query/suggestions", {
     query,

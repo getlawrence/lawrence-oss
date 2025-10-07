@@ -1,6 +1,8 @@
-import { CheckCircle, XCircle, AlertCircle, Server } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import type { AgentNodeData } from './types';
+import { CheckCircle, XCircle, AlertCircle, Server } from "lucide-react";
+
+import type { AgentNodeData } from "./types";
+
+import { Badge } from "@/components/ui/badge";
 
 interface AgentNodeProps {
   data: AgentNodeData;
@@ -9,11 +11,11 @@ interface AgentNodeProps {
 export function AgentNode({ data }: AgentNodeProps) {
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'online':
+      case "online":
         return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'offline':
+      case "offline":
         return <XCircle className="h-4 w-4 text-gray-500" />;
-      case 'error':
+      case "error":
         return <AlertCircle className="h-4 w-4 text-red-500" />;
       default:
         return <Server className="h-4 w-4 text-gray-400" />;

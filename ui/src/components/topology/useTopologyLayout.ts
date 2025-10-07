@@ -1,29 +1,41 @@
-import { useMemo } from 'react';
-import { type Node, type Edge, Position, MarkerType } from '@xyflow/react';
-import type { TopologyData } from './types';
+import { type Node, type Edge, Position, MarkerType } from "@xyflow/react";
+import { useMemo } from "react";
 
-export function useTopologyLayout(topologyData: TopologyData | undefined, topologyLevel: 'instance' | 'group') {
+import type { TopologyData } from "./types";
+
+export function useTopologyLayout(
+  topologyData: TopologyData | undefined,
+  topologyLevel: "instance" | "group",
+) {
   const nodes: Node[] = useMemo(() => {
-    if (!topologyData?.nodes || !Array.isArray(topologyData.nodes) || topologyData.nodes.length === 0) return [];
+    if (
+      !topologyData?.nodes ||
+      !Array.isArray(topologyData.nodes) ||
+      topologyData.nodes.length === 0
+    )
+      return [];
 
     // Calculate layout positions
     const dataNodes = topologyData.nodes;
-    const agentNodes = dataNodes.filter(n => n.type === 'agent');
-    const groupNodes = dataNodes.filter(n => n.type === 'group');
+    const agentNodes = dataNodes.filter((n) => n.type === "agent");
+    const groupNodes = dataNodes.filter((n) => n.type === "group");
 
     const flowNodes: Node[] = [];
 
     // Filter nodes based on topology level
-    if (topologyLevel === 'group') {
+    if (topologyLevel === "group") {
       // Only show group nodes
       groupNodes.forEach((node, idx) => {
         flowNodes.push({
           id: node.id,
-          type: 'group',
+          type: "group",
           data: {
             name: node.name,
             status: node.status,
-            agent_count: topologyData.groups?.find(g => g.id === node.id.replace('group-', ''))?.agent_count || 0,
+            agent_count:
+              topologyData.groups?.find(
+                (g) => g.id === node.id.replace("group-", ""),
+              )?.agent_count || 0,
           },
           position: { x: idx * 300 + 50, y: 150 },
           sourcePosition: Position.Bottom,
@@ -37,11 +49,14 @@ export function useTopologyLayout(topologyData: TopologyData | undefined, topolo
     groupNodes.forEach((node, idx) => {
       flowNodes.push({
         id: node.id,
-        type: 'group',
+        type: "group",
         data: {
           name: node.name,
           status: node.status,
-          agent_count: topologyData.groups?.find(g => g.id === node.id.replace('group-', ''))?.agent_count || 0,
+          agent_count:
+            topologyData.groups?.find(
+              (g) => g.id === node.id.replace("group-", ""),
+            )?.agent_count || 0,
         },
         position: { x: idx * 300 + 50, y: 50 },
         sourcePosition: Position.Bottom,
@@ -57,7 +72,7 @@ export function useTopologyLayout(topologyData: TopologyData | undefined, topolo
 
       flowNodes.push({
         id: node.id,
-        type: 'agent',
+        type: "agent",
         data: {
           name: node.name,
           status: node.status,
@@ -78,10 +93,12 @@ export function useTopologyLayout(topologyData: TopologyData | undefined, topolo
     if (!topologyData?.edges || !Array.isArray(topologyData.edges)) return [];
 
     // Filter edges based on topology level
-    const filteredEdges = topologyData.edges.filter(edge => {
-      if (topologyLevel === 'group') {
+    const filteredEdges = topologyData.edges.filter((edge) => {
+      if (topologyLevel === "group") {
         // Only show edges between groups
-        return edge.source.startsWith('group-') && edge.target.startsWith('group-');
+        return (
+          edge.source.startsWith("group-") && edge.target.startsWith("group-")
+        );
       }
       // Instance level: show all edges
       return true;
@@ -91,15 +108,15 @@ export function useTopologyLayout(topologyData: TopologyData | undefined, topolo
       id: `edge-${idx}`,
       source: edge.source,
       target: edge.target,
-      type: 'smoothstep',
+      type: "smoothstep",
       animated: false,
       label: edge.label,
       markerEnd: {
         type: MarkerType.ArrowClosed,
-        color: '#9333ea',
+        color: "#9333ea",
       },
       style: {
-        stroke: '#9333ea',
+        stroke: "#9333ea",
         strokeWidth: 2,
       },
     }));

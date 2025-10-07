@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut } from './base';
+import { apiGet, apiPost, apiPut } from "./base";
 
 export interface Config {
   id: string;
@@ -54,7 +54,7 @@ export const getConfigs = (params?: {
   if (params?.group_id) queryParams.group_id = params.group_id;
   if (params?.limit) queryParams.limit = params.limit.toString();
 
-  return apiGet<GetConfigsResponse>('/configs', queryParams);
+  return apiGet<GetConfigsResponse>("/configs", queryParams);
 };
 
 // Get config by ID
@@ -64,17 +64,22 @@ export const getConfig = (id: string): Promise<Config> => {
 
 // Create new config
 export const createConfig = (data: CreateConfigRequest): Promise<Config> => {
-  return apiPost<Config>('/configs', data);
+  return apiPost<Config>("/configs", data);
 };
 
 // Update config (creates new version)
-export const updateConfig = (id: string, data: UpdateConfigRequest): Promise<Config> => {
+export const updateConfig = (
+  id: string,
+  data: UpdateConfigRequest,
+): Promise<Config> => {
   return apiPut<Config>(`/configs/${id}`, data);
 };
 
 // Validate config
-export const validateConfig = (data: ValidateConfigRequest): Promise<ValidateConfigResponse> => {
-  return apiPost<ValidateConfigResponse>('/configs/validate', data);
+export const validateConfig = (
+  data: ValidateConfigRequest,
+): Promise<ValidateConfigResponse> => {
+  return apiPost<ValidateConfigResponse>("/configs/validate", data);
 };
 
 // Get config versions
@@ -86,5 +91,5 @@ export const getConfigVersions = (params: {
   if (params.agent_id) queryParams.agent_id = params.agent_id;
   if (params.group_id) queryParams.group_id = params.group_id;
 
-  return apiGet<GetVersionsResponse>('/configs/versions', queryParams);
+  return apiGet<GetVersionsResponse>("/configs/versions", queryParams);
 };

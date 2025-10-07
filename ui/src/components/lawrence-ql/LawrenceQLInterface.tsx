@@ -1,14 +1,16 @@
+import { Play, Loader2, History, BookOpen } from "lucide-react";
 import { useState } from "react";
+
 import { useLawrenceQL, useQueryTemplates } from "../../hooks/useLawrenceQL";
+import { Alert, AlertDescription } from "../ui/alert";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
-import { Textarea } from "../ui/textarea";
-import { Alert, AlertDescription } from "../ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { Play, Loader2, History, BookOpen } from "lucide-react";
+import { Textarea } from "../ui/textarea";
+
+import { QueryHistory } from "./QueryHistory";
 import { QueryResults } from "./QueryResults";
 import { QueryTemplates } from "./QueryTemplates";
-import { QueryHistory } from "./QueryHistory";
 
 export function LawrenceQLInterface() {
   const {

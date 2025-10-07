@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from './base';
+import { apiGet, apiPost } from "./base";
 
 export interface TelemetryOverview {
   totalMetrics: number;
@@ -98,25 +98,31 @@ export interface TracesQueryResponse {
 
 // Get telemetry overview
 export const getTelemetryOverview = (): Promise<TelemetryOverview> => {
-  return apiGet<TelemetryOverview>('/telemetry/overview');
+  return apiGet<TelemetryOverview>("/telemetry/overview");
 };
 
 // Get services list
 export const getServices = (): Promise<ServicesResponse> => {
-  return apiGet<ServicesResponse>('/telemetry/services');
+  return apiGet<ServicesResponse>("/telemetry/services");
 };
 
 // Query metrics
-export const queryMetrics = (request: MetricQueryRequest): Promise<MetricsQueryResponse> => {
-  return apiPost<MetricsQueryResponse>('/telemetry/metrics/query', request);
+export const queryMetrics = (
+  request: MetricQueryRequest,
+): Promise<MetricsQueryResponse> => {
+  return apiPost<MetricsQueryResponse>("/telemetry/metrics/query", request);
 };
 
 // Query logs
-export const queryLogs = (request: LogQueryRequest): Promise<LogsQueryResponse> => {
-  return apiPost<LogsQueryResponse>('/telemetry/logs/query', request);
+export const queryLogs = (
+  request: LogQueryRequest,
+): Promise<LogsQueryResponse> => {
+  return apiPost<LogsQueryResponse>("/telemetry/logs/query", request);
 };
 
 // Query traces
-export const queryTraces = (request: TraceQueryRequest): Promise<TracesQueryResponse> => {
-  return apiPost<TracesQueryResponse>('/telemetry/traces/query', request);
+export const queryTraces = (
+  request: TraceQueryRequest,
+): Promise<TracesQueryResponse> => {
+  return apiPost<TracesQueryResponse>("/telemetry/traces/query", request);
 };

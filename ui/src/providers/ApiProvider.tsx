@@ -1,10 +1,10 @@
-import type { ReactNode } from 'react';
+import type { ReactNode } from "react";
 
 interface ApiProviderProps {
-    children: ReactNode;
+  children: ReactNode;
 }
 
 export function ApiProvider({ children }: ApiProviderProps) {
-    // OSS version doesn't need authentication setup
-    return <>{children}</>;
+  // OSS version doesn't need authentication setup
+  return <>{children}</>;
 }

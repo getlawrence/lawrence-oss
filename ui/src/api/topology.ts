@@ -1,8 +1,8 @@
-import { apiGet } from './base';
+import { apiGet } from "./base";
 
 export interface TopologyNode {
   id: string;
-  type: 'agent' | 'group' | 'service';
+  type: "agent" | "group" | "service";
   name: string;
   status: string;
   group_id?: string;
@@ -59,15 +59,19 @@ export interface GroupTopologyResponse {
 
 // Get full topology
 export const getTopology = (): Promise<TopologyResponse> => {
-  return apiGet<TopologyResponse>('/topology');
+  return apiGet<TopologyResponse>("/topology");
 };
 
 // Get agent topology
-export const getAgentTopology = (agentId: string): Promise<AgentTopologyResponse> => {
+export const getAgentTopology = (
+  agentId: string,
+): Promise<AgentTopologyResponse> => {
   return apiGet<AgentTopologyResponse>(`/topology/agent/${agentId}`);
 };
 
 // Get group topology
-export const getGroupTopology = (groupId: string): Promise<GroupTopologyResponse> => {
+export const getGroupTopology = (
+  groupId: string,
+): Promise<GroupTopologyResponse> => {
   return apiGet<GroupTopologyResponse>(`/topology/group/${groupId}`);
 };

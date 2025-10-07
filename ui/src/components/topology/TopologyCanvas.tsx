@@ -1,8 +1,15 @@
-import React from 'react';
-import { ReactFlow, Background, useNodesState, useEdgesState, type Node } from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
-import { AgentNode } from './AgentNode';
-import { GroupNode } from './GroupNode';
+import {
+  ReactFlow,
+  Background,
+  useNodesState,
+  useEdgesState,
+  type Node,
+} from "@xyflow/react";
+import React from "react";
+
+import "@xyflow/react/dist/style.css";
+import { AgentNode } from "./AgentNode";
+import { GroupNode } from "./GroupNode";
 
 const nodeTypes = {
   agent: AgentNode,
@@ -15,7 +22,11 @@ interface TopologyCanvasProps {
   onNodeClick: (event: React.MouseEvent, node: Node) => void;
 }
 
-export function TopologyCanvas({ nodes, edges, onNodeClick }: TopologyCanvasProps) {
+export function TopologyCanvas({
+  nodes,
+  edges,
+  onNodeClick,
+}: TopologyCanvasProps) {
   const [flowNodes, setNodes, onNodesChange] = useNodesState(nodes);
   const [flowEdges, setEdges, onEdgesChange] = useEdgesState(edges);
 

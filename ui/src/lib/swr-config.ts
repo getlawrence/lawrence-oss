@@ -1,6 +1,6 @@
-import type { SWRConfiguration } from 'swr';
+import type { SWRConfiguration } from "swr";
 
-import { apiGet } from '@/api/base';
+import { apiGet } from "@/api/base";
 
 // Global SWR configuration
 export const swrConfig: SWRConfiguration = {
@@ -20,7 +20,7 @@ export const swrConfig: SWRConfiguration = {
   errorRetryInterval: 5000,
   shouldRetryOnError: (error: unknown) => {
     // Don't retry on 4xx errors (client errors)
-    if (error && typeof error === 'object' && 'status' in error) {
+    if (error && typeof error === "object" && "status" in error) {
       const { status } = error as { status: number };
       if (status >= 400 && status < 500) {
         return false;
@@ -42,7 +42,7 @@ export const swrConfig: SWRConfiguration = {
   // Global success handler
   onSuccess: (_data: unknown, _key: string) => {
     // Optional: Add global success logging
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       // console.log('SWR Success:', { key, data });
     }
   },

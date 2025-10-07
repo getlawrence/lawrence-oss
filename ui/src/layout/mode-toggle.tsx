@@ -1,6 +1,6 @@
-import { Monitor, Moon, Sun } from 'lucide-react';
+import { Monitor, Moon, Sun } from "lucide-react";
 
-import { useTheme } from '@/components/ThemeProvider';
+import { useTheme } from "@/components/ThemeProvider";
 
 interface ModeToggleProps {
   iconOnly?: boolean;
@@ -10,22 +10,22 @@ export function ModeToggle({ iconOnly = false }: ModeToggleProps) {
   const { theme, setTheme } = useTheme();
 
   const cycleTheme = () => {
-    if (theme === 'light') {
-      setTheme('dark');
-    } else if (theme === 'dark') {
-      setTheme('system');
+    if (theme === "light") {
+      setTheme("dark");
+    } else if (theme === "dark") {
+      setTheme("system");
     } else {
-      setTheme('light');
+      setTheme("light");
     }
   };
 
   const getIcon = () => {
     switch (theme) {
-      case 'light':
+      case "light":
         return <Sun className="h-4 w-4" />;
-      case 'dark':
+      case "dark":
         return <Moon className="h-4 w-4" />;
-      case 'system':
+      case "system":
         return <Monitor className="h-4 w-4" />;
       default:
         return <Monitor className="h-4 w-4" />;
