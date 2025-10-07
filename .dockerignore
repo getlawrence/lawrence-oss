@@ -54,9 +54,9 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Web build artifacts
-web/dist/
-web/node_modules/
-web/coverage/
+ui/dist/
+ui/node_modules/
+ui/coverage/
 
 # Temporary files
 tmp/

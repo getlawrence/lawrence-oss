@@ -7,13 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { getAgents } from '@/api/agents';
 import { getGroups } from '@/api/groups';
-
-interface TopologyNode {
-  id: string;
-  type: 'group' | 'agent';
-  name: string;
-  data: any;
-}
+import type { TopologyNode } from './types';
 
 interface DisplaySidebarProps {
   onNodeSelect?: (node: TopologyNode) => void;

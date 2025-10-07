@@ -35,7 +35,20 @@ export const simpleRequest = async <T = unknown>(
   });
 
   if (!response.ok) {
-    const error = new Error(`API request failed: ${response.status} ${response.statusText}`);
+    // Try to get detailed error message from response body
+    let errorMessage = `API request failed: ${response.status} ${response.statusText}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.error) {
+        errorMessage = errorData.error;
+        if (errorData.details) {
+          errorMessage += `: ${errorData.details}`;
+        }
+      }
+    } catch (e) {
+      // If we can't parse the error response, use the default message
+    }
+    const error = new Error(errorMessage);
     (error as any).status = response.status;
     throw error;
   }

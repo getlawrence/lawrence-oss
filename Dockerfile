@@ -79,7 +79,7 @@ WORKDIR /app
 COPY --from=backend-builder /app/lawrence .
 
 # Copy frontend build
-COPY --from=frontend-builder /app/dist ./web/dist
+COPY --from=frontend-builder /app/dist ./ui/dist
 
 # Copy configuration
 COPY lawrence.yaml .

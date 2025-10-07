@@ -121,3 +121,22 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Override ReactFlow default node styling */
+.react-flow__node {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.react-flow__node-group {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.react-flow__node-agent {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
