@@ -57,13 +57,6 @@ func NewSQLiteStorage(dbPath string, logger *zap.Logger) (types.ApplicationStore
 
 // migrate runs database migrations
 func (s *Storage) migrate() error {
-	// Check current schema version
-	var version int
-	err := s.db.QueryRow("PRAGMA user_version").Scan(&version)
-	if err != nil {
-		return fmt.Errorf("failed to get schema version: %w", err)
-	}
-
 	// Create tables if they don't exist
 	createTables := `
 		CREATE TABLE IF NOT EXISTS agents (
@@ -76,6 +69,7 @@ func (s *Storage) migrate() error {
 			group_name TEXT,
 			version TEXT,
 			capabilities TEXT,
+			effective_config TEXT,
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
@@ -109,11 +103,6 @@ func (s *Storage) migrate() error {
 
 	if _, err := s.db.Exec(createTables); err != nil {
 		return fmt.Errorf("failed to create tables: %w", err)
-	}
-
-	// Update schema version
-	if _, err := s.db.Exec("PRAGMA user_version = 1"); err != nil {
-		return fmt.Errorf("failed to update schema version: %w", err)
 	}
 
 	s.logger.Debug("Database migrations completed")
@@ -154,13 +143,14 @@ func (s *Storage) CreateAgent(ctx context.Context, agent *types.Agent) error {
 
 func (s *Storage) GetAgent(ctx context.Context, id uuid.UUID) (*types.Agent, error) {
 	query := `
-		SELECT id, name, labels, status, last_seen, group_id, group_name, version, capabilities, created_at, updated_at
+		SELECT id, name, labels, status, last_seen, group_id, group_name, version, capabilities, effective_config, created_at, updated_at
 		FROM agents WHERE id = ?
 	`
 
 	var agent types.Agent
 	var labelsJSON, capabilitiesJSON string
 	var agentIDStr string
+	var effectiveConfig sql.NullString
 
 	err := s.db.QueryRowContext(ctx, query, id.String()).Scan(
 		&agentIDStr,
@@ -172,6 +162,7 @@ func (s *Storage) GetAgent(ctx context.Context, id uuid.UUID) (*types.Agent, err
 		&agent.GroupName,
 		&agent.Version,
 		&capabilitiesJSON,
+		&effectiveConfig,
 		&agent.CreatedAt,
 		&agent.UpdatedAt,
 	)
@@ -186,13 +177,16 @@ func (s *Storage) GetAgent(ctx context.Context, id uuid.UUID) (*types.Agent, err
 	agent.ID = id
 	_ = json.Unmarshal([]byte(labelsJSON), &agent.Labels)
 	_ = json.Unmarshal([]byte(capabilitiesJSON), &agent.Capabilities)
+	if effectiveConfig.Valid {
+		agent.EffectiveConfig = effectiveConfig.String
+	}
 
 	return &agent, nil
 }
 
 func (s *Storage) ListAgents(ctx context.Context) ([]*types.Agent, error) {
 	query := `
-		SELECT id, name, labels, status, last_seen, group_id, group_name, version, capabilities, created_at, updated_at
+		SELECT id, name, labels, status, last_seen, group_id, group_name, version, capabilities, effective_config, created_at, updated_at
 		FROM agents ORDER BY created_at DESC
 	`
 
@@ -207,6 +201,7 @@ func (s *Storage) ListAgents(ctx context.Context) ([]*types.Agent, error) {
 		var agent types.Agent
 		var labelsJSON, capabilitiesJSON string
 		var agentIDStr string
+		var effectiveConfig sql.NullString
 
 		err := rows.Scan(
 			&agentIDStr,
@@ -218,6 +213,7 @@ func (s *Storage) ListAgents(ctx context.Context) ([]*types.Agent, error) {
 			&agent.GroupName,
 			&agent.Version,
 			&capabilitiesJSON,
+			&effectiveConfig,
 			&agent.CreatedAt,
 			&agent.UpdatedAt,
 		)
@@ -228,6 +224,9 @@ func (s *Storage) ListAgents(ctx context.Context) ([]*types.Agent, error) {
 		agent.ID, _ = uuid.Parse(agentIDStr)
 		_ = json.Unmarshal([]byte(labelsJSON), &agent.Labels)
 		_ = json.Unmarshal([]byte(capabilitiesJSON), &agent.Capabilities)
+		if effectiveConfig.Valid {
+			agent.EffectiveConfig = effectiveConfig.String
+		}
 
 		agents = append(agents, &agent)
 	}
@@ -265,6 +264,23 @@ func (s *Storage) UpdateAgentLastSeen(ctx context.Context, id uuid.UUID, lastSee
 		return fmt.Errorf("agent not found: %s", id.String())
 	}
 
+	return nil
+}
+
+func (s *Storage) UpdateAgentEffectiveConfig(ctx context.Context, id uuid.UUID, effectiveConfig string) error {
+	query := `UPDATE agents SET effective_config = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+
+	result, err := s.db.ExecContext(ctx, query, effectiveConfig, id.String())
+	if err != nil {
+		return fmt.Errorf("failed to update agent effective config: %w", err)
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("agent not found: %s", id.String())
+	}
+
+	s.logger.Debug("Updated agent effective config", zap.String("agent_id", id.String()))
 	return nil
 }
 

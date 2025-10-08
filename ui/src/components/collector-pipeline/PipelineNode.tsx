@@ -2,170 +2,93 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { 
   ArrowDownCircle, 
   ArrowUpCircle, 
-  Settings, 
-  Activity,
-  AlertTriangle,
-  CheckCircle
+  Settings,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import type { ComponentMetrics } from "@/api/collector-pipeline";
 
-export interface PipelineNodeData extends Record<string, unknown> {
-  component: ComponentMetrics;
-  isSelected?: boolean;
+interface SectionNodeData extends Record<string, unknown> {
+  label: string;
+  pipelineType: string;
+  pipelineName: string;
+  color: string;
+  icon: React.ReactNode;
+  width: number;
+  height: number;
+  metrics?: {
+    received: number;
+    errors: number;
+  };
 }
 
-const getComponentIcon = (componentType: string) => {
-  switch (componentType) {
-    case "receiver":
-      return <ArrowDownCircle className="h-4 w-4" />;
-    case "processor":
-      return <Settings className="h-4 w-4" />;
-    case "exporter":
-      return <ArrowUpCircle className="h-4 w-4" />;
-    default:
-      return <Activity className="h-4 w-4" />;
-  }
+interface ComponentNodeData extends Record<string, unknown> {
+  label: string;
+  pipelineType: string;
+  metrics?: {
+    received?: number;
+    processed?: number;
+    batches?: number;
+    exported?: number;
+  };
+}
+
+// Component type configuration
+const componentConfig = {
+  receiver: {
+    icon: <ArrowDownCircle className="h-4 w-4" />,
+    color: "border-green-500 bg-green-50",
+    iconColor: "text-green-600",
+  },
+  processor: {
+    icon: <Settings className="h-4 w-4" />,
+    color: "border-blue-500 bg-blue-50",
+    iconColor: "text-blue-600",
+  },
+  exporter: {
+    icon: <ArrowUpCircle className="h-4 w-4" />,
+    color: "border-purple-500 bg-purple-50",
+    iconColor: "text-purple-600",
+  },
 };
 
-const getComponentColor = (componentType: string) => {
-  switch (componentType) {
-    case "receiver":
-      return "border-green-500 bg-green-50";
-    case "processor":
-      return "border-blue-500 bg-blue-50";
-    case "exporter":
-      return "border-purple-500 bg-purple-50";
-    default:
-      return "border-gray-500 bg-gray-50";
-  }
-};
+// Base component node used by Receiver, Processor, and Exporter
+interface BaseNodeProps {
+  componentType: 'receiver' | 'processor' | 'exporter';
+  label: string;
+  pipelineType: string;
+  selected?: boolean;
+  metrics?: ComponentNodeData['metrics'];
+  children?: React.ReactNode;
+}
 
-const getStatusIcon = (errorRate: number) => {
-  if (errorRate === 0) {
-    return <CheckCircle className="h-3 w-3 text-green-500" />;
-  } else if (errorRate < 5) {
-    return <AlertTriangle className="h-3 w-3 text-yellow-500" />;
-  } else {
-    return <AlertTriangle className="h-3 w-3 text-red-500" />;
-  }
-};
-
-export function PipelineNode({ data, selected }: NodeProps) {
-  const nodeData = data as unknown as PipelineNodeData;
-  const { component } = nodeData;
-  const isSelected = selected || nodeData.isSelected;
-
+function BaseComponentNode({ componentType, label, pipelineType, selected, metrics, children }: BaseNodeProps) {
+  const config = componentConfig[componentType];
+  
   return (
     <Card 
-      className={`min-w-[200px] transition-all duration-200 ${
-        getComponentColor(component.component_type)
-      } ${isSelected ? "ring-2 ring-blue-400 shadow-lg" : "shadow-md"}`}
+      className={`min-w-[150px] transition-all duration-200 ${config.color} ${
+        selected ? "ring-2 ring-blue-400 shadow-lg" : "shadow-md"
+      }`}
     >
       <CardContent className="p-3">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            {getComponentIcon(component.component_type)}
-            <span className="font-semibold text-sm capitalize">
-              {component.component_name}
-            </span>
-          </div>
-          {getStatusIcon(component.error_rate)}
-        </div>
-
-        {/* Pipeline Type Badge */}
-        <Badge variant="outline" className="mb-2 text-xs">
-          {component.pipeline_type}
-        </Badge>
-
-        {/* Metrics */}
-        <div className="space-y-1 text-xs">
-          <div className="flex justify-between">
-            <span className="text-gray-600">Throughput:</span>
-            <span className="font-medium">
-              {component.throughput.toFixed(1)}/s
-            </span>
-          </div>
-          
-          {component.error_rate > 0 && (
-            <div className="flex justify-between">
-              <span className="text-gray-600">Error Rate:</span>
-              <span className="font-medium text-red-600">
-                {component.error_rate.toFixed(2)}%
-              </span>
-            </div>
-          )}
-
-          {/* Component-specific metrics */}
-          {component.component_type === "receiver" && (
-            <>
-              {component.received && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Received:</span>
-                  <span className="font-medium">
-                    {component.received.toLocaleString()}
-                  </span>
-                </div>
-              )}
-              {component.accepted && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Accepted:</span>
-                  <span className="font-medium text-green-600">
-                    {component.accepted.toLocaleString()}
-                  </span>
-                </div>
-              )}
-              {component.refused && component.refused > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Refused:</span>
-                  <span className="font-medium text-red-600">
-                    {component.refused.toLocaleString()}
-                  </span>
-                </div>
-              )}
-            </>
-          )}
-
-          {component.component_type === "exporter" && (
-            <>
-              {component.sent && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Sent:</span>
-                  <span className="font-medium text-green-600">
-                    {component.sent.toLocaleString()}
-                  </span>
-                </div>
-              )}
-              {component.send_failed && component.send_failed > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Failed:</span>
-                  <span className="font-medium text-red-600">
-                    {component.send_failed.toLocaleString()}
-                  </span>
-                </div>
-              )}
-            </>
-          )}
-
-          {component.component_type === "processor" && component.sent && (
-            <div className="flex justify-between">
-              <span className="text-gray-600">Processed:</span>
-              <span className="font-medium text-blue-600">
-                {component.sent.toLocaleString()}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Handles for connections */}
         <Handle
           type="target"
           position={Position.Left}
           className="w-3 h-3 bg-gray-400"
         />
+        <div className="flex items-center gap-2 mb-2">
+          <span className={config.iconColor}>{config.icon}</span>
+          <span className="font-semibold text-sm">{label}</span>
+        </div>
+        <Badge variant="outline" className="text-xs">
+          {pipelineType}
+        </Badge>
+        {metrics && (
+          <div className="mt-2 text-xs">
+            {children}
+          </div>
+        )}
         <Handle
           type="source"
           position={Position.Right}
@@ -173,5 +96,102 @@ export function PipelineNode({ data, selected }: NodeProps) {
         />
       </CardContent>
     </Card>
+  );
+}
+
+
+// Section Node - Container for pipeline
+export function SectionNode({ data }: NodeProps) {
+  const nodeData = data as unknown as SectionNodeData;
+  return (
+    <div 
+      className={`p-4 rounded-lg border-2 ${nodeData.color || 'border-gray-400'} bg-white/50 backdrop-blur-sm`}
+      style={{ 
+        width: nodeData.width || 850, 
+        height: nodeData.height || 320 
+      }}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        {nodeData.icon}
+        <h3 className="text-lg font-semibold">{nodeData.label}</h3>
+      </div>
+      {nodeData.metrics && (
+        <div className="text-xs text-gray-600">
+          <span>Received: {nodeData.metrics.received || 0}</span>
+          {nodeData.metrics.errors > 0 && (
+            <span className="ml-4 text-red-600">Errors: {nodeData.metrics.errors}</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Receiver Node - Data input
+export function ReceiverNode({ data, selected }: NodeProps) {
+  const nodeData = data as unknown as ComponentNodeData;
+  return (
+    <BaseComponentNode
+      componentType="receiver"
+      label={nodeData.label}
+      pipelineType={nodeData.pipelineType || 'receiver'}
+      selected={selected}
+      metrics={nodeData.metrics}
+    >
+      {nodeData.metrics?.received !== undefined && (
+        <div className="flex justify-between">
+          <span className="text-gray-600">Received:</span>
+          <span className="font-medium">{nodeData.metrics.received}</span>
+        </div>
+      )}
+    </BaseComponentNode>
+  );
+}
+
+// Processor Node - Data transformation
+export function ProcessorNode({ data, selected }: NodeProps) {
+  const nodeData = data as unknown as ComponentNodeData;
+  return (
+    <BaseComponentNode
+      componentType="processor"
+      label={nodeData.label}
+      pipelineType={nodeData.pipelineType || 'processor'}
+      selected={selected}
+      metrics={nodeData.metrics}
+    >
+      {nodeData.metrics?.processed !== undefined && (
+        <div className="flex justify-between">
+          <span className="text-gray-600">Processed:</span>
+          <span className="font-medium">{nodeData.metrics.processed}</span>
+        </div>
+      )}
+      {nodeData.metrics?.batches !== undefined && (
+        <div className="flex justify-between">
+          <span className="text-gray-600">Batches:</span>
+          <span className="font-medium">{nodeData.metrics.batches}</span>
+        </div>
+      )}
+    </BaseComponentNode>
+  );
+}
+
+// Exporter Node - Data output
+export function ExporterNode({ data, selected }: NodeProps) {
+  const nodeData = data as unknown as ComponentNodeData;
+  return (
+    <BaseComponentNode
+      componentType="exporter"
+      label={nodeData.label}
+      pipelineType={nodeData.pipelineType || 'exporter'}
+      selected={selected}
+      metrics={nodeData.metrics}
+    >
+      {nodeData.metrics?.exported !== undefined && (
+        <div className="flex justify-between">
+          <span className="text-gray-600">Exported:</span>
+          <span className="font-medium">{nodeData.metrics.exported}</span>
+        </div>
+      )}
+    </BaseComponentNode>
   );
 }

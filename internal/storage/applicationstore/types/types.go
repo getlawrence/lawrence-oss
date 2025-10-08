@@ -14,6 +14,7 @@ type ApplicationStore interface {
 	ListAgents(ctx context.Context) ([]*Agent, error)
 	UpdateAgentStatus(ctx context.Context, id uuid.UUID, status AgentStatus) error
 	UpdateAgentLastSeen(ctx context.Context, id uuid.UUID, lastSeen time.Time) error
+	UpdateAgentEffectiveConfig(ctx context.Context, id uuid.UUID, effectiveConfig string) error
 	DeleteAgent(ctx context.Context, id uuid.UUID) error
 
 	// Group management
@@ -32,17 +33,18 @@ type ApplicationStore interface {
 
 // Agent represents an OpenTelemetry agent
 type Agent struct {
-	ID           uuid.UUID         `json:"id"`
-	Name         string            `json:"name"`
-	Labels       map[string]string `json:"labels"`
-	Status       AgentStatus       `json:"status"`
-	LastSeen     time.Time         `json:"last_seen"`
-	GroupID      *string           `json:"group_id,omitempty"`
-	GroupName    *string           `json:"group_name,omitempty"`
-	Version      string            `json:"version"`
-	Capabilities []string          `json:"capabilities"`
-	CreatedAt    time.Time         `json:"created_at"`
-	UpdatedAt    time.Time         `json:"updated_at"`
+	ID              uuid.UUID         `json:"id"`
+	Name            string            `json:"name"`
+	Labels          map[string]string `json:"labels"`
+	Status          AgentStatus       `json:"status"`
+	LastSeen        time.Time         `json:"last_seen"`
+	GroupID         *string           `json:"group_id,omitempty"`
+	GroupName       *string           `json:"group_name,omitempty"`
+	Version         string            `json:"version"`
+	Capabilities    []string          `json:"capabilities"`
+	EffectiveConfig string            `json:"effective_config,omitempty"`
+	CreatedAt       time.Time         `json:"created_at"`
+	UpdatedAt       time.Time         `json:"updated_at"`
 }
 
 // AgentStatus represents the status of an agent

@@ -75,9 +75,16 @@ func (agent *Agent) processConnectionSettingsRequest(
 	response.ConnectionSettings.Opamp = &protobufs.OpAMPConnectionSettings{}
 }
 
-// calcConnectionSettings calculates connection settings for the agent
-// For OSS version, we don't need special connection settings
-func (agent *Agent) calcConnectionSettings(response *protobufs.ServerToAgent) {
-	// In the SaaS version, this would set custom endpoints, certificates, etc.
-	// For OSS, we don't need any special connection settings
+// shouldOfferOwnTelemetry checks if the agent has capability to report own telemetry
+// Returns which telemetry types the agent can report
+func (agent *Agent) shouldOfferOwnTelemetry() (metrics, traces, logs bool) {
+	if agent.Status == nil {
+		return false, false, false
+	}
+
+	metrics = agent.hasCapability(protobufs.AgentCapabilities_AgentCapabilities_ReportsOwnMetrics)
+	traces = agent.hasCapability(protobufs.AgentCapabilities_AgentCapabilities_ReportsOwnTraces)
+	logs = agent.hasCapability(protobufs.AgentCapabilities_AgentCapabilities_ReportsOwnLogs)
+
+	return metrics, traces, logs
 }

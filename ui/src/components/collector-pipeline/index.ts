@@ -1,3 +1,3 @@
 export { CollectorPipelineView } from "./CollectorPipelineView";
-export { PipelineNode } from "./PipelineNode";
-export type { PipelineNodeData } from "./PipelineNode";
+export { ReceiverNode, ProcessorNode, ExporterNode, SectionNode } from "./PipelineNode";
+export { generatePipelineNodes } from "./PipelineGenerator";

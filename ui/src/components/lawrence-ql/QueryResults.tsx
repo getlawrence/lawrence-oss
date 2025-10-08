@@ -104,7 +104,7 @@ export function QueryResults({ results }: QueryResultsProps) {
                         ? "log"
                         : "trace");
 
-                  const otherLabels = Object.entries(result.labels).filter(
+                  const otherLabels = Object.entries(result.labels || {}).filter(
                     ([key]) => key !== "__name__" && key !== "name",
                   );
 

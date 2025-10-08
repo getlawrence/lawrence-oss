@@ -15,7 +15,6 @@ processors:
 exporters:
   # Debug exporter for testing
   debug:
-    verbosity: detailed
 
 extensions:
   health_check:
@@ -61,7 +60,6 @@ service:
 
     # Metrics telemetry - sent to lawrence-oss backend
     metrics:
-      level: detailed
       readers:
         - periodic:
             interval: 30
@@ -72,7 +70,7 @@ service:
 
     # Logs telemetry - sent to lawrence-oss backend
     logs:
-      level: detailed
+      level: info
       processors:
         - batch:
             exporter:

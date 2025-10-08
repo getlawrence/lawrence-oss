@@ -54,13 +54,23 @@ services:
       - "4321:4318"    # OTLP HTTP receiver
       - "13133:13133"  # Health check
     volumes:
-      - ./collector/demo-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - ./examples/collector/demo-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
     depends_on:
       - lawrence
     networks:
       - lawrence-network
     restart: unless-stopped
 
+  demo-supervisor:
+    build:
+      context: ./examples/supervisor
+      dockerfile: Dockerfile
+    container_name: demo-supervisor
+    depends_on:
+      - lawrence
+    networks:
+      - lawrence-network
+    restart: unless-stopped
 
 volumes:
   lawrence-data:

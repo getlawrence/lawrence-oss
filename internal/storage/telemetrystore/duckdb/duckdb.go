@@ -332,11 +332,11 @@ func (s *Storage) WriteTraces(ctx context.Context, traces []types.Trace) error {
 // QueryMetrics queries metrics from DuckDB
 func (s *Storage) QueryMetrics(ctx context.Context, query types.MetricQuery) ([]types.Metric, error) {
 	sqlQuery := `
-		SELECT timestamp, agent_id, metric_name, value, metric_attributes
+		SELECT timestamp, agent_id, group_id, service_name, metric_name, value, metric_attributes
 		FROM (
-			SELECT timestamp, agent_id, metric_name, value, metric_attributes FROM metrics_sum
+			SELECT timestamp, agent_id, group_id, service_name, metric_name, value, metric_attributes FROM metrics_sum
 			UNION ALL
-			SELECT timestamp, agent_id, metric_name, value, metric_attributes FROM metrics_gauge
+			SELECT timestamp, agent_id, group_id, service_name, metric_name, value, metric_attributes FROM metrics_gauge
 		) AS all_metrics
 		WHERE timestamp >= ? AND timestamp <= ?
 	`
@@ -369,15 +369,29 @@ func (s *Storage) QueryMetrics(ctx context.Context, query types.MetricQuery) ([]
 	for rows.Next() {
 		var m types.Metric
 		var agentIDStr string
+		var groupID sql.NullString
+		var serviceName string
 		var attrsJSON string
 
-		err := rows.Scan(&m.Timestamp, &agentIDStr, &m.Name, &m.Value, &attrsJSON)
+		err := rows.Scan(&m.Timestamp, &agentIDStr, &groupID, &serviceName, &m.Name, &m.Value, &attrsJSON)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan metric: %w", err)
 		}
 
 		m.AgentID, _ = uuid.Parse(agentIDStr)
-		_ = json.Unmarshal([]byte(attrsJSON), &m.Labels)
+		m.ServiceName = serviceName
+		if groupID.Valid {
+			m.GroupID = &groupID.String
+		}
+		if attrsJSON != "" {
+			_ = json.Unmarshal([]byte(attrsJSON), &m.MetricAttributes)
+			
+			// Convert MetricAttributes to Labels (map[string]string)
+			m.Labels = make(map[string]string)
+			for key, value := range m.MetricAttributes {
+				m.Labels[key] = fmt.Sprintf("%v", value)
+			}
+		}
 
 		metrics = append(metrics, m)
 	}
@@ -388,7 +402,8 @@ func (s *Storage) QueryMetrics(ctx context.Context, query types.MetricQuery) ([]
 // QueryLogs queries logs from DuckDB
 func (s *Storage) QueryLogs(ctx context.Context, query types.LogQuery) ([]types.Log, error) {
 	sqlQuery := `
-		SELECT timestamp, agent_id, severity_text, body, log_attributes
+		SELECT timestamp, agent_id, group_id, service_name, severity_text, severity_number, 
+		       body, trace_id, span_id, log_attributes
 		FROM logs
 		WHERE timestamp >= ? AND timestamp <= ?
 	`
@@ -426,15 +441,39 @@ func (s *Storage) QueryLogs(ctx context.Context, query types.LogQuery) ([]types.
 	for rows.Next() {
 		var l types.Log
 		var agentIDStr string
+		var groupID, traceID, spanID sql.NullString
+		var serviceName string
 		var attrsJSON string
 
-		err := rows.Scan(&l.Timestamp, &agentIDStr, &l.Severity, &l.Body, &attrsJSON)
+		err := rows.Scan(&l.Timestamp, &agentIDStr, &groupID, &serviceName, 
+			&l.SeverityText, &l.SeverityNumber, &l.Body, &traceID, &spanID, &attrsJSON)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan log: %w", err)
 		}
 
 		l.AgentID, _ = uuid.Parse(agentIDStr)
-		_ = json.Unmarshal([]byte(attrsJSON), &l.Attributes)
+		l.ServiceName = serviceName
+		if groupID.Valid {
+			l.GroupID = &groupID.String
+		}
+		if traceID.Valid {
+			l.TraceID = &traceID.String
+		}
+		if spanID.Valid {
+			l.SpanID = &spanID.String
+		}
+		if attrsJSON != "" {
+			_ = json.Unmarshal([]byte(attrsJSON), &l.LogAttributes)
+			
+			// Convert LogAttributes to deprecated Attributes field (map[string]string)
+			l.Attributes = make(map[string]string)
+			for key, value := range l.LogAttributes {
+				l.Attributes[key] = fmt.Sprintf("%v", value)
+			}
+		}
+		
+		// Set deprecated Severity field from SeverityText
+		l.Severity = l.SeverityText
 
 		logs = append(logs, l)
 	}

@@ -2,9 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import Layout from "./layout";
 import AgentsPage from "./pages/Agents";
-import ConfigEditorPage from "./pages/ConfigEditor";
 import ConfigsPage from "./pages/Configs";
-import GroupDetailsPage from "./pages/GroupDetails";
 import GroupsPage from "./pages/Groups";
 import TelemetryPage from "./pages/Telemetry";
 import TopologyPage from "./pages/Topology";
@@ -26,9 +24,9 @@ function App() {
                 <Route path="/" element={<AgentsPage />} />
                 <Route path="/agents" element={<AgentsPage />} />
                 <Route path="/groups" element={<GroupsPage />} />
-                <Route path="/groups/:groupId" element={<GroupDetailsPage />} />
                 <Route path="/configs" element={<ConfigsPage />} />
-                <Route path="/config-editor" element={<ConfigEditorPage />} />
+                <Route path="/configs/new" element={<ConfigsPage mode="create" />} />
+                <Route path="/configs/:configId/edit" element={<ConfigsPage mode="edit" />} />
                 <Route path="/telemetry" element={<TelemetryPage />} />
                 <Route path="/topology" element={<TopologyPage />} />
               </Route>

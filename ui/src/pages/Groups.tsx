@@ -4,6 +4,7 @@ import useSWR from "swr";
 
 import { getGroups, createGroup, deleteGroup } from "@/api/groups";
 import type { Group, CreateGroupRequest } from "@/api/groups";
+import { GroupDetailsDrawer } from "@/components/GroupDetailsDrawer";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -37,6 +38,8 @@ export default function GroupsPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [groupDrawerOpen, setGroupDrawerOpen] = useState(false);
   const [createForm, setCreateForm] = useState<CreateGroupRequest>({
     name: "",
     labels: {},
@@ -75,6 +78,17 @@ export default function GroupsPage() {
     } catch (error) {
       console.error("Failed to delete group:", error);
     }
+  };
+
+  const handleGroupClick = (groupId: string) => {
+    setSelectedGroupId(groupId);
+    setGroupDrawerOpen(true);
+  };
+
+  const handleDeleteClick = (group: Group, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedGroup(group);
+    setDeleteDialogOpen(true);
   };
 
   if (groupsError) {
@@ -189,7 +203,11 @@ export default function GroupsPage() {
               </TableHeader>
               <TableBody>
                 {groups.map((group: Group) => (
-                  <TableRow key={group.id}>
+                  <TableRow 
+                    key={group.id}
+                    onClick={() => handleGroupClick(group.id)}
+                    className="cursor-pointer hover:bg-muted/50"
+                  >
                     <TableCell className="font-medium">{group.name}</TableCell>
                     <TableCell>
                       {new Date(group.created_at).toLocaleDateString()}
@@ -218,10 +236,7 @@ export default function GroupsPage() {
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => {
-                          setSelectedGroup(group);
-                          setDeleteDialogOpen(true);
-                        }}
+                        onClick={(e) => handleDeleteClick(group, e)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -257,6 +272,12 @@ export default function GroupsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <GroupDetailsDrawer
+        groupId={selectedGroupId}
+        open={groupDrawerOpen}
+        onOpenChange={setGroupDrawerOpen}
+      />
     </div>
   );
 }

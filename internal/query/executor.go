@@ -482,30 +482,61 @@ func (v *ExecutorVisitor) resultKey(r QueryResult) string {
 func (v *ExecutorVisitor) groupAndAggregate(results []QueryResult, byLabels []string, function *Function) ([]QueryResult, error) {
 	// Group results by specified labels
 	groups := make(map[string][]QueryResult)
+	groupLabels := make(map[string]map[string]string) // track labels for each group
 
 	for _, result := range results {
 		// Create group key from specified labels
 		key := ""
+		groupLabelValues := make(map[string]string)
+		
 		for i, label := range byLabels {
 			if i > 0 {
 				key += "|"
 			}
-			if val, ok := result.Labels[label]; ok {
+			
+			// Check both Labels and Data for the field
+			var val string
+			var found bool
+			
+			if v, ok := result.Labels[label]; ok {
+				val = v
+				found = true
+			} else if v, ok := result.Data[label]; ok {
+				// Check in Data map (e.g., for metric name)
+				val = fmt.Sprintf("%v", v)
+				found = true
+			}
+			
+			if found {
 				key += val
+				groupLabelValues[label] = val
 			}
 		}
 
 		groups[key] = append(groups[key], result)
+		if _, exists := groupLabels[key]; !exists {
+			groupLabels[key] = groupLabelValues
+		}
 	}
 
 	// Apply aggregation to each group
 	aggregated := []QueryResult{}
-	for _, group := range groups {
+	for key, group := range groups {
 		groupResult, err := function.Apply(group)
 		if err != nil {
 			return nil, err
 		}
 		if groupResults, ok := groupResult.([]QueryResult); ok {
+			// Add grouping labels to the aggregated result
+			for i := range groupResults {
+				if groupResults[i].Labels == nil {
+					groupResults[i].Labels = make(map[string]string)
+				}
+				// Merge the group labels into the result
+				for label, value := range groupLabels[key] {
+					groupResults[i].Labels[label] = value
+				}
+			}
 			aggregated = append(aggregated, groupResults...)
 		}
 	}

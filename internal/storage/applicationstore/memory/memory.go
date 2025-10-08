@@ -134,6 +134,20 @@ func (s *Store) UpdateAgentLastSeen(ctx context.Context, id uuid.UUID, lastSeen 
 	return nil
 }
 
+func (s *Store) UpdateAgentEffectiveConfig(ctx context.Context, id uuid.UUID, effectiveConfig string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	agent, exists := s.agents[id]
+	if !exists {
+		return fmt.Errorf("agent not found: %s", id)
+	}
+
+	agent.EffectiveConfig = effectiveConfig
+	agent.UpdatedAt = time.Now()
+	return nil
+}
+
 func (s *Store) DeleteAgent(ctx context.Context, id uuid.UUID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

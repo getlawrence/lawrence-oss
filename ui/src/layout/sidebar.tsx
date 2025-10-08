@@ -4,7 +4,6 @@ import {
   FileText,
   BarChart3,
   GitBranch,
-  Edit3,
   Sparkle,
 } from "lucide-react";
 import * as React from "react";
@@ -61,12 +60,6 @@ export function AppSidebar() {
       title: "Configs",
       url: "/configs",
       icon: FileText,
-    },
-    {
-      key: "config-editor",
-      title: "Config Editor",
-      url: "/config-editor",
-      icon: Edit3,
     },
     {
       key: "telemetry",

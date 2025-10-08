@@ -160,8 +160,8 @@ func (agent *Agent) processStatusUpdate(
 		// We need to recalculate the config.
 		configChanged = agent.calcRemoteConfig()
 
-		// And set connection settings that are appropriate for the Agent description.
-		agent.calcConnectionSettings(response)
+		// Connection settings are now calculated by the server after UpdateStatus
+		// to have access to OTLP endpoint configuration
 	}
 
 	// If remote config is changed and different from what the Agent has then

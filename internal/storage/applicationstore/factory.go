@@ -6,7 +6,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/getlawrence/lawrence-oss/internal/app"
+	"github.com/getlawrence/lawrence-oss/internal/config"
 	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore/memory"
 	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore/sqlite"
 	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore/types"
@@ -141,7 +141,7 @@ func IsStorageTypeSupported(storageType string) bool {
 
 // NewFactoryFromAppConfig creates a new factory directly from app configuration
 // This is a convenience function that combines ConfigFrom and NewFactory
-func NewFactoryFromAppConfig(appConfig *app.Config) (*Factory, error) {
+func NewFactoryFromAppConfig(appConfig *config.Config) (*Factory, error) {
 	config := ConfigFrom(appConfig)
 	return NewFactory(config)
 }

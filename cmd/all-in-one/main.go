@@ -15,7 +15,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/getlawrence/lawrence-oss/internal/api"
-	"github.com/getlawrence/lawrence-oss/internal/app"
+	"github.com/getlawrence/lawrence-oss/internal/config"
 	"github.com/getlawrence/lawrence-oss/internal/metrics"
 	"github.com/getlawrence/lawrence-oss/internal/opamp"
 	"github.com/getlawrence/lawrence-oss/internal/otlp/receiver"
@@ -65,7 +65,7 @@ func main() {
 func runLawrence(cmd *cobra.Command, args []string) error {
 	// Load configuration
 	configPath := viper.GetString("config")
-	config, err := app.LoadConfig(configPath)
+	config, err := config.LoadConfig(configPath)
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
@@ -157,7 +157,19 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	// Initialize OpAMP server
 	logger.Info("Initializing OpAMP server")
 	agents := opamp.NewAgents(logger)
-	opampServer, err := opamp.NewServer(agents, agentService, opampMetrics, logger)
+	
+	// Determine which OTLP endpoints to offer to agents
+	// If agent_*_endpoint is configured, use it; otherwise use the receiver endpoint
+	agentGRPCEndpoint := config.OTLP.AgentGRPCEndpoint
+	if agentGRPCEndpoint == "" {
+		agentGRPCEndpoint = config.OTLP.GRPCEndpoint
+	}
+	agentHTTPEndpoint := config.OTLP.AgentHTTPEndpoint
+	if agentHTTPEndpoint == "" {
+		agentHTTPEndpoint = config.OTLP.HTTPEndpoint
+	}
+	
+	opampServer, err := opamp.NewServer(agents, agentService, opampMetrics, agentGRPCEndpoint, agentHTTPEndpoint, logger)
 	if err != nil {
 		logger.Fatal("Failed to create OpAMP server", zap.Error(err))
 	}
@@ -275,7 +287,7 @@ func configCommand() *cobra.Command {
 		Short: "Print current configuration",
 		Run: func(cmd *cobra.Command, args []string) {
 			configPath := viper.GetString("config")
-			_, err := app.LoadConfig(configPath)
+			_, err := config.LoadConfig(configPath)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
 				os.Exit(1)
@@ -287,7 +299,7 @@ func configCommand() *cobra.Command {
 }
 
 // startRollupGenerator periodically generates rollups for metrics
-func startRollupGenerator(telemetryService services.TelemetryQueryService, config *app.Config, logger *zap.Logger) {
+func startRollupGenerator(telemetryService services.TelemetryQueryService, config *config.Config, logger *zap.Logger) {
 	if !config.Rollups.Enabled {
 		logger.Info("Rollup generation is disabled")
 		return
@@ -328,7 +340,7 @@ func generateRollup(ctx context.Context, telemetryService services.TelemetryQuer
 }
 
 // startCleanupTask periodically cleans up old data
-func startCleanupTask(telemetryService services.TelemetryQueryService, config *app.Config, logger *zap.Logger) {
+func startCleanupTask(telemetryService services.TelemetryQueryService, config *config.Config, logger *zap.Logger) {
 	logger.Info("Starting cleanup task")
 	ticker := time.NewTicker(1 * time.Hour)
 	defer ticker.Stop()

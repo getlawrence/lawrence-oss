@@ -6,6 +6,8 @@ export interface Agent {
   version: string;
   group_id?: string;
   labels: Record<string, string>;
+  capabilities?: string[];
+  effective_config?: string;
 }
 
 export interface AgentStats {

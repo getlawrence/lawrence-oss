@@ -51,11 +51,13 @@ service:
 `
 
 type Server struct {
-	logger       *zap.Logger
-	opampServer  server.OpAMPServer
-	agents       *Agents
-	agentService services.AgentService
-	metrics      *metrics.OpAMPMetrics
+	logger          *zap.Logger
+	opampServer     server.OpAMPServer
+	agents          *Agents
+	agentService    services.AgentService
+	metrics         *metrics.OpAMPMetrics
+	otlpGRPCEndpoint string // OTLP gRPC endpoint to offer to agents
+	otlpHTTPEndpoint string // OTLP HTTP endpoint to offer to agents
 }
 
 // zapToOpAmpLogger adapts zap.Logger to opamp's logger interface
@@ -71,12 +73,14 @@ func (z *zapToOpAmpLogger) Errorf(ctx context.Context, format string, args ...in
 	z.Sugar().Errorf(format, args...)
 }
 
-func NewServer(agents *Agents, agentService services.AgentService, metricsInstance *metrics.OpAMPMetrics, logger *zap.Logger) (*Server, error) {
+func NewServer(agents *Agents, agentService services.AgentService, metricsInstance *metrics.OpAMPMetrics, otlpGRPCEndpoint, otlpHTTPEndpoint string, logger *zap.Logger) (*Server, error) {
 	s := &Server{
-		logger:       logger,
-		agents:       agents,
-		agentService: agentService,
-		metrics:      metricsInstance,
+		logger:          logger,
+		agents:          agents,
+		agentService:    agentService,
+		metrics:         metricsInstance,
+		otlpGRPCEndpoint: otlpGRPCEndpoint,
+		otlpHTTPEndpoint: otlpHTTPEndpoint,
 	}
 
 	// Create the OpAMP server
@@ -200,6 +204,9 @@ func (s *Server) onMessage(ctx context.Context, conn types.Connection, msg *prot
 	s.processAgentGrouping(ctx, agent, msg)
 
 	agent.UpdateStatus(msg, response)
+
+	// Offer connection settings for own telemetry if agent supports it
+	s.calcConnectionSettings(agent, response)
 
 	// Persist agent to storage
 	if s.agentService != nil {
@@ -438,6 +445,15 @@ func (s *Server) persistAgent(ctx context.Context, agent *Agent, msg *protobufs.
 				zap.String("agentId", agent.InstanceIdStr),
 				zap.Error(err))
 		}
+
+		// Update effective config if present
+		if agent.EffectiveConfig != "" {
+			if err := s.agentService.UpdateAgentEffectiveConfig(ctx, agent.InstanceId, agent.EffectiveConfig); err != nil {
+				s.logger.Error("Failed to update agent effective config",
+					zap.String("agentId", agent.InstanceIdStr),
+					zap.Error(err))
+			}
+		}
 	}
 }
 
@@ -550,4 +566,89 @@ func (s *Server) determineAgentStatus(msg *protobufs.AgentToServer) services.Age
 	// No health info means agent is connected but not reporting health
 	// This is normal for initial connections, so mark as online
 	return services.AgentStatusOnline
+}
+
+// getOTLPEndpointForAgent determines the appropriate OTLP endpoint to offer to the agent
+// If the endpoint is bound to 0.0.0.0, convert it to localhost for agents on the same host
+// This automatic conversion only happens if no explicit agent endpoint was configured
+func (s *Server) getOTLPEndpointForAgent(endpoint string) string {
+	// Only convert 0.0.0.0 to localhost if endpoint starts with 0.0.0.0
+	// Otherwise, use the endpoint as-is (for docker service names, IPs, etc.)
+	if len(endpoint) >= 7 && endpoint[:7] == "0.0.0.0" {
+		return "localhost" + endpoint[7:]
+	}
+	return endpoint
+}
+
+// calcConnectionSettings calculates connection settings for the agent
+// Offers OTLP endpoints for agents to send their own telemetry if they support it
+func (s *Server) calcConnectionSettings(agent *Agent, response *protobufs.ServerToAgent) {
+	// Check if agent has capability to report own telemetry
+	hasMetrics, hasTraces, hasLogs := agent.shouldOfferOwnTelemetry()
+
+	// If agent doesn't support any own telemetry, no need to offer anything
+	if !hasMetrics && !hasTraces && !hasLogs {
+		return
+	}
+
+	// Prefer HTTP endpoint if configured, as supervisor defaults to HTTP/Protobuf for own telemetry
+	// Fall back to gRPC endpoint if HTTP not configured
+	var baseEndpoint string
+	if s.otlpHTTPEndpoint != "" {
+		baseEndpoint = s.getOTLPEndpointForAgent(s.otlpHTTPEndpoint)
+	} else {
+		baseEndpoint = s.getOTLPEndpointForAgent(s.otlpGRPCEndpoint)
+	}
+
+	// Build full URLs with protocol and paths for OTLP HTTP
+	metricsURL := "http://" + baseEndpoint + "/v1/metrics"
+	tracesURL := "http://" + baseEndpoint + "/v1/traces"
+	logsURL := "http://" + baseEndpoint + "/v1/logs"
+
+	s.logger.Debug("Offering own telemetry connection settings to agent",
+		zap.String("agentId", agent.InstanceIdStr),
+		zap.Bool("metrics", hasMetrics),
+		zap.Bool("traces", hasTraces),
+		zap.Bool("logs", hasLogs),
+		zap.String("baseEndpoint", baseEndpoint),
+		zap.String("metricsURL", metricsURL))
+
+	// Initialize connection settings if not present
+	if response.ConnectionSettings == nil {
+		response.ConnectionSettings = &protobufs.ConnectionSettingsOffers{}
+	}
+
+	// Create headers with agent ID for filtering
+	headers := &protobufs.Headers{
+		Headers: []*protobufs.Header{
+			{
+				Key:   "x-lawrence-agent-id",
+				Value: agent.InstanceIdStr,
+			},
+		},
+	}
+
+	// Offer metrics endpoint if agent supports it
+	if hasMetrics {
+		response.ConnectionSettings.OwnMetrics = &protobufs.TelemetryConnectionSettings{
+			DestinationEndpoint: metricsURL,
+			Headers:             headers,
+		}
+	}
+
+	// Offer traces endpoint if agent supports it
+	if hasTraces {
+		response.ConnectionSettings.OwnTraces = &protobufs.TelemetryConnectionSettings{
+			DestinationEndpoint: tracesURL,
+			Headers:             headers,
+		}
+	}
+
+	// Offer logs endpoint if agent supports it
+	if hasLogs {
+		response.ConnectionSettings.OwnLogs = &protobufs.TelemetryConnectionSettings{
+			DestinationEndpoint: logsURL,
+			Headers:             headers,
+		}
+	}
 }

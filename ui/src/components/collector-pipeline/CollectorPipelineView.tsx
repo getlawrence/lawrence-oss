@@ -4,8 +4,6 @@ import {
   Background,
   useNodesState,
   useEdgesState,
-  Controls,
-  MiniMap,
   type Node,
   type Edge,
 } from "@xyflow/react";
@@ -16,32 +14,58 @@ import "@xyflow/react/dist/style.css";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { TimeRangeSelect } from "@/components/ui/time-range-select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-import { PipelineNode, type PipelineNodeData } from "./PipelineNode";
-import { getPipelineMetrics, type ComponentMetrics, type PipelineMetricsResponse } from "@/api/collector-pipeline";
+import { ReceiverNode, ProcessorNode, ExporterNode, SectionNode } from "./PipelineNode";
+import { getPipelineMetrics, type PipelineMetricsResponse } from "@/api/collector-pipeline";
+import { generatePipelineNodes } from "./PipelineGenerator";
+import { getConfigs } from "@/api/configs";
+import { type TimeRange, DEFAULT_TIME_RANGE } from "@/types/timeRange";
 
 const nodeTypes = {
-  pipeline: PipelineNode,
+  section: SectionNode,
+  receiver: ReceiverNode,
+  processor: ProcessorNode,
+  exporter: ExporterNode,
 };
 
 interface CollectorPipelineViewProps {
   agentId: string;
   agentName?: string;
+  effectiveConfig?: string; // Pass effective config from agent object
 }
 
-type TimeRange = "1m" | "5m" | "15m" | "1h" | "6h" | "24h";
-
-export function CollectorPipelineView({ agentId, agentName }: CollectorPipelineViewProps) {
+export function CollectorPipelineView({ agentId, agentName, effectiveConfig: propEffectiveConfig }: CollectorPipelineViewProps) {
   const [metrics, setMetrics] = useState<PipelineMetricsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [timeRange, setTimeRange] = useState<TimeRange>("5m");
+  const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
   const [selectedPipeline, setSelectedPipeline] = useState<string>("all");
+
+  const [effectiveConfig, setEffectiveConfig] = useState<string | null>(propEffectiveConfig || null);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+
+  // Fetch agent config only if not provided via props
+  const fetchConfig = async () => {
+    if (propEffectiveConfig) {
+      setEffectiveConfig(propEffectiveConfig);
+      return;
+    }
+    
+    try {
+      const configsResponse = await getConfigs({ agent_id: agentId, limit: 1 });
+      if (configsResponse.configs.length > 0) {
+        setEffectiveConfig(configsResponse.configs[0].content);
+      }
+    } catch (err) {
+      console.error("Failed to fetch agent config:", err);
+      // Don't show error to user, just continue without config
+    }
+  };
 
   // Fetch pipeline metrics
   const fetchMetrics = async () => {
@@ -56,6 +80,10 @@ export function CollectorPipelineView({ agentId, agentName }: CollectorPipelineV
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchConfig();
+  }, [agentId, propEffectiveConfig]);
 
   useEffect(() => {
     fetchMetrics();
@@ -77,103 +105,19 @@ export function CollectorPipelineView({ agentId, agentName }: CollectorPipelineV
 
   // Generate nodes and edges for React Flow
   useEffect(() => {
-    if (!filteredComponents.length) {
+    if (!effectiveConfig) {
+      // No config available yet
       setNodes([]);
       setEdges([]);
       return;
     }
 
-    const newNodes: Node[] = [];
-    const newEdges: Edge[] = [];
+    // Use the generator to create nodes from config
+    const { nodes: generatedNodes, edges: generatedEdges } = generatePipelineNodes(effectiveConfig);
 
-    // Group components by pipeline type and component type
-    const groupedComponents = filteredComponents.reduce((acc, component) => {
-      const key = `${component.pipeline_type}-${component.component_type}`;
-      if (!acc[key]) {
-        acc[key] = [];
-      }
-      acc[key].push(component);
-      return acc;
-    }, {} as Record<string, ComponentMetrics[]>);
-
-    let nodeId = 0;
-    const pipelineRows: Record<string, Node[]> = {};
-
-    // Create nodes for each pipeline type
-    Object.entries(groupedComponents).forEach(([key, components]) => {
-      const [pipelineType, componentType] = key.split('-');
-      
-      if (!pipelineRows[pipelineType]) {
-        pipelineRows[pipelineType] = [];
-      }
-
-      components.forEach((component) => {
-        const node: Node = {
-          id: `node-${nodeId++}`,
-          type: 'pipeline',
-          position: { 
-            x: componentType === 'receiver' ? 100 : componentType === 'processor' ? 300 : 500,
-            y: (pipelineRows[pipelineType].length * 150) + (pipelineTypes.indexOf(pipelineType) * 200)
-          },
-          data: { component } as unknown as PipelineNodeData,
-        };
-        
-        newNodes.push(node);
-        pipelineRows[pipelineType].push(node);
-      });
-    });
-
-    // Create edges between components in the same pipeline
-    Object.values(pipelineRows).forEach(pipelineNodes => {
-      const receivers = pipelineNodes.filter(n => (n.data as unknown as PipelineNodeData).component.component_type === 'receiver');
-      const processors = pipelineNodes.filter(n => (n.data as unknown as PipelineNodeData).component.component_type === 'processor');
-      const exporters = pipelineNodes.filter(n => (n.data as unknown as PipelineNodeData).component.component_type === 'exporter');
-
-      // Connect receivers to processors
-      receivers.forEach(receiver => {
-        processors.forEach(processor => {
-          newEdges.push({
-            id: `edge-${receiver.id}-${processor.id}`,
-            source: receiver.id,
-            target: processor.id,
-            type: 'smoothstep',
-            animated: true,
-          });
-        });
-      });
-
-      // Connect processors to exporters
-      processors.forEach(processor => {
-        exporters.forEach(exporter => {
-          newEdges.push({
-            id: `edge-${processor.id}-${exporter.id}`,
-            source: processor.id,
-            target: exporter.id,
-            type: 'smoothstep',
-            animated: true,
-          });
-        });
-      });
-
-      // If no processors, connect receivers directly to exporters
-      if (processors.length === 0) {
-        receivers.forEach(receiver => {
-          exporters.forEach(exporter => {
-            newEdges.push({
-              id: `edge-${receiver.id}-${exporter.id}`,
-              source: receiver.id,
-              target: exporter.id,
-              type: 'smoothstep',
-              animated: true,
-            });
-          });
-        });
-      }
-    });
-
-    setNodes(newNodes);
-    setEdges(newEdges);
-  }, [filteredComponents, pipelineTypes]);
+    setNodes(generatedNodes);
+    setEdges(generatedEdges);
+  }, [effectiveConfig]);
 
   // Calculate summary statistics
   const summaryStats = useMemo(() => {
@@ -228,19 +172,7 @@ export function CollectorPipelineView({ agentId, agentName }: CollectorPipelineV
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={timeRange} onValueChange={(value: TimeRange) => setTimeRange(value)}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1m">1 minute</SelectItem>
-              <SelectItem value="5m">5 minutes</SelectItem>
-              <SelectItem value="15m">15 minutes</SelectItem>
-              <SelectItem value="1h">1 hour</SelectItem>
-              <SelectItem value="6h">6 hours</SelectItem>
-              <SelectItem value="24h">24 hours</SelectItem>
-            </SelectContent>
-          </Select>
+          <TimeRangeSelect value={timeRange} onValueChange={setTimeRange} />
           <Button onClick={fetchMetrics} size="sm" variant="outline">
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -342,8 +274,6 @@ export function CollectorPipelineView({ agentId, agentName }: CollectorPipelineV
             attributionPosition="bottom-left"
           >
             <Background />
-            <Controls />
-            <MiniMap />
           </ReactFlow>
         )}
       </div>

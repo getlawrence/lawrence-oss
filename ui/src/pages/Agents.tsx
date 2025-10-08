@@ -8,7 +8,9 @@ import {
 import { useState } from "react";
 import useSWR from "swr";
 
-import { getAgents, getAgentStats } from "@/api/agents";
+import { getAgents } from "@/api/agents";
+import { AgentDetailsDrawer } from "@/components/AgentDetailsDrawer";
+import { GroupDetailsDrawer } from "@/components/GroupDetailsDrawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,18 +31,16 @@ import {
 
 export default function AgentsPage() {
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [groupDrawerOpen, setGroupDrawerOpen] = useState(false);
 
   const {
     data: agentsData,
     error: agentsError,
     mutate: mutateAgents,
   } = useSWR("agents", getAgents, { refreshInterval: 30000 });
-
-  const { data: statsData, error: statsError } = useSWR(
-    "agent-stats",
-    getAgentStats,
-    { refreshInterval: 30000 },
-  );
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -78,7 +78,18 @@ export default function AgentsPage() {
     }
   };
 
-  if (agentsError || statsError) {
+  const handleAgentClick = (agentId: string) => {
+    setSelectedAgentId(agentId);
+    setDrawerOpen(true);
+  };
+
+  const handleGroupClick = (groupId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedGroupId(groupId);
+    setGroupDrawerOpen(true);
+  };
+
+  if (agentsError) {
     return (
       <div className="container mx-auto p-6">
         <div className="text-center">
@@ -86,9 +97,7 @@ export default function AgentsPage() {
             Error Loading Data
           </h1>
           <p className="text-gray-600">
-            {agentsError?.message ||
-              statsError?.message ||
-              "Failed to load agent data"}
+            {agentsError?.message || "Failed to load agent data"}
           </p>
           <Button onClick={handleRefresh} className="mt-4">
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -100,13 +109,6 @@ export default function AgentsPage() {
   }
 
   const agents = agentsData?.agents ? Object.values(agentsData.agents) : [];
-  const stats = statsData || {
-    totalAgents: 0,
-    onlineAgents: 0,
-    offlineAgents: 0,
-    errorAgents: 0,
-    groupsCount: 0,
-  };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -124,53 +126,7 @@ export default function AgentsPage() {
           Refresh
         </Button>
       </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Agents</CardTitle>
-            <Server className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalAgents}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Online</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {stats.onlineAgents}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Offline</CardTitle>
-            <XCircle className="h-4 w-4 text-gray-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-600">
-              {stats.offlineAgents}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Errors</CardTitle>
-            <AlertCircle className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {stats.errorAgents}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
+      
       {/* Agents Table */}
       <Card>
         <CardHeader>
@@ -205,7 +161,11 @@ export default function AgentsPage() {
               </TableHeader>
               <TableBody>
                 {agents.map((agent) => (
-                  <TableRow key={agent.id}>
+                  <TableRow 
+                    key={agent.id}
+                    onClick={() => handleAgentClick(agent.id)}
+                    className="cursor-pointer hover:bg-muted/50"
+                  >
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         {getStatusIcon(agent.status)}
@@ -214,7 +174,18 @@ export default function AgentsPage() {
                     </TableCell>
                     <TableCell className="font-medium">{agent.name}</TableCell>
                     <TableCell>{agent.version}</TableCell>
-                    <TableCell>{agent.group_id || "No Group"}</TableCell>
+                    <TableCell>
+                      {agent.group_id ? (
+                        <span
+                          onClick={(e) => agent.group_id && handleGroupClick(agent.group_id, e)}
+                          className="text-blue-600 hover:text-blue-800 cursor-pointer underline"
+                        >
+                          {agent.group_id}
+                        </span>
+                      ) : (
+                        "No Group"
+                      )}
+                    </TableCell>
                     <TableCell>
                       {new Date(agent.last_seen).toLocaleString()}
                     </TableCell>
@@ -245,6 +216,18 @@ export default function AgentsPage() {
           )}
         </CardContent>
       </Card>
+
+      <AgentDetailsDrawer
+        agentId={selectedAgentId}
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+      />
+
+      <GroupDetailsDrawer
+        groupId={selectedGroupId}
+        open={groupDrawerOpen}
+        onOpenChange={setGroupDrawerOpen}
+      />
     </div>
   );
 }

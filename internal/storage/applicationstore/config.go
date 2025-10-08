@@ -1,7 +1,7 @@
 package applicationstore
 
 import (
-	"github.com/getlawrence/lawrence-oss/internal/app"
+	"github.com/getlawrence/lawrence-oss/internal/config"
 )
 
 // FactoryConfig represents the configuration for the application store meta factory
@@ -11,7 +11,7 @@ type FactoryConfig struct {
 }
 
 // ConfigFrom creates a FactoryConfig from the app storage config
-func ConfigFrom(appConfig *app.Config) FactoryConfig {
+func ConfigFrom(appConfig *config.Config) FactoryConfig {
 	return FactoryConfig{
 		Type: appConfig.Storage.App.Type,
 		Path: appConfig.Storage.App.Path,
