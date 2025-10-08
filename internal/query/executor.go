@@ -220,14 +220,14 @@ func (v *ExecutorVisitor) executeLogsQuery(q *TelemetryQuery, startTime, endTime
 
 		results = append(results, QueryResult{
 			Type:      TelemetryTypeLogs,
-		Timestamp: log.Timestamp,
-		Labels:    convertToStringMap(log.LogAttributes),
-		Value:     log.Body,
-		Data: map[string]interface{}{
-			"severity":    log.SeverityText,
-			"agent_id":    log.AgentID.String(),
-			"config_hash": log.ConfigHash,
-		},
+			Timestamp: log.Timestamp,
+			Labels:    convertToStringMap(log.LogAttributes),
+			Value:     log.Body,
+			Data: map[string]interface{}{
+				"severity":    log.SeverityText,
+				"agent_id":    log.AgentID.String(),
+				"config_hash": log.ConfigHash,
+			},
 		})
 	}
 
