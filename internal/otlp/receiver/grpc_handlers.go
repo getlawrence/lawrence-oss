@@ -19,57 +19,57 @@ import (
 // TraceService implements the OTLP Trace Service gRPC interface
 type TraceService struct {
 	coltracepb.UnimplementedTraceServiceServer
-	writer      TelemetryWriter
-	parser      *parser.OTLPParser
-	logger      *zap.Logger
-	metrics     *metrics.OTLPMetrics
+	writer  TelemetryWriter
+	parser  *parser.OTLPParser
+	logger  *zap.Logger
+	metrics *metrics.OTLPMetrics
 }
 
 // MetricsService implements the OTLP Metrics Service gRPC interface
 type MetricsService struct {
 	colmetricspb.UnimplementedMetricsServiceServer
-	writer      TelemetryWriter
-	parser      *parser.OTLPParser
-	logger      *zap.Logger
-	metrics     *metrics.OTLPMetrics
+	writer  TelemetryWriter
+	parser  *parser.OTLPParser
+	logger  *zap.Logger
+	metrics *metrics.OTLPMetrics
 }
 
 // LogsService implements the OTLP Logs Service gRPC interface
 type LogsService struct {
 	collogspb.UnimplementedLogsServiceServer
-	writer      TelemetryWriter
-	parser      *parser.OTLPParser
-	logger      *zap.Logger
-	metrics     *metrics.OTLPMetrics
+	writer  TelemetryWriter
+	parser  *parser.OTLPParser
+	logger  *zap.Logger
+	metrics *metrics.OTLPMetrics
 }
 
 // NewTraceService creates a new TraceService instance
-func NewTraceService(writer TelemetryWriter,  parser *parser.OTLPParser, metricsInstance *metrics.OTLPMetrics, logger *zap.Logger) *TraceService {
+func NewTraceService(writer TelemetryWriter, parser *parser.OTLPParser, metricsInstance *metrics.OTLPMetrics, logger *zap.Logger) *TraceService {
 	return &TraceService{
-		writer:      writer,
-		parser:      parser,
-		logger:      logger,
-		metrics:     metricsInstance,
+		writer:  writer,
+		parser:  parser,
+		logger:  logger,
+		metrics: metricsInstance,
 	}
 }
 
 // NewMetricsService creates a new MetricsService instance
 func NewMetricsService(writer TelemetryWriter, parser *parser.OTLPParser, metricsInstance *metrics.OTLPMetrics, logger *zap.Logger) *MetricsService {
 	return &MetricsService{
-		writer:      writer,
-		parser:      parser,
-		logger:      logger,
-		metrics:     metricsInstance,
+		writer:  writer,
+		parser:  parser,
+		logger:  logger,
+		metrics: metricsInstance,
 	}
 }
 
 // NewLogsService creates a new LogsService instance
 func NewLogsService(writer TelemetryWriter, parser *parser.OTLPParser, metricsInstance *metrics.OTLPMetrics, logger *zap.Logger) *LogsService {
 	return &LogsService{
-		writer:      writer,
-		parser:      parser,
-		logger:      logger,
-		metrics:     metricsInstance,
+		writer:  writer,
+		parser:  parser,
+		logger:  logger,
+		metrics: metricsInstance,
 	}
 }
 

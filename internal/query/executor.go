@@ -488,16 +488,16 @@ func (v *ExecutorVisitor) groupAndAggregate(results []QueryResult, byLabels []st
 		// Create group key from specified labels
 		key := ""
 		groupLabelValues := make(map[string]string)
-		
+
 		for i, label := range byLabels {
 			if i > 0 {
 				key += "|"
 			}
-			
+
 			// Check both Labels and Data for the field
 			var val string
 			var found bool
-			
+
 			if v, ok := result.Labels[label]; ok {
 				val = v
 				found = true
@@ -506,7 +506,7 @@ func (v *ExecutorVisitor) groupAndAggregate(results []QueryResult, byLabels []st
 				val = fmt.Sprintf("%v", v)
 				found = true
 			}
-			
+
 			if found {
 				key += val
 				groupLabelValues[label] = val

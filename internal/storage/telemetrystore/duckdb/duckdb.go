@@ -385,7 +385,7 @@ func (s *Storage) QueryMetrics(ctx context.Context, query types.MetricQuery) ([]
 		}
 		if attrsJSON != "" {
 			_ = json.Unmarshal([]byte(attrsJSON), &m.MetricAttributes)
-			
+
 			// Convert MetricAttributes to Labels (map[string]string)
 			m.Labels = make(map[string]string)
 			for key, value := range m.MetricAttributes {
@@ -445,7 +445,7 @@ func (s *Storage) QueryLogs(ctx context.Context, query types.LogQuery) ([]types.
 		var serviceName string
 		var attrsJSON string
 
-		err := rows.Scan(&l.Timestamp, &agentIDStr, &groupID, &serviceName, 
+		err := rows.Scan(&l.Timestamp, &agentIDStr, &groupID, &serviceName,
 			&l.SeverityText, &l.SeverityNumber, &l.Body, &traceID, &spanID, &attrsJSON)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan log: %w", err)
@@ -464,14 +464,14 @@ func (s *Storage) QueryLogs(ctx context.Context, query types.LogQuery) ([]types.
 		}
 		if attrsJSON != "" {
 			_ = json.Unmarshal([]byte(attrsJSON), &l.LogAttributes)
-			
+
 			// Convert LogAttributes to deprecated Attributes field (map[string]string)
 			l.Attributes = make(map[string]string)
 			for key, value := range l.LogAttributes {
 				l.Attributes[key] = fmt.Sprintf("%v", value)
 			}
 		}
-		
+
 		// Set deprecated Severity field from SeverityText
 		l.Severity = l.SeverityText
 

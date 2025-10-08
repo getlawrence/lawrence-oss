@@ -51,11 +51,11 @@ service:
 `
 
 type Server struct {
-	logger          *zap.Logger
-	opampServer     server.OpAMPServer
-	agents          *Agents
-	agentService    services.AgentService
-	metrics         *metrics.OpAMPMetrics
+	logger           *zap.Logger
+	opampServer      server.OpAMPServer
+	agents           *Agents
+	agentService     services.AgentService
+	metrics          *metrics.OpAMPMetrics
 	otlpGRPCEndpoint string // OTLP gRPC endpoint to offer to agents
 	otlpHTTPEndpoint string // OTLP HTTP endpoint to offer to agents
 }
@@ -75,10 +75,10 @@ func (z *zapToOpAmpLogger) Errorf(ctx context.Context, format string, args ...in
 
 func NewServer(agents *Agents, agentService services.AgentService, metricsInstance *metrics.OpAMPMetrics, otlpGRPCEndpoint, otlpHTTPEndpoint string, logger *zap.Logger) (*Server, error) {
 	s := &Server{
-		logger:          logger,
-		agents:          agents,
-		agentService:    agentService,
-		metrics:         metricsInstance,
+		logger:           logger,
+		agents:           agents,
+		agentService:     agentService,
+		metrics:          metricsInstance,
 		otlpGRPCEndpoint: otlpGRPCEndpoint,
 		otlpHTTPEndpoint: otlpHTTPEndpoint,
 	}

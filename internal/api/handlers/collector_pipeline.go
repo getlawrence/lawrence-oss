@@ -28,27 +28,27 @@ func NewCollectorPipelineHandler(telemetryService services.TelemetryQueryService
 
 // ComponentMetrics represents metrics for a single pipeline component
 type ComponentMetrics struct {
-	ComponentType string             `json:"component_type"` // receiver, processor, exporter
-	ComponentName string             `json:"component_name"`
-	PipelineType  string             `json:"pipeline_type"` // traces, metrics, logs
-	Throughput    float64            `json:"throughput"`
-	Errors        float64            `json:"errors"`
-	ErrorRate     float64            `json:"error_rate"`
-	Received      *float64           `json:"received,omitempty"`
-	Accepted      *float64           `json:"accepted,omitempty"`
-	Refused       *float64           `json:"refused,omitempty"`
-	Dropped       *float64           `json:"dropped,omitempty"`
-	Sent          *float64           `json:"sent,omitempty"`
-	SendFailed    *float64           `json:"send_failed,omitempty"`
-	LastUpdated   time.Time          `json:"last_updated"`
-	Labels        map[string]string  `json:"labels,omitempty"`
+	ComponentType string            `json:"component_type"` // receiver, processor, exporter
+	ComponentName string            `json:"component_name"`
+	PipelineType  string            `json:"pipeline_type"` // traces, metrics, logs
+	Throughput    float64           `json:"throughput"`
+	Errors        float64           `json:"errors"`
+	ErrorRate     float64           `json:"error_rate"`
+	Received      *float64          `json:"received,omitempty"`
+	Accepted      *float64          `json:"accepted,omitempty"`
+	Refused       *float64          `json:"refused,omitempty"`
+	Dropped       *float64          `json:"dropped,omitempty"`
+	Sent          *float64          `json:"sent,omitempty"`
+	SendFailed    *float64          `json:"send_failed,omitempty"`
+	LastUpdated   time.Time         `json:"last_updated"`
+	Labels        map[string]string `json:"labels,omitempty"`
 }
 
 // PipelineMetricsResponse contains all metrics for a collector's pipelines
 type PipelineMetricsResponse struct {
-	AgentID    string              `json:"agent_id"`
-	Timestamp  time.Time           `json:"timestamp"`
-	Components []ComponentMetrics  `json:"components"`
+	AgentID    string             `json:"agent_id"`
+	Timestamp  time.Time          `json:"timestamp"`
+	Components []ComponentMetrics `json:"components"`
 }
 
 // HandleGetPipelineMetrics returns metrics for all pipeline components of an agent

@@ -89,18 +89,18 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		logger.Fatal("Failed to create application store factory", zap.Error(err))
 	}
-	
+
 	// Initialize the factory
 	if err := appStoreFactory.Initialize(logger); err != nil {
 		logger.Fatal("Failed to initialize application store factory", zap.Error(err))
 	}
-	
+
 	// Create application store
 	appStore, err := appStoreFactory.CreateApplicationStore()
 	if err != nil {
 		logger.Fatal("Failed to create application store", zap.Error(err))
 	}
-	
+
 	// Ensure application store factory is properly closed on shutdown
 	defer func() {
 		if err := appStoreFactory.Close(); err != nil {
@@ -113,12 +113,12 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		logger.Fatal("Failed to create telemetry store factory", zap.Error(err))
 	}
-	
+
 	// Initialize the factory
 	if err := telemetryStoreFactory.Initialize(logger); err != nil {
 		logger.Fatal("Failed to initialize telemetry store factory", zap.Error(err))
 	}
-	
+
 	// Create telemetry reader
 	telemetryReader, err := telemetryStoreFactory.CreateTelemetryReader()
 	if err != nil {
@@ -130,7 +130,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		logger.Fatal("Failed to create telemetry writer", zap.Error(err))
 	}
-	
+
 	// Ensure telemetry store factory is properly closed on shutdown
 	defer func() {
 		if err := telemetryStoreFactory.Close(); err != nil {
@@ -157,7 +157,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	// Initialize OpAMP server
 	logger.Info("Initializing OpAMP server")
 	agents := opamp.NewAgents(logger)
-	
+
 	// Determine which OTLP endpoints to offer to agents
 	// If agent_*_endpoint is configured, use it; otherwise use the receiver endpoint
 	agentGRPCEndpoint := config.OTLP.AgentGRPCEndpoint
@@ -168,7 +168,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	if agentHTTPEndpoint == "" {
 		agentHTTPEndpoint = config.OTLP.HTTPEndpoint
 	}
-	
+
 	opampServer, err := opamp.NewServer(agents, agentService, opampMetrics, agentGRPCEndpoint, agentHTTPEndpoint, logger)
 	if err != nil {
 		logger.Fatal("Failed to create OpAMP server", zap.Error(err))

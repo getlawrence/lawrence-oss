@@ -30,36 +30,37 @@ var AllStorageTypes = []string{
 // It provides a clean abstraction layer over concrete storage implementations, allowing easy switching
 // between different storage backends (SQLite, Memory, PostgreSQL, etc.) without changing the main application code.
 type Factory struct {
-	Config FactoryConfig
-	logger   *zap.Logger
+	Config    FactoryConfig
+	logger    *zap.Logger
 	factories map[string]ApplicationStoreFactory
 }
 
 // NewFactory creates the meta-factory.
 // It automatically creates and registers the factory for the configured storage type.
 // Example usage:
-//   config := applicationstore.ConfigFrom(appConfig)
-//   factory, err := applicationstore.NewFactory(config)
-//   if err != nil {
-//       log.Fatal(err)
-//   }
-//   defer factory.Close()
+//
+//	config := applicationstore.ConfigFrom(appConfig)
+//	factory, err := applicationstore.NewFactory(config)
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	defer factory.Close()
 func NewFactory(config FactoryConfig) (*Factory, error) {
 	f := &Factory{Config: config}
 	f.factories = make(map[string]ApplicationStoreFactory)
-	
+
 	// Validate storage type
 	if !IsStorageTypeSupported(config.Type) {
 		return nil, fmt.Errorf("unsupported storage type %s. Supported types: %v", config.Type, AllStorageTypes)
 	}
-	
+
 	// Initialize the factory for the configured storage type
 	factory, err := f.getFactoryOfType(config.Type)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create factory for storage type %s: %w", config.Type, err)
 	}
 	f.factories[config.Type] = factory
-	
+
 	return f, nil
 }
 
@@ -86,14 +87,14 @@ func (f *Factory) getFactoryOfType(factoryType string) (ApplicationStoreFactory,
 // Initialize initializes the meta factory and all underlying factories
 func (f *Factory) Initialize(logger *zap.Logger) error {
 	f.logger = logger
-	
+
 	// Initialize all registered factories
 	for storageType, factory := range f.factories {
 		if err := factory.Initialize(logger); err != nil {
 			return fmt.Errorf("failed to initialize %s factory: %w", storageType, err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -116,11 +117,11 @@ func (f *Factory) Close() error {
 			}
 		}
 	}
-	
+
 	if len(errs) > 0 {
 		return fmt.Errorf("errors closing factories: %v", errs)
 	}
-	
+
 	return nil
 }
 

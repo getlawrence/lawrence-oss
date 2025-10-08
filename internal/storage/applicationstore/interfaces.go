@@ -2,15 +2,15 @@ package applicationstore
 
 import (
 	"context"
-	"go.uber.org/zap"
 	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore/types"
+	"go.uber.org/zap"
 )
 
 // ApplicationStoreFactory defines an interface for a factory that can create application store implementations.
 type ApplicationStoreFactory interface {
 	// CreateApplicationStore creates a types.ApplicationStore
 	CreateApplicationStore() (types.ApplicationStore, error)
-	
+
 	// Initialize performs internal initialization of the factory, such as opening connections to the backend store.
 	// It is called after all configuration of the factory itself has been done.
 	Initialize(logger *zap.Logger) error

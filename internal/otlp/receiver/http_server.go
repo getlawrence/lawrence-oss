@@ -20,12 +20,12 @@ import (
 
 // HTTPServer represents the HTTP OTLP receiver server
 type HTTPServer struct {
-	server      *http.Server
-	logger      *zap.Logger
-	writer      TelemetryWriter
-	parser      *parser.OTLPParser
-	metrics     *metrics.OTLPMetrics
-	port        int
+	server  *http.Server
+	logger  *zap.Logger
+	writer  TelemetryWriter
+	parser  *parser.OTLPParser
+	metrics *metrics.OTLPMetrics
+	port    int
 }
 
 // NewHTTPServer creates a new HTTP server instance
@@ -38,11 +38,11 @@ func NewHTTPServer(port int, writer TelemetryWriter, metricsInstance *metrics.OT
 
 	// Create HTTP server
 	s := &HTTPServer{
-		logger:      logger,
-		writer:      writer,
-		parser:      otlpParser,
-		metrics:     metricsInstance,
-		port:        port,
+		logger:  logger,
+		writer:  writer,
+		parser:  otlpParser,
+		metrics: metricsInstance,
+		port:    port,
 	}
 
 	// Create Gin router
