@@ -28,7 +28,7 @@ type GRPCServer struct {
 }
 
 // NewGRPCServer creates a new gRPC server instance
-func NewGRPCServer(port int, writer TelemetryWriter, asyncWriter AsyncTelemetryWriter, metricsInstance *metrics.OTLPMetrics, logger *zap.Logger) (*GRPCServer, error) {
+func NewGRPCServer(port int, writer TelemetryWriter, metricsInstance *metrics.OTLPMetrics, logger *zap.Logger) (*GRPCServer, error) {
 	// Create parser
 	otlpParser := parser.NewOTLPParser(logger)
 
@@ -45,9 +45,9 @@ func NewGRPCServer(port int, writer TelemetryWriter, asyncWriter AsyncTelemetryW
 	)
 
 	// Register OTLP services
-	traceService := NewTraceService(writer, asyncWriter, otlpParser, metricsInstance, logger)
-	metricsService := NewMetricsService(writer, asyncWriter, otlpParser, metricsInstance, logger)
-	logsService := NewLogsService(writer, asyncWriter, otlpParser, metricsInstance, logger)
+	traceService := NewTraceService(writer, otlpParser, metricsInstance, logger)
+	metricsService := NewMetricsService(writer, otlpParser, metricsInstance, logger)
+	logsService := NewLogsService(writer, otlpParser, metricsInstance, logger)
 
 	coltracepb.RegisterTraceServiceServer(server, traceService)
 	colmetricspb.RegisterMetricsServiceServer(server, metricsService)

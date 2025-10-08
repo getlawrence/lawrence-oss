@@ -95,6 +95,7 @@ func (s *Server) registerRoutes() {
 	groupHandlers := handlers.NewGroupHandlers(s.agentService, s.logger)
 	topologyHandlers := handlers.NewTopologyHandlers(s.agentService, s.telemetryService, s.logger)
 	healthHandlers := handlers.NewHealthHandlers(s.agentService, s.telemetryService, s.logger)
+	pipelineHandlers := handlers.NewCollectorPipelineHandler(s.telemetryService, s.logger)
 
 	// Metrics endpoint
 	s.router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(s.registry, promhttp.HandlerOpts{})))
@@ -111,6 +112,7 @@ func (s *Server) registerRoutes() {
 			agents.GET("", agentHandlers.HandleGetAgents)
 			agents.GET("/stats", agentHandlers.HandleGetAgentStats) // Must come before /:id
 			agents.GET("/:id", agentHandlers.HandleGetAgent)
+			agents.GET("/:id/pipeline-metrics", pipelineHandlers.HandleGetPipelineMetrics)
 			agents.PATCH("/:id/group", agentHandlers.HandleUpdateAgentGroup)
 		}
 

@@ -1,7 +1,6 @@
 import {
   BarChart3,
   FileText,
-  GitBranch,
   CheckCircle,
   XCircle,
   AlertCircle,
@@ -42,6 +41,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CollectorPipelineView } from "@/components/collector-pipeline";
 
 interface AgentDetailsDrawerProps {
   agentId: string | null;
@@ -96,7 +96,6 @@ export function AgentDetailsDrawer({
 
   const agent = agentTopology?.agent;
   const metrics = agentTopology?.metrics;
-  const pipeline = agentTopology?.pipeline;
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -370,44 +369,18 @@ export function AgentDetailsDrawer({
             </TabsContent>
 
             <TabsContent value="pipeline" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <GitBranch className="h-4 w-4" />
-                    Pipeline Configuration
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {pipeline ? (
-                    <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">
-                          Config ID:
-                        </span>
-                        <span className="text-sm font-mono">
-                          {pipeline.config_id}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Version:</span>
-                        <span className="text-sm">
-                          {pipeline.config_version}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Hash:</span>
-                        <span className="text-sm font-mono text-xs">
-                          {pipeline.config_hash}
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      No pipeline configuration available
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              {agentId ? (
+                <div className="h-[600px]">
+                  <CollectorPipelineView 
+                    agentId={agentId} 
+                    agentName={agent?.name}
+                  />
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No agent selected
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         ) : null}

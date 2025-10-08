@@ -20,7 +20,8 @@ import (
 	"github.com/getlawrence/lawrence-oss/internal/opamp"
 	"github.com/getlawrence/lawrence-oss/internal/otlp/receiver"
 	"github.com/getlawrence/lawrence-oss/internal/services"
-	"github.com/getlawrence/lawrence-oss/internal/storage"
+	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore"
+	"github.com/getlawrence/lawrence-oss/internal/storage/telemetrystore"
 	"github.com/getlawrence/lawrence-oss/internal/utils"
 )
 
@@ -83,22 +84,59 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	// Initialize storage factories
 	logger.Info("Initializing storage layer")
 
+	// Create application store using meta factory
+	appStoreFactory, err := applicationstore.NewFactoryFromAppConfig(config)
+	if err != nil {
+		logger.Fatal("Failed to create application store factory", zap.Error(err))
+	}
+	
+	// Initialize the factory
+	if err := appStoreFactory.Initialize(logger); err != nil {
+		logger.Fatal("Failed to initialize application store factory", zap.Error(err))
+	}
+	
 	// Create application store
-	appStoreFactory := storage.NewSQLiteApplicationStoreFactory(config.Storage.App.Path, logger)
 	appStore, err := appStoreFactory.CreateApplicationStore()
 	if err != nil {
 		logger.Fatal("Failed to create application store", zap.Error(err))
 	}
+	
+	// Ensure application store factory is properly closed on shutdown
+	defer func() {
+		if err := appStoreFactory.Close(); err != nil {
+			logger.Error("Failed to close application store factory", zap.Error(err))
+		}
+	}()
 
-	// Create telemetry store
-	telemetryStoreFactory := storage.NewDuckDBTelemetryStoreFactory(config.Storage.Telemetry.Path, logger)
+	// Create telemetry store using meta factory
+	telemetryStoreFactory, err := telemetrystore.NewFactoryFromAppConfig(config)
+	if err != nil {
+		logger.Fatal("Failed to create telemetry store factory", zap.Error(err))
+	}
+	
+	// Initialize the factory
+	if err := telemetryStoreFactory.Initialize(logger); err != nil {
+		logger.Fatal("Failed to initialize telemetry store factory", zap.Error(err))
+	}
+	
+	// Create telemetry reader
 	telemetryReader, err := telemetryStoreFactory.CreateTelemetryReader()
 	if err != nil {
 		logger.Fatal("Failed to create telemetry reader", zap.Error(err))
 	}
 
 	// Create writer adapter for OTLP receivers (handles both sync and async writes)
-	writerAdapter := telemetryStoreFactory.CreateWriterAdapter()
+	telemetryWriter, err := telemetryStoreFactory.CreateTelemetryWriter()
+	if err != nil {
+		logger.Fatal("Failed to create telemetry writer", zap.Error(err))
+	}
+	
+	// Ensure telemetry store factory is properly closed on shutdown
+	defer func() {
+		if err := telemetryStoreFactory.Close(); err != nil {
+			logger.Error("Failed to close telemetry store factory", zap.Error(err))
+		}
+	}()
 
 	// Initialize metrics
 	logger.Info("Initializing metrics")
@@ -133,7 +171,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	}()
 
 	// Initialize OTLP receivers
-	grpcServer, err := receiver.NewGRPCServer(4317, writerAdapter, writerAdapter, otlpMetrics, logger)
+	grpcServer, err := receiver.NewGRPCServer(4317, telemetryWriter, otlpMetrics, logger)
 	if err != nil {
 		logger.Fatal("Failed to create gRPC server", zap.Error(err))
 	}
@@ -146,7 +184,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 		_ = grpcServer.Stop(ctx)
 	}()
 
-	httpServer, err := receiver.NewHTTPServer(4318, writerAdapter, writerAdapter, otlpMetrics, logger)
+	httpServer, err := receiver.NewHTTPServer(4318, telemetryWriter, otlpMetrics, logger)
 	if err != nil {
 		logger.Fatal("Failed to create HTTP server", zap.Error(err))
 	}

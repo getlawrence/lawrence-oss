@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore"
+	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore/types"
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 	"go.uber.org/zap"
@@ -20,7 +20,7 @@ type Storage struct {
 }
 
 // NewSQLiteStorage creates a new SQLite storage instance
-func NewSQLiteStorage(dbPath string, logger *zap.Logger) (applicationstore.ApplicationStore, error) {
+func NewSQLiteStorage(dbPath string, logger *zap.Logger) (types.ApplicationStore, error) {
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open SQLite database: %w", err)
@@ -121,7 +121,7 @@ func (s *Storage) migrate() error {
 }
 
 // Agent management
-func (s *Storage) CreateAgent(ctx context.Context, agent *applicationstore.Agent) error {
+func (s *Storage) CreateAgent(ctx context.Context, agent *types.Agent) error {
 	labelsJSON, _ := json.Marshal(agent.Labels)
 	capabilitiesJSON, _ := json.Marshal(agent.Capabilities)
 
@@ -152,13 +152,13 @@ func (s *Storage) CreateAgent(ctx context.Context, agent *applicationstore.Agent
 	return nil
 }
 
-func (s *Storage) GetAgent(ctx context.Context, id uuid.UUID) (*applicationstore.Agent, error) {
+func (s *Storage) GetAgent(ctx context.Context, id uuid.UUID) (*types.Agent, error) {
 	query := `
 		SELECT id, name, labels, status, last_seen, group_id, group_name, version, capabilities, created_at, updated_at
 		FROM agents WHERE id = ?
 	`
 
-	var agent applicationstore.Agent
+	var agent types.Agent
 	var labelsJSON, capabilitiesJSON string
 	var agentIDStr string
 
@@ -190,7 +190,7 @@ func (s *Storage) GetAgent(ctx context.Context, id uuid.UUID) (*applicationstore
 	return &agent, nil
 }
 
-func (s *Storage) ListAgents(ctx context.Context) ([]*applicationstore.Agent, error) {
+func (s *Storage) ListAgents(ctx context.Context) ([]*types.Agent, error) {
 	query := `
 		SELECT id, name, labels, status, last_seen, group_id, group_name, version, capabilities, created_at, updated_at
 		FROM agents ORDER BY created_at DESC
@@ -202,9 +202,9 @@ func (s *Storage) ListAgents(ctx context.Context) ([]*applicationstore.Agent, er
 	}
 	defer rows.Close()
 
-	var agents []*applicationstore.Agent
+	var agents []*types.Agent
 	for rows.Next() {
-		var agent applicationstore.Agent
+		var agent types.Agent
 		var labelsJSON, capabilitiesJSON string
 		var agentIDStr string
 
@@ -235,7 +235,7 @@ func (s *Storage) ListAgents(ctx context.Context) ([]*applicationstore.Agent, er
 	return agents, nil
 }
 
-func (s *Storage) UpdateAgentStatus(ctx context.Context, id uuid.UUID, status applicationstore.AgentStatus) error {
+func (s *Storage) UpdateAgentStatus(ctx context.Context, id uuid.UUID, status types.AgentStatus) error {
 	query := `UPDATE agents SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
 
 	result, err := s.db.ExecContext(ctx, query, string(status), id.String())
@@ -286,7 +286,7 @@ func (s *Storage) DeleteAgent(ctx context.Context, id uuid.UUID) error {
 }
 
 // Group management
-func (s *Storage) CreateGroup(ctx context.Context, group *applicationstore.Group) error {
+func (s *Storage) CreateGroup(ctx context.Context, group *types.Group) error {
 	labelsJSON, _ := json.Marshal(group.Labels)
 
 	query := `
@@ -310,10 +310,10 @@ func (s *Storage) CreateGroup(ctx context.Context, group *applicationstore.Group
 	return nil
 }
 
-func (s *Storage) GetGroup(ctx context.Context, id string) (*applicationstore.Group, error) {
+func (s *Storage) GetGroup(ctx context.Context, id string) (*types.Group, error) {
 	query := `SELECT id, name, labels, created_at, updated_at FROM groups WHERE id = ?`
 
-	var group applicationstore.Group
+	var group types.Group
 	var labelsJSON string
 
 	err := s.db.QueryRowContext(ctx, query, id).Scan(
@@ -335,7 +335,7 @@ func (s *Storage) GetGroup(ctx context.Context, id string) (*applicationstore.Gr
 	return &group, nil
 }
 
-func (s *Storage) ListGroups(ctx context.Context) ([]*applicationstore.Group, error) {
+func (s *Storage) ListGroups(ctx context.Context) ([]*types.Group, error) {
 	query := `SELECT id, name, labels, created_at, updated_at FROM groups ORDER BY created_at DESC`
 
 	rows, err := s.db.QueryContext(ctx, query)
@@ -344,9 +344,9 @@ func (s *Storage) ListGroups(ctx context.Context) ([]*applicationstore.Group, er
 	}
 	defer rows.Close()
 
-	var groups []*applicationstore.Group
+	var groups []*types.Group
 	for rows.Next() {
-		var group applicationstore.Group
+		var group types.Group
 		var labelsJSON string
 
 		err := rows.Scan(
@@ -385,7 +385,7 @@ func (s *Storage) DeleteGroup(ctx context.Context, id string) error {
 }
 
 // Config management
-func (s *Storage) CreateConfig(ctx context.Context, config *applicationstore.Config) error {
+func (s *Storage) CreateConfig(ctx context.Context, config *types.Config) error {
 	query := `
 		INSERT INTO configs (id, agent_id, group_id, config_hash, content, version, created_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -409,10 +409,10 @@ func (s *Storage) CreateConfig(ctx context.Context, config *applicationstore.Con
 	return nil
 }
 
-func (s *Storage) GetConfig(ctx context.Context, id string) (*applicationstore.Config, error) {
+func (s *Storage) GetConfig(ctx context.Context, id string) (*types.Config, error) {
 	query := `SELECT id, agent_id, group_id, config_hash, content, version, created_at FROM configs WHERE id = ?`
 
-	var config applicationstore.Config
+	var config types.Config
 	var agentIDStr, groupIDStr sql.NullString
 
 	err := s.db.QueryRowContext(ctx, query, id).Scan(
@@ -443,7 +443,7 @@ func (s *Storage) GetConfig(ctx context.Context, id string) (*applicationstore.C
 	return &config, nil
 }
 
-func (s *Storage) GetLatestConfigForAgent(ctx context.Context, agentID uuid.UUID) (*applicationstore.Config, error) {
+func (s *Storage) GetLatestConfigForAgent(ctx context.Context, agentID uuid.UUID) (*types.Config, error) {
 	query := `
 		SELECT id, agent_id, group_id, config_hash, content, version, created_at
 		FROM configs
@@ -452,7 +452,7 @@ func (s *Storage) GetLatestConfigForAgent(ctx context.Context, agentID uuid.UUID
 		LIMIT 1
 	`
 
-	var config applicationstore.Config
+	var config types.Config
 	var agentIDStr, groupIDStr sql.NullString
 
 	err := s.db.QueryRowContext(ctx, query, agentID.String()).Scan(
@@ -483,7 +483,7 @@ func (s *Storage) GetLatestConfigForAgent(ctx context.Context, agentID uuid.UUID
 	return &config, nil
 }
 
-func (s *Storage) GetLatestConfigForGroup(ctx context.Context, groupID string) (*applicationstore.Config, error) {
+func (s *Storage) GetLatestConfigForGroup(ctx context.Context, groupID string) (*types.Config, error) {
 	query := `
 		SELECT id, agent_id, group_id, config_hash, content, version, created_at
 		FROM configs
@@ -492,7 +492,7 @@ func (s *Storage) GetLatestConfigForGroup(ctx context.Context, groupID string) (
 		LIMIT 1
 	`
 
-	var config applicationstore.Config
+	var config types.Config
 	var agentIDStr, groupIDStr sql.NullString
 
 	err := s.db.QueryRowContext(ctx, query, groupID).Scan(
@@ -523,7 +523,7 @@ func (s *Storage) GetLatestConfigForGroup(ctx context.Context, groupID string) (
 	return &config, nil
 }
 
-func (s *Storage) ListConfigs(ctx context.Context, filter applicationstore.ConfigFilter) ([]*applicationstore.Config, error) {
+func (s *Storage) ListConfigs(ctx context.Context, filter types.ConfigFilter) ([]*types.Config, error) {
 	query := `SELECT id, agent_id, group_id, config_hash, content, version, created_at FROM configs WHERE 1=1`
 	args := []interface{}{}
 
@@ -550,9 +550,9 @@ func (s *Storage) ListConfigs(ctx context.Context, filter applicationstore.Confi
 	}
 	defer rows.Close()
 
-	var configs []*applicationstore.Config
+	var configs []*types.Config
 	for rows.Next() {
-		var config applicationstore.Config
+		var config types.Config
 		var agentIDStr, groupIDStr sql.NullString
 
 		err := rows.Scan(
