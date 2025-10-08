@@ -21,22 +21,23 @@ type MockAgentService struct {
 	configs map[string]*services.Config
 
 	// Error flags for testing error cases
-	CreateAgentErr             error
-	GetAgentErr                error
-	ListAgentsErr              error
-	UpdateAgentStatusErr       error
-	UpdateAgentLastSeenErr     error
-	DeleteAgentErr             error
-	CreateGroupErr             error
-	GetGroupErr                error
-	GetGroupByNameErr          error
-	ListGroupsErr              error
-	DeleteGroupErr             error
-	CreateConfigErr            error
-	GetConfigErr               error
-	GetLatestConfigForAgentErr error
-	GetLatestConfigForGroupErr error
-	ListConfigsErr             error
+	CreateAgentErr                error
+	GetAgentErr                   error
+	ListAgentsErr                 error
+	UpdateAgentStatusErr          error
+	UpdateAgentLastSeenErr        error
+	UpdateAgentEffectiveConfigErr error
+	DeleteAgentErr                error
+	CreateGroupErr                error
+	GetGroupErr                   error
+	GetGroupByNameErr             error
+	ListGroupsErr                 error
+	DeleteGroupErr                error
+	CreateConfigErr               error
+	GetConfigErr                  error
+	GetLatestConfigForAgentErr    error
+	GetLatestConfigForGroupErr    error
+	ListConfigsErr                error
 }
 
 // NewMockAgentService creates a new mock agent service
@@ -132,6 +133,25 @@ func (m *MockAgentService) UpdateAgentLastSeen(ctx context.Context, id uuid.UUID
 	}
 
 	agent.LastSeen = lastSeen
+	agent.UpdatedAt = time.Now()
+	return nil
+}
+
+// UpdateAgentEffectiveConfig implements services.AgentService
+func (m *MockAgentService) UpdateAgentEffectiveConfig(ctx context.Context, id uuid.UUID, effectiveConfig string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.UpdateAgentEffectiveConfigErr != nil {
+		return m.UpdateAgentEffectiveConfigErr
+	}
+
+	agent, exists := m.agents[id]
+	if !exists {
+		return nil
+	}
+
+	agent.EffectiveConfig = effectiveConfig
 	agent.UpdatedAt = time.Now()
 	return nil
 }

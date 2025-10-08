@@ -187,7 +187,7 @@ func (ts *TestServer) initServers() {
 
 	// OpAMP Server
 	agents := opamp.NewAgents(ts.logger)
-	opampServer, err := opamp.NewServer(agents, ts.agentService, ts.opampMetrics, ts.logger)
+	opampServer, err := opamp.NewServer(agents, ts.agentService, ts.opampMetrics, "localhost:4317", "localhost:4318", ts.logger)
 	if err != nil {
 		ts.t.Fatalf("Failed to create OpAMP server: %v", err)
 	}
