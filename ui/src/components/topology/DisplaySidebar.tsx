@@ -67,7 +67,26 @@ function GroupsDisplaySection({
   onItemClick?: (node: TopologyNode) => void;
 }) {
   const { data } = useSWR("groups", getGroups);
+  const { data: agentsData } = useSWR("agents", getAgents);
   const groups = data?.groups || [];
+  const agents = agentsData?.agents ? Object.values(agentsData.agents) : [];
+
+  // Calculate agent count for each group
+  const groupAgentCounts = groups.reduce(
+    (acc, group) => {
+      const count = agents.filter((agent) => {
+        // Check if agent's labels match all of the group's labels
+        const groupLabels = group.labels || {};
+        const agentLabels = agent.labels || {};
+        return Object.entries(groupLabels).every(
+          ([key, value]) => agentLabels[key] === value,
+        );
+      }).length;
+      acc[group.id] = count;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
   return (
     <div className="space-y-2">
@@ -125,8 +144,7 @@ function GroupsDisplaySection({
                     {group.name}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {Object.keys(group.labels || {}).length > 0 &&
-                      `${Object.keys(group.labels).length} labels`}
+                    {groupAgentCounts[group.id] || 0} agents
                   </div>
                 </div>
               </div>

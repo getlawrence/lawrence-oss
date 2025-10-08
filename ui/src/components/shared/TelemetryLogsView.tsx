@@ -93,6 +93,8 @@ export function TelemetryLogsView({
     return <LoadingSpinner />;
   }
 
+  const logCountText = logsData.length > 0 ? `${logsData.length} logs in last hour` : "No logs available";
+
   return (
     <Card>
       <CardHeader>
@@ -100,7 +102,7 @@ export function TelemetryLogsView({
           <FileText className="h-4 w-4" />
           {displayTitle}
         </CardTitle>
-        <CardDescription>{logsData.length} logs in last hour</CardDescription>
+        <CardDescription>{logCountText}</CardDescription>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-96">
