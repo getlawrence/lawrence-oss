@@ -54,17 +54,18 @@ func (s *AgentServiceImpl) GetAgent(ctx context.Context, id uuid.UUID) (*Agent, 
 	}
 
 	return &Agent{
-		ID:           agent.ID,
-		Name:         agent.Name,
-		Labels:       agent.Labels,
-		Status:       AgentStatus(agent.Status),
-		LastSeen:     agent.LastSeen,
-		GroupID:      agent.GroupID,
-		GroupName:    agent.GroupName,
-		Version:      agent.Version,
-		Capabilities: agent.Capabilities,
-		CreatedAt:    agent.CreatedAt,
-		UpdatedAt:    agent.UpdatedAt,
+		ID:              agent.ID,
+		Name:            agent.Name,
+		Labels:          agent.Labels,
+		Status:          AgentStatus(agent.Status),
+		LastSeen:        agent.LastSeen,
+		GroupID:         agent.GroupID,
+		GroupName:       agent.GroupName,
+		Version:         agent.Version,
+		Capabilities:    agent.Capabilities,
+		EffectiveConfig: agent.EffectiveConfig,
+		CreatedAt:       agent.CreatedAt,
+		UpdatedAt:       agent.UpdatedAt,
 	}, nil
 }
 
@@ -78,17 +79,18 @@ func (s *AgentServiceImpl) ListAgents(ctx context.Context) ([]*Agent, error) {
 	result := make([]*Agent, len(agents))
 	for i, agent := range agents {
 		result[i] = &Agent{
-			ID:           agent.ID,
-			Name:         agent.Name,
-			Labels:       agent.Labels,
-			Status:       AgentStatus(agent.Status),
-			LastSeen:     agent.LastSeen,
-			GroupID:      agent.GroupID,
-			GroupName:    agent.GroupName,
-			Version:      agent.Version,
-			Capabilities: agent.Capabilities,
-			CreatedAt:    agent.CreatedAt,
-			UpdatedAt:    agent.UpdatedAt,
+			ID:              agent.ID,
+			Name:            agent.Name,
+			Labels:          agent.Labels,
+			Status:          AgentStatus(agent.Status),
+			LastSeen:        agent.LastSeen,
+			GroupID:         agent.GroupID,
+			GroupName:       agent.GroupName,
+			Version:         agent.Version,
+			Capabilities:    agent.Capabilities,
+			EffectiveConfig: agent.EffectiveConfig,
+			CreatedAt:       agent.CreatedAt,
+			UpdatedAt:       agent.UpdatedAt,
 		}
 	}
 
@@ -103,6 +105,11 @@ func (s *AgentServiceImpl) UpdateAgentStatus(ctx context.Context, id uuid.UUID, 
 // UpdateAgentLastSeen updates agent last seen timestamp
 func (s *AgentServiceImpl) UpdateAgentLastSeen(ctx context.Context, id uuid.UUID, lastSeen time.Time) error {
 	return s.appStore.UpdateAgentLastSeen(ctx, id, lastSeen)
+}
+
+// UpdateAgentEffectiveConfig updates agent effective config
+func (s *AgentServiceImpl) UpdateAgentEffectiveConfig(ctx context.Context, id uuid.UUID, effectiveConfig string) error {
+	return s.appStore.UpdateAgentEffectiveConfig(ctx, id, effectiveConfig)
 }
 
 // DeleteAgent deletes an agent

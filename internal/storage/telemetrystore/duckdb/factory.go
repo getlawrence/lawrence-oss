@@ -9,7 +9,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/getlawrence/lawrence-oss/internal/storage/telemetrystore"
+	"github.com/getlawrence/lawrence-oss/internal/storage/telemetrystore/types"
 )
 
 // Factory implements TelemetryStoreFactory and creates storage components backed by DuckDB.
@@ -38,18 +38,13 @@ func (f *Factory) Initialize(logger *zap.Logger) error {
 }
 
 // CreateTelemetryReader implements TelemetryStoreFactory
-func (f *Factory) CreateTelemetryReader() (telemetrystore.Reader, error) {
+func (f *Factory) CreateTelemetryReader() (types.Reader, error) {
 	return &Reader{Storage: f.storage}, nil
 }
 
 // CreateTelemetryWriter implements TelemetryStoreFactory
-func (f *Factory) CreateTelemetryWriter() (telemetrystore.Writer, error) {
+func (f *Factory) CreateTelemetryWriter() (types.Writer, error) {
 	return &Writer{Storage: f.storage}, nil
-}
-
-// CreateWriterAdapter creates a writer adapter for OTLP receivers
-func (f *Factory) CreateWriterAdapter() *WriterAdapter {
-	return NewWriterAdapter(f.storage)
 }
 
 // Purge removes all data from the Factory's underlying DuckDB store.

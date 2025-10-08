@@ -29,13 +29,16 @@ type TelemetryQueryService interface {
 
 // Metric represents a metric data point
 type Metric struct {
-	Timestamp  time.Time         `json:"timestamp"`
-	AgentID    uuid.UUID         `json:"agent_id"`
-	ConfigHash *string           `json:"config_hash,omitempty"`
-	Name       string            `json:"name"`
-	Value      float64           `json:"value"`
-	Labels     map[string]string `json:"labels"`
-	Type       MetricType        `json:"type"`
+	Timestamp        time.Time              `json:"timestamp"`
+	AgentID          uuid.UUID              `json:"agent_id"`
+	GroupID          *string                `json:"group_id,omitempty"`
+	ServiceName      string                 `json:"service_name"`
+	Name             string                 `json:"metric_name"`
+	Value            float64                `json:"value"`
+	MetricAttributes map[string]interface{} `json:"metric_attributes"`
+	ConfigHash       *string                `json:"config_hash,omitempty"`
+	Labels           map[string]string      `json:"labels,omitempty"`
+	Type             MetricType             `json:"type,omitempty"`
 }
 
 // MetricType represents the type of metric
@@ -49,12 +52,21 @@ const (
 
 // Log represents a log entry
 type Log struct {
-	Timestamp  time.Time         `json:"timestamp"`
-	AgentID    uuid.UUID         `json:"agent_id"`
-	ConfigHash *string           `json:"config_hash,omitempty"`
-	Severity   string            `json:"severity"`
-	Body       string            `json:"body"`
-	Attributes map[string]string `json:"attributes"`
+	Timestamp      time.Time              `json:"timestamp"`
+	AgentID        uuid.UUID              `json:"agent_id"`
+	GroupID        *string                `json:"group_id,omitempty"`
+	ServiceName    string                 `json:"service_name"`
+	SeverityText   string                 `json:"severity_text"`
+	SeverityNumber int                    `json:"severity_number"`
+	Body           string                 `json:"body"`
+	TraceID        *string                `json:"trace_id,omitempty"`
+	SpanID         *string                `json:"span_id,omitempty"`
+	LogAttributes  map[string]interface{} `json:"log_attributes"`
+	ConfigHash     *string                `json:"config_hash,omitempty"`
+	// Deprecated: use SeverityText instead
+	Severity string `json:"severity,omitempty"`
+	// Deprecated: use LogAttributes instead
+	Attributes map[string]string `json:"attributes,omitempty"`
 }
 
 // Trace represents a trace span

@@ -19,7 +19,7 @@ import (
 	"github.com/getlawrence/lawrence-oss/internal/opamp"
 	"github.com/getlawrence/lawrence-oss/internal/otlp/receiver"
 	"github.com/getlawrence/lawrence-oss/internal/services"
-	"github.com/getlawrence/lawrence-oss/internal/storage"
+	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore"
 	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore/memory"
 	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore/sqlite"
 	"github.com/getlawrence/lawrence-oss/internal/storage/telemetrystore"
@@ -37,8 +37,8 @@ type TestServer struct {
 	OTLPHTTPPort int
 
 	// Storage
-	appStoreFactory       storage.ApplicationStoreFactory
-	telemetryStoreFactory storage.TelemetryStoreFactory
+	appStoreFactory       applicationstore.ApplicationStoreFactory
+	telemetryStoreFactory telemetrystore.TelemetryStoreFactory
 	telemetryReader       telemetrystore.Reader
 	telemetryWriter       telemetrystore.Writer
 
@@ -187,26 +187,20 @@ func (ts *TestServer) initServers() {
 
 	// OpAMP Server
 	agents := opamp.NewAgents(ts.logger)
-	opampServer, err := opamp.NewServer(agents, ts.agentService, ts.opampMetrics, ts.logger)
+	opampServer, err := opamp.NewServer(agents, ts.agentService, ts.opampMetrics, "localhost:4317", "localhost:4318", ts.logger)
 	if err != nil {
 		ts.t.Fatalf("Failed to create OpAMP server: %v", err)
 	}
 	ts.opampServer = opampServer
 
-	// OTLP Receivers - create writer adapter from DuckDB factory
-	duckdbFactory, ok := ts.telemetryStoreFactory.(*duckdb.Factory)
-	if !ok {
-		ts.t.Fatalf("Expected DuckDB factory for telemetry store")
-	}
-	writerAdapter := duckdbFactory.CreateWriterAdapter()
-
-	grpcServer, err := receiver.NewGRPCServer(ts.OTLPGRPCPort, writerAdapter, writerAdapter, ts.otlpMetrics, ts.logger)
+	// OTLP Receivers - use telemetry writer directly
+	grpcServer, err := receiver.NewGRPCServer(ts.OTLPGRPCPort, ts.telemetryWriter, ts.otlpMetrics, ts.logger)
 	if err != nil {
 		ts.t.Fatalf("Failed to create gRPC server: %v", err)
 	}
 	ts.grpcServer = grpcServer
 
-	httpServer, err := receiver.NewHTTPServer(ts.OTLPHTTPPort, writerAdapter, writerAdapter, ts.otlpMetrics, ts.logger)
+	httpServer, err := receiver.NewHTTPServer(ts.OTLPHTTPPort, ts.telemetryWriter, ts.otlpMetrics, ts.logger)
 	if err != nil {
 		ts.t.Fatalf("Failed to create HTTP server: %v", err)
 	}
@@ -262,10 +256,10 @@ func (ts *TestServer) Stop() {
 	}
 
 	// Close storage factories
-	if closer, ok := ts.appStoreFactory.(storage.Closer); ok {
+	if closer, ok := ts.appStoreFactory.(applicationstore.Closer); ok {
 		closer.Close()
 	}
-	if closer, ok := ts.telemetryStoreFactory.(storage.Closer); ok {
+	if closer, ok := ts.telemetryStoreFactory.(interface{ Close() error }); ok {
 		closer.Close()
 	}
 

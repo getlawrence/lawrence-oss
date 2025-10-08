@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore"
+	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore/types"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,15 +22,15 @@ func makeTempDB(t *testing.T) string {
 	return filepath.Join(tmpDir, "test.db")
 }
 
-func makeTestAgent(id uuid.UUID) *applicationstore.Agent {
-	return &applicationstore.Agent{
+func makeTestAgent(id uuid.UUID) *types.Agent {
+	return &types.Agent{
 		ID:   id,
 		Name: "test-agent",
 		Labels: map[string]string{
 			"env":     "test",
 			"service": "demo",
 		},
-		Status:       applicationstore.AgentStatusOnline,
+		Status:       types.AgentStatusOnline,
 		LastSeen:     time.Now().UTC(),
 		Version:      "1.0.0",
 		Capabilities: []string{"metrics", "logs", "traces"},
@@ -39,8 +39,8 @@ func makeTestAgent(id uuid.UUID) *applicationstore.Agent {
 	}
 }
 
-func makeTestGroup(id string) *applicationstore.Group {
-	return &applicationstore.Group{
+func makeTestGroup(id string) *types.Group {
+	return &types.Group{
 		ID:   id,
 		Name: "test-group",
 		Labels: map[string]string{
@@ -51,8 +51,8 @@ func makeTestGroup(id string) *applicationstore.Group {
 	}
 }
 
-func makeTestConfig(id string, agentID *uuid.UUID, groupID *string) *applicationstore.Config {
-	return &applicationstore.Config{
+func makeTestConfig(id string, agentID *uuid.UUID, groupID *string) *types.Config {
+	return &types.Config{
 		ID:         id,
 		AgentID:    agentID,
 		GroupID:    groupID,
@@ -63,7 +63,7 @@ func makeTestConfig(id string, agentID *uuid.UUID, groupID *string) *application
 	}
 }
 
-func withSQLiteStore(t *testing.T, f func(store applicationstore.ApplicationStore)) {
+func withSQLiteStore(t *testing.T, f func(store types.ApplicationStore)) {
 	dbPath := makeTempDB(t)
 	logger := zap.NewNop()
 
@@ -79,8 +79,8 @@ func withSQLiteStore(t *testing.T, f func(store applicationstore.ApplicationStor
 	f(store)
 }
 
-func withPopulatedSQLiteStore(t *testing.T, f func(store applicationstore.ApplicationStore, agentID uuid.UUID)) {
-	withSQLiteStore(t, func(store applicationstore.ApplicationStore) {
+func withPopulatedSQLiteStore(t *testing.T, f func(store types.ApplicationStore, agentID uuid.UUID)) {
+	withSQLiteStore(t, func(store types.ApplicationStore) {
 		agentID := uuid.New()
 		agent := makeTestAgent(agentID)
 		err := store.CreateAgent(context.Background(), agent)
@@ -92,7 +92,7 @@ func withPopulatedSQLiteStore(t *testing.T, f func(store applicationstore.Applic
 // Agent tests
 
 func TestSQLiteCreateAgent(t *testing.T) {
-	withSQLiteStore(t, func(store applicationstore.ApplicationStore) {
+	withSQLiteStore(t, func(store types.ApplicationStore) {
 		agentID := uuid.New()
 		agent := makeTestAgent(agentID)
 
@@ -110,7 +110,7 @@ func TestSQLiteCreateAgent(t *testing.T) {
 }
 
 func TestSQLiteGetAgentNotFound(t *testing.T) {
-	withSQLiteStore(t, func(store applicationstore.ApplicationStore) {
+	withSQLiteStore(t, func(store types.ApplicationStore) {
 		retrieved, err := store.GetAgent(context.Background(), uuid.New())
 		require.NoError(t, err)
 		assert.Nil(t, retrieved)
@@ -118,7 +118,7 @@ func TestSQLiteGetAgentNotFound(t *testing.T) {
 }
 
 func TestSQLiteListAgents(t *testing.T) {
-	withSQLiteStore(t, func(store applicationstore.ApplicationStore) {
+	withSQLiteStore(t, func(store types.ApplicationStore) {
 		agent1 := makeTestAgent(uuid.New())
 		agent2 := makeTestAgent(uuid.New())
 
@@ -134,27 +134,27 @@ func TestSQLiteListAgents(t *testing.T) {
 }
 
 func TestSQLiteUpdateAgentStatus(t *testing.T) {
-	withPopulatedSQLiteStore(t, func(store applicationstore.ApplicationStore, agentID uuid.UUID) {
-		err := store.UpdateAgentStatus(context.Background(), agentID, applicationstore.AgentStatusOffline)
+	withPopulatedSQLiteStore(t, func(store types.ApplicationStore, agentID uuid.UUID) {
+		err := store.UpdateAgentStatus(context.Background(), agentID, types.AgentStatusOffline)
 		require.NoError(t, err)
 
 		// Verify the update
 		agent, err := store.GetAgent(context.Background(), agentID)
 		require.NoError(t, err)
-		assert.Equal(t, applicationstore.AgentStatusOffline, agent.Status)
+		assert.Equal(t, types.AgentStatusOffline, agent.Status)
 	})
 }
 
 func TestSQLiteUpdateAgentStatusNotFound(t *testing.T) {
-	withSQLiteStore(t, func(store applicationstore.ApplicationStore) {
-		err := store.UpdateAgentStatus(context.Background(), uuid.New(), applicationstore.AgentStatusOffline)
+	withSQLiteStore(t, func(store types.ApplicationStore) {
+		err := store.UpdateAgentStatus(context.Background(), uuid.New(), types.AgentStatusOffline)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "not found")
 	})
 }
 
 func TestSQLiteUpdateAgentLastSeen(t *testing.T) {
-	withPopulatedSQLiteStore(t, func(store applicationstore.ApplicationStore, agentID uuid.UUID) {
+	withPopulatedSQLiteStore(t, func(store types.ApplicationStore, agentID uuid.UUID) {
 		newTime := time.Now().Add(time.Hour).UTC()
 		err := store.UpdateAgentLastSeen(context.Background(), agentID, newTime)
 		require.NoError(t, err)
@@ -167,7 +167,7 @@ func TestSQLiteUpdateAgentLastSeen(t *testing.T) {
 }
 
 func TestSQLiteDeleteAgent(t *testing.T) {
-	withPopulatedSQLiteStore(t, func(store applicationstore.ApplicationStore, agentID uuid.UUID) {
+	withPopulatedSQLiteStore(t, func(store types.ApplicationStore, agentID uuid.UUID) {
 		err := store.DeleteAgent(context.Background(), agentID)
 		require.NoError(t, err)
 
@@ -179,7 +179,7 @@ func TestSQLiteDeleteAgent(t *testing.T) {
 }
 
 func TestSQLiteDeleteAgentNotFound(t *testing.T) {
-	withSQLiteStore(t, func(store applicationstore.ApplicationStore) {
+	withSQLiteStore(t, func(store types.ApplicationStore) {
 		err := store.DeleteAgent(context.Background(), uuid.New())
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "not found")
@@ -189,7 +189,7 @@ func TestSQLiteDeleteAgentNotFound(t *testing.T) {
 // Group tests
 
 func TestSQLiteCreateGroup(t *testing.T) {
-	withSQLiteStore(t, func(store applicationstore.ApplicationStore) {
+	withSQLiteStore(t, func(store types.ApplicationStore) {
 		group := makeTestGroup("test-group")
 
 		err := store.CreateGroup(context.Background(), group)
@@ -205,7 +205,7 @@ func TestSQLiteCreateGroup(t *testing.T) {
 }
 
 func TestSQLiteGetGroupNotFound(t *testing.T) {
-	withSQLiteStore(t, func(store applicationstore.ApplicationStore) {
+	withSQLiteStore(t, func(store types.ApplicationStore) {
 		retrieved, err := store.GetGroup(context.Background(), "nonexistent")
 		require.NoError(t, err)
 		assert.Nil(t, retrieved)
@@ -213,7 +213,7 @@ func TestSQLiteGetGroupNotFound(t *testing.T) {
 }
 
 func TestSQLiteListGroups(t *testing.T) {
-	withSQLiteStore(t, func(store applicationstore.ApplicationStore) {
+	withSQLiteStore(t, func(store types.ApplicationStore) {
 		group1 := makeTestGroup("group-1")
 		group2 := makeTestGroup("group-2")
 
@@ -229,7 +229,7 @@ func TestSQLiteListGroups(t *testing.T) {
 }
 
 func TestSQLiteDeleteGroup(t *testing.T) {
-	withSQLiteStore(t, func(store applicationstore.ApplicationStore) {
+	withSQLiteStore(t, func(store types.ApplicationStore) {
 		group := makeTestGroup("test-group")
 		err := store.CreateGroup(context.Background(), group)
 		require.NoError(t, err)
@@ -247,7 +247,7 @@ func TestSQLiteDeleteGroup(t *testing.T) {
 // Config tests
 
 func TestSQLiteCreateConfig(t *testing.T) {
-	withPopulatedSQLiteStore(t, func(store applicationstore.ApplicationStore, agentID uuid.UUID) {
+	withPopulatedSQLiteStore(t, func(store types.ApplicationStore, agentID uuid.UUID) {
 		config := makeTestConfig("config-1", &agentID, nil)
 
 		err := store.CreateConfig(context.Background(), config)
@@ -263,7 +263,7 @@ func TestSQLiteCreateConfig(t *testing.T) {
 }
 
 func TestSQLiteGetLatestConfigForAgent(t *testing.T) {
-	withPopulatedSQLiteStore(t, func(store applicationstore.ApplicationStore, agentID uuid.UUID) {
+	withPopulatedSQLiteStore(t, func(store types.ApplicationStore, agentID uuid.UUID) {
 		// Create multiple configs for the same agent
 		config1 := makeTestConfig("config-1", &agentID, nil)
 		config1.Version = 1
@@ -288,7 +288,7 @@ func TestSQLiteGetLatestConfigForAgent(t *testing.T) {
 }
 
 func TestSQLiteGetLatestConfigForGroup(t *testing.T) {
-	withSQLiteStore(t, func(store applicationstore.ApplicationStore) {
+	withSQLiteStore(t, func(store types.ApplicationStore) {
 		groupID := "test-group"
 		group := makeTestGroup(groupID)
 		err := store.CreateGroup(context.Background(), group)
@@ -318,7 +318,7 @@ func TestSQLiteGetLatestConfigForGroup(t *testing.T) {
 }
 
 func TestSQLiteListConfigsWithFilter(t *testing.T) {
-	withSQLiteStore(t, func(store applicationstore.ApplicationStore) {
+	withSQLiteStore(t, func(store types.ApplicationStore) {
 		agentID1 := uuid.New()
 		agentID2 := uuid.New()
 		groupID := "test-group"
@@ -348,7 +348,7 @@ func TestSQLiteListConfigsWithFilter(t *testing.T) {
 		require.NoError(t, err)
 
 		// Filter by agent ID
-		configs, err := store.ListConfigs(context.Background(), applicationstore.ConfigFilter{
+		configs, err := store.ListConfigs(context.Background(), types.ConfigFilter{
 			AgentID: &agentID1,
 		})
 		require.NoError(t, err)
@@ -356,7 +356,7 @@ func TestSQLiteListConfigsWithFilter(t *testing.T) {
 		assert.Equal(t, config1.ID, configs[0].ID)
 
 		// Filter by group ID
-		configs, err = store.ListConfigs(context.Background(), applicationstore.ConfigFilter{
+		configs, err = store.ListConfigs(context.Background(), types.ConfigFilter{
 			GroupID: &groupID,
 		})
 		require.NoError(t, err)
@@ -364,14 +364,14 @@ func TestSQLiteListConfigsWithFilter(t *testing.T) {
 		assert.Equal(t, config3.ID, configs[0].ID)
 
 		// No filter
-		configs, err = store.ListConfigs(context.Background(), applicationstore.ConfigFilter{})
+		configs, err = store.ListConfigs(context.Background(), types.ConfigFilter{})
 		require.NoError(t, err)
 		assert.Len(t, configs, 3)
 	})
 }
 
 func TestSQLiteListConfigsWithLimit(t *testing.T) {
-	withPopulatedSQLiteStore(t, func(store applicationstore.ApplicationStore, agentID uuid.UUID) {
+	withPopulatedSQLiteStore(t, func(store types.ApplicationStore, agentID uuid.UUID) {
 		for i := 0; i < 5; i++ {
 			config := makeTestConfig(uuid.New().String(), &agentID, nil)
 			err := store.CreateConfig(context.Background(), config)
@@ -379,7 +379,7 @@ func TestSQLiteListConfigsWithLimit(t *testing.T) {
 		}
 
 		// List with limit
-		configs, err := store.ListConfigs(context.Background(), applicationstore.ConfigFilter{
+		configs, err := store.ListConfigs(context.Background(), types.ConfigFilter{
 			Limit: 3,
 		})
 		require.NoError(t, err)
@@ -411,7 +411,7 @@ func TestSQLiteMigration(t *testing.T) {
 // Concurrency test
 
 func TestSQLiteConcurrentAccess(t *testing.T) {
-	withSQLiteStore(t, func(store applicationstore.ApplicationStore) {
+	withSQLiteStore(t, func(store types.ApplicationStore) {
 		// Create some test data concurrently
 		done := make(chan bool)
 		for i := 0; i < 10; i++ {

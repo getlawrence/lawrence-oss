@@ -1,4 +1,4 @@
-package app
+package config
 
 import (
 	"fmt"
@@ -26,8 +26,10 @@ type ServerConfig struct {
 
 // OTLPConfig contains OTLP receiver configuration
 type OTLPConfig struct {
-	GRPCEndpoint string `yaml:"grpc_endpoint"`
-	HTTPEndpoint string `yaml:"http_endpoint"`
+	GRPCEndpoint      string `yaml:"grpc_endpoint"`
+	HTTPEndpoint      string `yaml:"http_endpoint"`
+	AgentGRPCEndpoint string `yaml:"agent_grpc_endpoint"` // Endpoint to offer to agents (if different from grpc_endpoint)
+	AgentHTTPEndpoint string `yaml:"agent_http_endpoint"` // Endpoint to offer to agents (if different from http_endpoint)
 }
 
 // StorageConfig contains storage configuration

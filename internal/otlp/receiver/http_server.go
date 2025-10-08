@@ -20,17 +20,16 @@ import (
 
 // HTTPServer represents the HTTP OTLP receiver server
 type HTTPServer struct {
-	server      *http.Server
-	logger      *zap.Logger
-	writer      TelemetryWriter
-	asyncWriter AsyncTelemetryWriter
-	parser      *parser.OTLPParser
-	metrics     *metrics.OTLPMetrics
-	port        int
+	server  *http.Server
+	logger  *zap.Logger
+	writer  TelemetryWriter
+	parser  *parser.OTLPParser
+	metrics *metrics.OTLPMetrics
+	port    int
 }
 
 // NewHTTPServer creates a new HTTP server instance
-func NewHTTPServer(port int, writer TelemetryWriter, asyncWriter AsyncTelemetryWriter, metricsInstance *metrics.OTLPMetrics, logger *zap.Logger) (*HTTPServer, error) {
+func NewHTTPServer(port int, writer TelemetryWriter, metricsInstance *metrics.OTLPMetrics, logger *zap.Logger) (*HTTPServer, error) {
 	// Set Gin to release mode for better performance
 	gin.SetMode(gin.ReleaseMode)
 
@@ -39,12 +38,11 @@ func NewHTTPServer(port int, writer TelemetryWriter, asyncWriter AsyncTelemetryW
 
 	// Create HTTP server
 	s := &HTTPServer{
-		logger:      logger,
-		writer:      writer,
-		asyncWriter: asyncWriter,
-		parser:      otlpParser,
-		metrics:     metricsInstance,
-		port:        port,
+		logger:  logger,
+		writer:  writer,
+		parser:  otlpParser,
+		metrics: metricsInstance,
+		port:    port,
 	}
 
 	// Create Gin router
@@ -141,10 +139,11 @@ func (s *HTTPServer) handleOTLPTraces(c *gin.Context) {
 		Traces: traces,
 	}
 
+	ctx := c.Request.Context()
 	// Write to storage asynchronously
-	if err := s.asyncWriter.WriteTracesAsync(otlpTracesData); err != nil {
-		s.logger.Error("Failed to queue traces for async writing", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to queue for storage"})
+	if err := s.writer.WriteTraces(ctx, otlpTracesData.Traces); err != nil {
+		s.logger.Error("Failed to write traces", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to write traces"})
 		return
 	}
 
@@ -192,10 +191,11 @@ func (s *HTTPServer) handleOTLPMetrics(c *gin.Context) {
 		Histograms: histograms,
 	}
 
+	ctx := c.Request.Context()
 	// Write to storage asynchronously
-	if err := s.asyncWriter.WriteMetricsAsync(otlpMetricsData); err != nil {
-		s.logger.Error("Failed to queue metrics for async writing", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to queue for storage"})
+	if err := s.writer.WriteMetrics(ctx, otlpMetricsData.Sums, otlpMetricsData.Gauges, otlpMetricsData.Histograms); err != nil {
+		s.logger.Error("Failed to write metrics", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to write metrics"})
 		return
 	}
 
@@ -243,10 +243,11 @@ func (s *HTTPServer) handleOTLPLogs(c *gin.Context) {
 		Logs: logs,
 	}
 
+	ctx := c.Request.Context()
 	// Write to storage asynchronously
-	if err := s.asyncWriter.WriteLogsAsync(otlpLogsData); err != nil {
-		s.logger.Error("Failed to queue logs for async writing", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to queue for storage"})
+	if err := s.writer.WriteLogs(ctx, otlpLogsData.Logs); err != nil {
+		s.logger.Error("Failed to write logs", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to write logs"})
 		return
 	}
 

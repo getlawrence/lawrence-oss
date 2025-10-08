@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore"
+	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore/types"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,15 +21,15 @@ var (
 	testTimestamp = time.Now().UTC()
 )
 
-func makeTestAgent() *applicationstore.Agent {
-	return &applicationstore.Agent{
+func makeTestAgent() *types.Agent {
+	return &types.Agent{
 		ID:   testAgentID,
 		Name: "test-agent",
 		Labels: map[string]string{
 			"env":     "test",
 			"service": "demo",
 		},
-		Status:       applicationstore.AgentStatusOnline,
+		Status:       types.AgentStatusOnline,
 		LastSeen:     testTimestamp,
 		Version:      "1.0.0",
 		Capabilities: []string{"metrics", "logs", "traces"},
@@ -38,8 +38,8 @@ func makeTestAgent() *applicationstore.Agent {
 	}
 }
 
-func makeTestGroup() *applicationstore.Group {
-	return &applicationstore.Group{
+func makeTestGroup() *types.Group {
+	return &types.Group{
 		ID:   testGroupID,
 		Name: "test-group",
 		Labels: map[string]string{
@@ -50,8 +50,8 @@ func makeTestGroup() *applicationstore.Group {
 	}
 }
 
-func makeTestConfig(agentID *uuid.UUID, groupID *string) *applicationstore.Config {
-	return &applicationstore.Config{
+func makeTestConfig(agentID *uuid.UUID, groupID *string) *types.Config {
+	return &types.Config{
 		ID:         testConfigID,
 		AgentID:    agentID,
 		GroupID:    groupID,
@@ -154,19 +154,19 @@ func TestStoreListAgents(t *testing.T) {
 
 func TestStoreUpdateAgentStatus(t *testing.T) {
 	withPopulatedMemoryStore(func(store *Store) {
-		err := store.UpdateAgentStatus(context.Background(), testAgentID, applicationstore.AgentStatusOffline)
+		err := store.UpdateAgentStatus(context.Background(), testAgentID, types.AgentStatusOffline)
 		require.NoError(t, err)
 
 		// Verify the update
 		agent, err := store.GetAgent(context.Background(), testAgentID)
 		require.NoError(t, err)
-		assert.Equal(t, applicationstore.AgentStatusOffline, agent.Status)
+		assert.Equal(t, types.AgentStatusOffline, agent.Status)
 	})
 }
 
 func TestStoreUpdateAgentStatusNotFound(t *testing.T) {
 	withMemoryStore(func(store *Store) {
-		err := store.UpdateAgentStatus(context.Background(), uuid.New(), applicationstore.AgentStatusOffline)
+		err := store.UpdateAgentStatus(context.Background(), uuid.New(), types.AgentStatusOffline)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "not found")
 	})
@@ -377,7 +377,7 @@ func TestStoreListConfigsWithFilter(t *testing.T) {
 		require.NoError(t, err)
 
 		// Filter by agent ID
-		configs, err := store.ListConfigs(context.Background(), applicationstore.ConfigFilter{
+		configs, err := store.ListConfigs(context.Background(), types.ConfigFilter{
 			AgentID: &agentID1,
 		})
 		require.NoError(t, err)
@@ -385,7 +385,7 @@ func TestStoreListConfigsWithFilter(t *testing.T) {
 		assert.Equal(t, config1.ID, configs[0].ID)
 
 		// Filter by group ID
-		configs, err = store.ListConfigs(context.Background(), applicationstore.ConfigFilter{
+		configs, err = store.ListConfigs(context.Background(), types.ConfigFilter{
 			GroupID: &groupID,
 		})
 		require.NoError(t, err)
@@ -393,7 +393,7 @@ func TestStoreListConfigsWithFilter(t *testing.T) {
 		assert.Equal(t, config3.ID, configs[0].ID)
 
 		// No filter
-		configs, err = store.ListConfigs(context.Background(), applicationstore.ConfigFilter{})
+		configs, err = store.ListConfigs(context.Background(), types.ConfigFilter{})
 		require.NoError(t, err)
 		assert.Len(t, configs, 3)
 	})
@@ -411,7 +411,7 @@ func TestStoreListConfigsWithLimit(t *testing.T) {
 		}
 
 		// List with limit
-		configs, err := store.ListConfigs(context.Background(), applicationstore.ConfigFilter{
+		configs, err := store.ListConfigs(context.Background(), types.ConfigFilter{
 			Limit: 3,
 		})
 		require.NoError(t, err)
@@ -448,7 +448,7 @@ func TestStorePurge(t *testing.T) {
 		require.NoError(t, err)
 		assert.Empty(t, groups)
 
-		configs, err := store.ListConfigs(context.Background(), applicationstore.ConfigFilter{})
+		configs, err := store.ListConfigs(context.Background(), types.ConfigFilter{})
 		require.NoError(t, err)
 		assert.Empty(t, configs)
 	})

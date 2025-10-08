@@ -13,13 +13,8 @@ processors:
     send_batch_size: 1024
 
 exporters:
-  # Export to lawrence-oss backend via HTTP
-  otlphttp/lawrence:
-    endpoint: http://lawrence:4318
-
   # Debug exporter for testing
   debug:
-    verbosity: detailed
 
 extensions:
   health_check:
@@ -44,15 +39,15 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlphttp/lawrence, debug]
+      exporters: [debug]
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlphttp/lawrence, debug]
+      exporters: [debug]
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlphttp/lawrence, debug]
+      exporters: [debug]
 
   # Internal telemetry configuration
   telemetry:
@@ -65,7 +60,6 @@ service:
 
     # Metrics telemetry - sent to lawrence-oss backend
     metrics:
-      level: detailed
       readers:
         - periodic:
             interval: 30
@@ -76,7 +70,7 @@ service:
 
     # Logs telemetry - sent to lawrence-oss backend
     logs:
-      level: INFO
+      level: info
       processors:
         - batch:
             exporter:

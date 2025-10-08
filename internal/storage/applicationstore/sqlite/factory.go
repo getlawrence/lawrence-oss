@@ -8,7 +8,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore"
+	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore/types"
 )
 
 // Factory implements ApplicationStoreFactory and creates storage components backed by SQLite.
@@ -37,7 +37,7 @@ func (f *Factory) Initialize(logger *zap.Logger) error {
 }
 
 // CreateApplicationStore implements storage.ApplicationStoreFactory
-func (f *Factory) CreateApplicationStore() (applicationstore.ApplicationStore, error) {
+func (f *Factory) CreateApplicationStore() (types.ApplicationStore, error) {
 	return f.store, nil
 }
 

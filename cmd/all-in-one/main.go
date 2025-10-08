@@ -15,12 +15,13 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/getlawrence/lawrence-oss/internal/api"
-	"github.com/getlawrence/lawrence-oss/internal/app"
+	"github.com/getlawrence/lawrence-oss/internal/config"
 	"github.com/getlawrence/lawrence-oss/internal/metrics"
 	"github.com/getlawrence/lawrence-oss/internal/opamp"
 	"github.com/getlawrence/lawrence-oss/internal/otlp/receiver"
 	"github.com/getlawrence/lawrence-oss/internal/services"
-	"github.com/getlawrence/lawrence-oss/internal/storage"
+	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore"
+	"github.com/getlawrence/lawrence-oss/internal/storage/telemetrystore"
 	"github.com/getlawrence/lawrence-oss/internal/utils"
 )
 
@@ -64,7 +65,7 @@ func main() {
 func runLawrence(cmd *cobra.Command, args []string) error {
 	// Load configuration
 	configPath := viper.GetString("config")
-	config, err := app.LoadConfig(configPath)
+	config, err := config.LoadConfig(configPath)
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
@@ -83,22 +84,59 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	// Initialize storage factories
 	logger.Info("Initializing storage layer")
 
+	// Create application store using meta factory
+	appStoreFactory, err := applicationstore.NewFactoryFromAppConfig(config)
+	if err != nil {
+		logger.Fatal("Failed to create application store factory", zap.Error(err))
+	}
+
+	// Initialize the factory
+	if err := appStoreFactory.Initialize(logger); err != nil {
+		logger.Fatal("Failed to initialize application store factory", zap.Error(err))
+	}
+
 	// Create application store
-	appStoreFactory := storage.NewSQLiteApplicationStoreFactory(config.Storage.App.Path, logger)
 	appStore, err := appStoreFactory.CreateApplicationStore()
 	if err != nil {
 		logger.Fatal("Failed to create application store", zap.Error(err))
 	}
 
-	// Create telemetry store
-	telemetryStoreFactory := storage.NewDuckDBTelemetryStoreFactory(config.Storage.Telemetry.Path, logger)
+	// Ensure application store factory is properly closed on shutdown
+	defer func() {
+		if err := appStoreFactory.Close(); err != nil {
+			logger.Error("Failed to close application store factory", zap.Error(err))
+		}
+	}()
+
+	// Create telemetry store using meta factory
+	telemetryStoreFactory, err := telemetrystore.NewFactoryFromAppConfig(config)
+	if err != nil {
+		logger.Fatal("Failed to create telemetry store factory", zap.Error(err))
+	}
+
+	// Initialize the factory
+	if err := telemetryStoreFactory.Initialize(logger); err != nil {
+		logger.Fatal("Failed to initialize telemetry store factory", zap.Error(err))
+	}
+
+	// Create telemetry reader
 	telemetryReader, err := telemetryStoreFactory.CreateTelemetryReader()
 	if err != nil {
 		logger.Fatal("Failed to create telemetry reader", zap.Error(err))
 	}
 
 	// Create writer adapter for OTLP receivers (handles both sync and async writes)
-	writerAdapter := telemetryStoreFactory.CreateWriterAdapter()
+	telemetryWriter, err := telemetryStoreFactory.CreateTelemetryWriter()
+	if err != nil {
+		logger.Fatal("Failed to create telemetry writer", zap.Error(err))
+	}
+
+	// Ensure telemetry store factory is properly closed on shutdown
+	defer func() {
+		if err := telemetryStoreFactory.Close(); err != nil {
+			logger.Error("Failed to close telemetry store factory", zap.Error(err))
+		}
+	}()
 
 	// Initialize metrics
 	logger.Info("Initializing metrics")
@@ -119,7 +157,19 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	// Initialize OpAMP server
 	logger.Info("Initializing OpAMP server")
 	agents := opamp.NewAgents(logger)
-	opampServer, err := opamp.NewServer(agents, agentService, opampMetrics, logger)
+
+	// Determine which OTLP endpoints to offer to agents
+	// If agent_*_endpoint is configured, use it; otherwise use the receiver endpoint
+	agentGRPCEndpoint := config.OTLP.AgentGRPCEndpoint
+	if agentGRPCEndpoint == "" {
+		agentGRPCEndpoint = config.OTLP.GRPCEndpoint
+	}
+	agentHTTPEndpoint := config.OTLP.AgentHTTPEndpoint
+	if agentHTTPEndpoint == "" {
+		agentHTTPEndpoint = config.OTLP.HTTPEndpoint
+	}
+
+	opampServer, err := opamp.NewServer(agents, agentService, opampMetrics, agentGRPCEndpoint, agentHTTPEndpoint, logger)
 	if err != nil {
 		logger.Fatal("Failed to create OpAMP server", zap.Error(err))
 	}
@@ -133,7 +183,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	}()
 
 	// Initialize OTLP receivers
-	grpcServer, err := receiver.NewGRPCServer(4317, writerAdapter, writerAdapter, otlpMetrics, logger)
+	grpcServer, err := receiver.NewGRPCServer(4317, telemetryWriter, otlpMetrics, logger)
 	if err != nil {
 		logger.Fatal("Failed to create gRPC server", zap.Error(err))
 	}
@@ -146,7 +196,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 		_ = grpcServer.Stop(ctx)
 	}()
 
-	httpServer, err := receiver.NewHTTPServer(4318, writerAdapter, writerAdapter, otlpMetrics, logger)
+	httpServer, err := receiver.NewHTTPServer(4318, telemetryWriter, otlpMetrics, logger)
 	if err != nil {
 		logger.Fatal("Failed to create HTTP server", zap.Error(err))
 	}
@@ -237,7 +287,7 @@ func configCommand() *cobra.Command {
 		Short: "Print current configuration",
 		Run: func(cmd *cobra.Command, args []string) {
 			configPath := viper.GetString("config")
-			_, err := app.LoadConfig(configPath)
+			_, err := config.LoadConfig(configPath)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
 				os.Exit(1)
@@ -249,7 +299,7 @@ func configCommand() *cobra.Command {
 }
 
 // startRollupGenerator periodically generates rollups for metrics
-func startRollupGenerator(telemetryService services.TelemetryQueryService, config *app.Config, logger *zap.Logger) {
+func startRollupGenerator(telemetryService services.TelemetryQueryService, config *config.Config, logger *zap.Logger) {
 	if !config.Rollups.Enabled {
 		logger.Info("Rollup generation is disabled")
 		return
@@ -290,7 +340,7 @@ func generateRollup(ctx context.Context, telemetryService services.TelemetryQuer
 }
 
 // startCleanupTask periodically cleans up old data
-func startCleanupTask(telemetryService services.TelemetryQueryService, config *app.Config, logger *zap.Logger) {
+func startCleanupTask(telemetryService services.TelemetryQueryService, config *config.Config, logger *zap.Logger) {
 	logger.Info("Starting cleanup task")
 	ticker := time.NewTicker(1 * time.Hour)
 	defer ticker.Stop()

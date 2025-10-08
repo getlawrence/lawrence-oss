@@ -5,6 +5,7 @@ import useSWR from "swr";
 
 import { getTopology } from "@/api/topology";
 import { AgentDetailsDrawer } from "@/components/AgentDetailsDrawer";
+import { GroupDetailsDrawer } from "@/components/GroupDetailsDrawer";
 import {
   TopologyHeader,
   TopologyCanvas,
@@ -18,6 +19,8 @@ export default function TopologyPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [groupDrawerOpen, setGroupDrawerOpen] = useState(false);
   const [topologyLevel, setTopologyLevel] = useState<"instance" | "group">(
     "instance",
   );
@@ -37,11 +40,14 @@ export default function TopologyPage() {
   };
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
-    // Only open drawer for agent nodes
     if (node.type === "agent") {
       const agentId = node.id.replace("agent-", "");
       setSelectedAgentId(agentId);
       setDrawerOpen(true);
+    } else if (node.type === "group") {
+      const groupId = node.id.replace("group-", "");
+      setSelectedGroupId(groupId);
+      setGroupDrawerOpen(true);
     }
   }, []);
 
@@ -49,6 +55,9 @@ export default function TopologyPage() {
     if (node.type === "agent") {
       setSelectedAgentId(node.id);
       setDrawerOpen(true);
+    } else if (node.type === "group") {
+      setSelectedGroupId(node.id);
+      setGroupDrawerOpen(true);
     }
   };
 
@@ -96,6 +105,12 @@ export default function TopologyPage() {
           agentId={selectedAgentId}
           open={drawerOpen}
           onOpenChange={setDrawerOpen}
+        />
+
+        <GroupDetailsDrawer
+          groupId={selectedGroupId}
+          open={groupDrawerOpen}
+          onOpenChange={setGroupDrawerOpen}
         />
       </div>
     </div>

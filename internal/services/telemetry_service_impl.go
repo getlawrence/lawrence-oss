@@ -46,13 +46,16 @@ func (s *TelemetryQueryServiceImpl) QueryMetrics(ctx context.Context, query Metr
 	metrics := make([]Metric, len(storageMetrics))
 	for i, metric := range storageMetrics {
 		metrics[i] = Metric{
-			Timestamp:  metric.Timestamp,
-			AgentID:    metric.AgentID,
-			ConfigHash: metric.ConfigHash,
-			Name:       metric.Name,
-			Value:      metric.Value,
-			Labels:     metric.Labels,
-			Type:       MetricType(metric.Type),
+			Timestamp:        metric.Timestamp,
+			AgentID:          metric.AgentID,
+			GroupID:          metric.GroupID,
+			ServiceName:      metric.ServiceName,
+			ConfigHash:       metric.ConfigHash,
+			Name:             metric.Name,
+			Value:            metric.Value,
+			MetricAttributes: metric.MetricAttributes,
+			Labels:           metric.Labels,
+			Type:             MetricType(metric.Type),
 		}
 	}
 
@@ -81,12 +84,17 @@ func (s *TelemetryQueryServiceImpl) QueryLogs(ctx context.Context, query LogQuer
 	logs := make([]Log, len(storageLogs))
 	for i, log := range storageLogs {
 		logs[i] = Log{
-			Timestamp:  log.Timestamp,
-			AgentID:    log.AgentID,
-			ConfigHash: log.ConfigHash,
-			Severity:   log.Severity,
-			Body:       log.Body,
-			Attributes: log.Attributes,
+			Timestamp:      log.Timestamp,
+			AgentID:        log.AgentID,
+			GroupID:        log.GroupID,
+			ServiceName:    log.ServiceName,
+			SeverityText:   log.SeverityText,
+			SeverityNumber: log.SeverityNumber,
+			Body:           log.Body,
+			TraceID:        log.TraceID,
+			SpanID:         log.SpanID,
+			LogAttributes:  log.LogAttributes,
+			ConfigHash:     log.ConfigHash,
 		}
 	}
 

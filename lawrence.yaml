@@ -5,6 +5,13 @@ server:
 otlp:
   grpc_endpoint: 0.0.0.0:4317
   http_endpoint: 0.0.0.0:4318
+  # Optional: Endpoint to offer to agents for sending their own telemetry
+  # If not set, uses grpc_endpoint with 0.0.0.0 converted to localhost
+  # For Docker Compose, use the service name
+  # For gRPC: "lawrence:4317" (bare endpoint)
+  # For HTTP: "lawrence:4318" (bare endpoint - supervisor adds http:// prefix)
+  agent_grpc_endpoint: ""  # Empty = use grpc_endpoint with localhost conversion
+  agent_http_endpoint: "lawrence:4318"  # HTTP endpoint for agent own telemetry
 
 storage:
   app:
@@ -26,5 +33,5 @@ rollups:
   interval_5m: "*/5 * * * *"
 
 logging:
-  level: debug
+  level: info
   format: json
