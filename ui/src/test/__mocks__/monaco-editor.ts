@@ -20,18 +20,27 @@ export const languages = {
   registerCompletionItemProvider: () => ({ dispose: () => {} }),
 };
 
-export const Range = class {
+export class Range {
+  startLineNumber: number;
+  startColumn: number;
+  endLineNumber: number;
+  endColumn: number;
+
   constructor(
-    public startLineNumber: number,
-    public startColumn: number,
-    public endLineNumber: number,
-    public endColumn: number
-  ) {}
-};
+    startLineNumber: number,
+    startColumn: number,
+    endLineNumber: number,
+    endColumn: number,
+  ) {
+    this.startLineNumber = startLineNumber;
+    this.startColumn = startColumn;
+    this.endLineNumber = endLineNumber;
+    this.endColumn = endColumn;
+  }
+}
 
 export default {
   editor,
   languages,
   Range,
 };
-
