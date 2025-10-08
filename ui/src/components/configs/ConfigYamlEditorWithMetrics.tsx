@@ -199,50 +199,26 @@ export function ConfigYamlEditorWithMetrics({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">
-          YAML Configuration
-          {metrics && metrics.length > 0 && (
-            <span className="ml-2 text-sm font-normal text-muted-foreground">
-              (with live metrics)
-            </span>
-          )}
-        </CardTitle>
-        <CardDescription>
-          {readonly
-            ? "View OpenTelemetry collector configuration"
-            : "Edit your OpenTelemetry collector configuration in YAML format"}
-          {metrics && metrics.length > 0 && (
-            <span className="block mt-1 text-xs">
-              Hover over components to see detailed metrics
-            </span>
-          )}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="border rounded-lg overflow-hidden">
-          <Editor
-            height="60vh"
-            defaultLanguage="yaml"
-            value={value}
-            onChange={(value) => !readonly && onChange(value || "")}
-            theme="vs-light"
-            onMount={handleEditorMount}
-            options={{
-              minimap: { enabled: false },
-              fontSize: 13,
-              lineNumbers: "on",
-              roundedSelection: false,
-              scrollBeyondLastLine: false,
-              readOnly: readonly,
-              automaticLayout: true,
-              glyphMargin: metrics && metrics.length > 0, // Show glyph margin if we have metrics
-            }}
-          />
-        </div>
-      </CardContent>
-    </Card>
+    <div className="border rounded-lg overflow-hidden">
+      <Editor
+        height="60vh"
+        defaultLanguage="yaml"
+        value={value}
+        onChange={(value) => !readonly && onChange(value || "")}
+        theme="vs-light"
+        onMount={handleEditorMount}
+        options={{
+          minimap: { enabled: false },
+          fontSize: 13,
+          lineNumbers: "on",
+          roundedSelection: false,
+          scrollBeyondLastLine: false,
+          readOnly: readonly,
+          automaticLayout: true,
+          glyphMargin: metrics && metrics.length > 0, // Show glyph margin if we have metrics
+        }}
+      />
+    </div>
   );
 }
 

@@ -51,7 +51,7 @@ export function AgentDetailsDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+      <SheetContent className="w-full min-w[70vw] sm:max-w-2xl overflow-y-auto px-6">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             {agent && getStatusIcon(agent.status)}
@@ -61,7 +61,9 @@ export function AgentDetailsDrawer({
         </SheetHeader>
 
         {isLoading ? (
-          <LoadingSpinner />
+          <div className="flex justify-center items-center py-8">
+            <LoadingSpinner />
+          </div>
         ) : agent ? (
           <Tabs defaultValue="overview" className="mt-6">
             <TabsList className="grid w-full grid-cols-5">
@@ -72,28 +74,29 @@ export function AgentDetailsDrawer({
               <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview" className="space-y-4">
+            <TabsContent value="overview" className="space-y-4 py-4">
               <AgentOverview agent={agent} metrics={metrics} />
             </TabsContent>
 
-            <TabsContent value="config" className="space-y-4">
+            <TabsContent value="config" className="space-y-4 py-4">
               {agentId && (
                 <AgentConfig
                   agentId={agentId}
                   effectiveConfig={agent?.effective_config}
+                  agent={agent}
                 />
               )}
             </TabsContent>
 
-            <TabsContent value="metrics" className="space-y-4">
+            <TabsContent value="metrics" className="space-y-4 py-4">
               {agentId && <AgentMetrics agentId={agentId} />}
             </TabsContent>
 
-            <TabsContent value="logs" className="space-y-4">
+            <TabsContent value="logs" className="space-y-4 py-4">
               {agentId && <AgentLogs agentId={agentId} />}
             </TabsContent>
 
-            <TabsContent value="pipeline" className="space-y-4">
+            <TabsContent value="pipeline" className="space-y-4 py-4">
               {agentId ? (
                 <div className="h-[600px]">
                   <CollectorPipelineView

@@ -31,6 +31,7 @@ type AgentService interface {
 	GetLatestConfigForAgent(ctx context.Context, agentID uuid.UUID) (*Config, error)
 	GetLatestConfigForGroup(ctx context.Context, groupID string) (*Config, error)
 	ListConfigs(ctx context.Context, filter ConfigFilter) ([]*Config, error)
+	SendConfigToAgent(ctx context.Context, agentID uuid.UUID, content string) error
 }
 
 // Agent represents an OpenTelemetry agent

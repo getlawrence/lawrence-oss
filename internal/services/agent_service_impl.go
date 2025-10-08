@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"crypto/sha256"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,17 +12,24 @@ import (
 	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore"
 )
 
+// OpAMPConfigSender defines the interface for sending configurations to agents
+type OpAMPConfigSender interface {
+	SendConfigToAgent(agentId uuid.UUID, configContent string) error
+}
+
 // AgentServiceImpl implements the AgentService interface
 type AgentServiceImpl struct {
-	appStore applicationstore.ApplicationStore
-	logger   *zap.Logger
+	appStore    applicationstore.ApplicationStore
+	opampSender OpAMPConfigSender
+	logger      *zap.Logger
 }
 
 // NewAgentService creates a new agent service
-func NewAgentService(appStore applicationstore.ApplicationStore, logger *zap.Logger) AgentService {
+func NewAgentService(appStore applicationstore.ApplicationStore, opampSender OpAMPConfigSender, logger *zap.Logger) AgentService {
 	return &AgentServiceImpl{
-		appStore: appStore,
-		logger:   logger,
+		appStore:    appStore,
+		opampSender: opampSender,
+		logger:      logger,
 	}
 }
 
@@ -304,4 +313,66 @@ func (s *AgentServiceImpl) ListConfigs(ctx context.Context, filter ConfigFilter)
 	}
 
 	return result, nil
+}
+
+// SendConfigToAgent sends configuration to a connected agent
+func (s *AgentServiceImpl) SendConfigToAgent(ctx context.Context, agentID uuid.UUID, content string) error {
+	// 1. Validate agent exists and has remote config capability
+	agent, err := s.GetAgent(ctx, agentID)
+	if err != nil {
+		return fmt.Errorf("failed to get agent: %w", err)
+	}
+	if agent == nil {
+		return fmt.Errorf("agent not found")
+	}
+
+	// 2. Check if agent has remote config capability
+	hasCapability := false
+	for _, cap := range agent.Capabilities {
+		if cap == "accepts_remote_config" {
+			hasCapability = true
+			break
+		}
+	}
+	if !hasCapability {
+		return fmt.Errorf("agent does not support remote config")
+	}
+
+	// 3. Send configuration via OpAMP
+	if err := s.opampSender.SendConfigToAgent(agentID, content); err != nil {
+		return fmt.Errorf("failed to send config to agent: %w", err)
+	}
+
+	// 4. Store config in database with versioning
+	configHash := fmt.Sprintf("%x", sha256.Sum256([]byte(content)))
+
+	// Get latest version for this agent
+	latestConfig, _ := s.GetLatestConfigForAgent(ctx, agentID)
+	version := 1
+	if latestConfig != nil {
+		version = latestConfig.Version + 1
+	}
+
+	newConfig := &Config{
+		ID:         uuid.New().String(),
+		AgentID:    &agentID,
+		ConfigHash: configHash,
+		Content:    content,
+		Version:    version,
+		CreatedAt:  time.Now(),
+	}
+
+	if err := s.CreateConfig(ctx, newConfig); err != nil {
+		s.logger.Warn("Config sent to agent but failed to store in database",
+			zap.String("agent_id", agentID.String()),
+			zap.Error(err))
+		// Don't fail - config was already sent successfully
+	}
+
+	s.logger.Info("Configuration sent to agent successfully",
+		zap.String("agent_id", agentID.String()),
+		zap.String("config_id", newConfig.ID),
+		zap.Int("version", version))
+
+	return nil
 }

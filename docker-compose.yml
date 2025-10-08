@@ -26,9 +26,9 @@ services:
       - lawrence-network
 
   # Development UI server with hot-reloading
-  ui-dev:
+  ui:
     image: node:20-alpine
-    container_name: lawrence-ui-dev
+    container_name: lawrence-ui
     working_dir: /app
     command: sh -c "npm install -g pnpm && pnpm install && pnpm dev --host"
     ports:
@@ -45,7 +45,7 @@ services:
     restart: unless-stopped
 
   # Demo OpenTelemetry Collector with OpAMP support
-  demo-collector:
+  collector:
     image: otel/opentelemetry-collector-contrib:0.134.1
     container_name: demo-collector
     command: ['--config', '/etc/otelcol-contrib/config.yaml']
@@ -61,7 +61,7 @@ services:
       - lawrence-network
     restart: unless-stopped
 
-  demo-supervisor:
+  supervisor:
     build:
       context: ./examples/supervisor
       dockerfile: Dockerfile

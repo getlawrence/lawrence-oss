@@ -38,6 +38,7 @@ type MockAgentService struct {
 	GetLatestConfigForAgentErr    error
 	GetLatestConfigForGroupErr    error
 	ListConfigsErr                error
+	SendConfigToAgentErr          error
 }
 
 // NewMockAgentService creates a new mock agent service
@@ -364,4 +365,15 @@ func (m *MockAgentService) ListConfigs(ctx context.Context, filter services.Conf
 	}
 
 	return configs, nil
+}
+
+// SendConfigToAgent implements services.AgentService
+func (m *MockAgentService) SendConfigToAgent(ctx context.Context, agentID uuid.UUID, content string) error {
+	if m.SendConfigToAgentErr != nil {
+		return m.SendConfigToAgentErr
+	}
+
+	// Simple mock implementation - just pretend it worked
+	// In real tests, you'd set error flags to simulate failures
+	return nil
 }

@@ -176,7 +176,7 @@ func (ts *TestServer) initServices() {
 		ts.t.Fatalf("Failed to create app store: %v", err)
 	}
 
-	ts.agentService = services.NewAgentService(appStore, ts.logger)
+	ts.agentService = services.NewAgentService(appStore, ts.opampServer, ts.logger)
 	ts.telemetryService = services.NewTelemetryQueryService(ts.telemetryReader, ts.agentService, ts.logger)
 }
 

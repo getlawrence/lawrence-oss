@@ -114,6 +114,7 @@ func (s *Server) registerRoutes() {
 			agents.GET("/:id", agentHandlers.HandleGetAgent)
 			agents.GET("/:id/pipeline-metrics", pipelineHandlers.HandleGetPipelineMetrics)
 			agents.PATCH("/:id/group", agentHandlers.HandleUpdateAgentGroup)
+			agents.POST("/:id/config", agentHandlers.HandleSendConfigToAgent)
 		}
 
 		// Config routes

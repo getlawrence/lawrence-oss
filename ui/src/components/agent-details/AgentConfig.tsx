@@ -1,12 +1,13 @@
 import { useState } from "react";
 import useSWR from "swr";
 
+import { type Agent } from "@/api/agents";
 import { getPipelineMetrics } from "@/api/collector-pipeline";
 import { getConfigs } from "@/api/configs";
+import { sendConfigToAgent } from "@/api/agents";
 import { ConfigYamlEditorWithMetrics } from "@/components/configs/ConfigYamlEditorWithMetrics";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -14,14 +15,24 @@ import {
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { TimeRangeSelect } from "@/components/ui/time-range-select";
 import { type TimeRange, DEFAULT_TIME_RANGE } from "@/types/timeRange";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Settings, AlertTriangle } from "lucide-react";
 
 interface AgentConfigProps {
   agentId: string;
   effectiveConfig?: string; // Pass effective config from agent object
+  agent?: Agent; // Pass full agent object to access capabilities
 }
 
-export function AgentConfig({ agentId, effectiveConfig }: AgentConfigProps) {
+export function AgentConfig({ agentId, effectiveConfig, agent }: AgentConfigProps) {
   const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedConfig, setEditedConfig] = useState("");
+  const [isSending, setIsSending] = useState(false);
+
+  // Check if agent supports remote config
+  const supportsRemoteConfig = agent?.capabilities?.includes("accepts_remote_config") ?? false;
 
   // Fetch agent's config from configs API as fallback if effective config not provided
   const { data: configsData, isLoading: configLoading } = useSWR(
@@ -53,6 +64,38 @@ export function AgentConfig({ agentId, effectiveConfig }: AgentConfigProps) {
   const configContent = effectiveConfig || configsData?.configs?.[0]?.content;
   const metrics = metricsData?.components || [];
 
+  // Initialize edited config when entering edit mode
+  const handleStartEdit = () => {
+    setEditedConfig(configContent || "");
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditedConfig("");
+  };
+
+  const handleSendConfig = async () => {
+    if (!supportsRemoteConfig) {
+
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      const response = await sendConfigToAgent(agentId, editedConfig);
+      if (response.success) {
+        setIsEditing(false);
+        // TODO: Optionally refresh agent data to get updated effective config
+      } else {
+      }
+    } catch (error) {
+      console.error("Failed to send config to agent:", error);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   if (!effectiveConfig && configLoading) {
     return <LoadingSpinner />;
   }
@@ -72,6 +115,68 @@ export function AgentConfig({ agentId, effectiveConfig }: AgentConfigProps) {
 
   return (
     <div className="space-y-4">
+      {/* Header with capability status and action buttons */}
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="text-sm font-medium text-gray-700">Configuration</h3>
+            {supportsRemoteConfig ? (
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                <Settings className="w-3 h-3 mr-1" />
+                Remote Config
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                <AlertTriangle className="w-3 h-3 mr-1" />
+                Read-only
+              </Badge>
+            )}
+          </div>
+          {supportsRemoteConfig ? (
+            <p className="text-xs text-gray-500">
+              Edit and send configuration to agent (queued if offline)
+            </p>
+          ) : (
+            <p className="text-xs text-gray-500">
+              Agent does not support remote configuration
+            </p>
+          )}
+        </div>
+
+        <div className="flex gap-2">
+          {!isEditing && supportsRemoteConfig && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleStartEdit}
+            >
+              Edit Config
+            </Button>
+          )}
+
+          {isEditing && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCancelEdit}
+                disabled={isSending}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSendConfig}
+                disabled={isSending}
+              >
+                {isSending ? "Sending..." : "Send to Agent"}
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Time Range Selector */}
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-sm font-medium text-gray-700">Time Range</h3>
@@ -93,23 +198,13 @@ export function AgentConfig({ agentId, effectiveConfig }: AgentConfigProps) {
         </div>
       ) : null}
 
+      {/* Config Editor */}
       <ConfigYamlEditorWithMetrics
-        value={configContent}
-        onChange={() => {}} // Read-only in this view
+        value={isEditing ? editedConfig : configContent}
+        onChange={setEditedConfig}
         metrics={metrics}
-        readonly={true}
+        readonly={!isEditing}
       />
-
-      {metrics.length === 0 && !metricsLoading && (
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardContent className="pt-4">
-            <p className="text-sm text-yellow-800">
-              No metrics available yet. Metrics will appear once the agent
-              starts sending telemetry data.
-            </p>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

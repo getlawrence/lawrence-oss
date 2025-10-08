@@ -145,16 +145,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	opampMetrics := metrics.NewOpAMPMetrics(metricsFactory)
 	otlpMetrics := metrics.NewOTLPMetrics(metricsFactory)
 
-	// Initialize service layer
-	logger.Info("Initializing service layer")
-
-	// Create agent service
-	agentService := services.NewAgentService(appStore, logger)
-
-	// Create telemetry query service
-	telemetryService := services.NewTelemetryQueryService(telemetryReader, agentService, logger)
-
-	// Initialize OpAMP server
+	// Initialize OpAMP server first (needed by AgentService)
 	logger.Info("Initializing OpAMP server")
 	agents := opamp.NewAgents(logger)
 
@@ -169,10 +160,27 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 		agentHTTPEndpoint = config.OTLP.HTTPEndpoint
 	}
 
-	opampServer, err := opamp.NewServer(agents, agentService, opampMetrics, agentGRPCEndpoint, agentHTTPEndpoint, logger)
+	opampServer, err := opamp.NewServer(agents, nil, opampMetrics, agentGRPCEndpoint, agentHTTPEndpoint, logger)
 	if err != nil {
 		logger.Fatal("Failed to create OpAMP server", zap.Error(err))
 	}
+
+	// Initialize service layer
+	logger.Info("Initializing service layer")
+
+	// Create agent service (with OpAMP dependency injected)
+	agentService := services.NewAgentService(appStore, opampServer, logger)
+
+	// Now set the agent service on the OpAMP server (circular dependency resolved)
+	opampServer, err = opamp.NewServer(agents, agentService, opampMetrics, agentGRPCEndpoint, agentHTTPEndpoint, logger)
+	if err != nil {
+		logger.Fatal("Failed to create OpAMP server with agent service", zap.Error(err))
+	}
+
+	// Create telemetry query service
+	telemetryService := services.NewTelemetryQueryService(telemetryReader, agentService, logger)
+
+	// Start OpAMP server
 	if err := opampServer.Start(config.Server.OpAMPPort); err != nil {
 		logger.Fatal("Failed to start OpAMP server", zap.Error(err))
 	}
