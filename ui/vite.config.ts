@@ -76,6 +76,9 @@ export default defineConfig({
         },
       },
     },
+    alias: {
+      'monaco-editor': path.resolve(__dirname, './src/test/__mocks__/monaco-editor.ts'),
+    },
   },
   resolve: {
     alias: {
