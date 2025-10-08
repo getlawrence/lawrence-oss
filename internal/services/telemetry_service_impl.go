@@ -92,11 +92,9 @@ func (s *TelemetryQueryServiceImpl) QueryLogs(ctx context.Context, query LogQuer
 			SeverityNumber: log.SeverityNumber,
 			Body:           log.Body,
 			TraceID:        log.TraceID,
-			SpanID:         log.SpanID,
-			LogAttributes:  log.LogAttributes,
-			ConfigHash:     log.ConfigHash,
-			Severity:       log.Severity,
-			Attributes:     log.Attributes,
+		SpanID:         log.SpanID,
+		LogAttributes:  log.LogAttributes,
+		ConfigHash:     log.ConfigHash,
 		}
 	}
 

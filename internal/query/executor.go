@@ -214,20 +214,20 @@ func (v *ExecutorVisitor) executeLogsQuery(q *TelemetryQuery, startTime, endTime
 	results := make([]QueryResult, 0, len(logs))
 	for _, log := range logs {
 		// Apply additional filters
-		if !v.matchesSelectors(log.Attributes, q.Selectors) {
+		if !v.matchesSelectors(convertToStringMap(log.LogAttributes), q.Selectors) {
 			continue
 		}
 
 		results = append(results, QueryResult{
 			Type:      TelemetryTypeLogs,
-			Timestamp: log.Timestamp,
-			Labels:    log.Attributes,
-			Value:     log.Body,
-			Data: map[string]interface{}{
-				"severity":    log.Severity,
-				"agent_id":    log.AgentID.String(),
-				"config_hash": log.ConfigHash,
-			},
+		Timestamp: log.Timestamp,
+		Labels:    convertToStringMap(log.LogAttributes),
+		Value:     log.Body,
+		Data: map[string]interface{}{
+			"severity":    log.SeverityText,
+			"agent_id":    log.AgentID.String(),
+			"config_hash": log.ConfigHash,
+		},
 		})
 	}
 
@@ -542,4 +542,13 @@ func (v *ExecutorVisitor) groupAndAggregate(results []QueryResult, byLabels []st
 	}
 
 	return aggregated, nil
+}
+
+// convertToStringMap converts map[string]interface{} to map[string]string
+func convertToStringMap(m map[string]interface{}) map[string]string {
+	result := make(map[string]string)
+	for k, v := range m {
+		result[k] = fmt.Sprintf("%v", v)
+	}
+	return result
 }

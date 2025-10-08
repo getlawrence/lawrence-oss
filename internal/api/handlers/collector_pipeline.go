@@ -110,58 +110,6 @@ func (h *CollectorPipelineHandler) HandleGetPipelineMetrics(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// aggregateComponentMetrics processes raw metrics and aggregates them by component
-func aggregateComponentMetrics(metrics []interface{}, timeWindow time.Duration) []ComponentMetrics {
-	// TODO: Implement real aggregation when telemetry query is available
-	return []ComponentMetrics{}
-}
-
-// parseComponentFromMetric extracts component information from metric name and labels
-func parseComponentFromMetric(m interface{}) (componentType, componentName, pipelineType string) {
-	// TODO: Implement when telemetry query is available
-	return "", "", ""
-}
-
-// floatPtr returns a pointer to a float64
-func floatPtr(f float64) *float64 {
-	return &f
-}
-
-// calculateDerivedMetrics calculates rates and error rates from raw counts
-func calculateDerivedMetrics(component *ComponentMetrics, timeWindow time.Duration) {
-	windowSeconds := timeWindow.Seconds()
-
-	// Calculate throughput based on component type
-	switch component.ComponentType {
-	case "receiver":
-		if component.Accepted != nil {
-			component.Throughput = *component.Accepted / windowSeconds
-			component.Received = component.Accepted
-		}
-		if component.Refused != nil {
-			component.Errors = *component.Refused / windowSeconds
-		}
-
-	case "processor":
-		if component.Sent != nil {
-			component.Throughput = *component.Sent / windowSeconds
-		}
-
-	case "exporter":
-		if component.Sent != nil {
-			component.Throughput = *component.Sent / windowSeconds
-		}
-		if component.SendFailed != nil {
-			component.Errors = *component.SendFailed / windowSeconds
-		}
-	}
-
-	// Calculate error rate
-	if component.Throughput > 0 {
-		component.ErrorRate = (component.Errors / component.Throughput) * 100
-	}
-}
-
 // parseTimeRange parses a time range string like "5m", "1h", "24h"
 func parseTimeRange(s string) (time.Duration, error) {
 	// Handle common formats

@@ -238,8 +238,11 @@ func (s *Storage) WriteLogs(ctx context.Context, logs []types.Log) error {
 	defer stmt.Close()
 
 	for _, log := range logs {
-		attrsJSON, _ := json.Marshal(log.Attributes)
-		serviceName := log.Attributes["service.name"]
+		attrsJSON, _ := json.Marshal(log.LogAttributes)
+		serviceName := ""
+		if sn, ok := log.LogAttributes["service.name"]; ok {
+			serviceName = fmt.Sprintf("%v", sn)
+		}
 		if serviceName == "" {
 			serviceName = "unknown"
 		}
@@ -248,7 +251,7 @@ func (s *Storage) WriteLogs(ctx context.Context, logs []types.Log) error {
 			log.Timestamp,
 			log.AgentID.String(),
 			serviceName,
-			log.Severity,
+			log.SeverityText,
 			log.Body,
 			string(attrsJSON),
 		)
@@ -464,16 +467,7 @@ func (s *Storage) QueryLogs(ctx context.Context, query types.LogQuery) ([]types.
 		}
 		if attrsJSON != "" {
 			_ = json.Unmarshal([]byte(attrsJSON), &l.LogAttributes)
-
-			// Convert LogAttributes to deprecated Attributes field (map[string]string)
-			l.Attributes = make(map[string]string)
-			for key, value := range l.LogAttributes {
-				l.Attributes[key] = fmt.Sprintf("%v", value)
-			}
 		}
-
-		// Set deprecated Severity field from SeverityText
-		l.Severity = l.SeverityText
 
 		logs = append(logs, l)
 	}
