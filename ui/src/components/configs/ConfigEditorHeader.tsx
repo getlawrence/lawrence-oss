@@ -1,4 +1,5 @@
 import { ArrowLeft, History, CheckCircle, Save, RefreshCw } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 
 interface ConfigEditorHeaderProps {
@@ -65,4 +66,3 @@ export function ConfigEditorHeader({
     </div>
   );
 }
-

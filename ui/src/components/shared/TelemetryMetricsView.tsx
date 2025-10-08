@@ -18,8 +18,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface TelemetryMetricsViewProps {
   /**
@@ -40,10 +40,10 @@ interface TelemetryMetricsViewProps {
  * Reusable telemetry metrics view component
  * Can display metrics for either an agent or a group
  */
-export function TelemetryMetricsView({ 
-  agentId, 
+export function TelemetryMetricsView({
+  agentId,
   groupId,
-  showAgentId = false 
+  showAgentId = false,
 }: TelemetryMetricsViewProps) {
   const [metricsData, setMetricsData] = useState<MetricData[]>([]);
 
@@ -69,7 +69,7 @@ export function TelemetryMetricsView({
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-    }
+    },
   );
 
   // Prepare chart data for metrics
@@ -87,7 +87,7 @@ export function TelemetryMetricsView({
         acc[time].totalValue += metric.value;
         return acc;
       },
-      {} as Record<string, { time: string; count: number; totalValue: number }>
+      {} as Record<string, { time: string; count: number; totalValue: number }>,
     );
 
     return Object.values(grouped).slice(-20); // Last 20 data points
@@ -162,4 +162,3 @@ export function TelemetryMetricsView({
     </div>
   );
 }
-

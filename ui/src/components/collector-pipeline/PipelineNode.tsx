@@ -1,9 +1,5 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { 
-  ArrowDownCircle, 
-  ArrowUpCircle, 
-  Settings,
-} from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Settings } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -54,19 +50,26 @@ const componentConfig = {
 
 // Base component node used by Receiver, Processor, and Exporter
 interface BaseNodeProps {
-  componentType: 'receiver' | 'processor' | 'exporter';
+  componentType: "receiver" | "processor" | "exporter";
   label: string;
   pipelineType: string;
   selected?: boolean;
-  metrics?: ComponentNodeData['metrics'];
+  metrics?: ComponentNodeData["metrics"];
   children?: React.ReactNode;
 }
 
-function BaseComponentNode({ componentType, label, pipelineType, selected, metrics, children }: BaseNodeProps) {
+function BaseComponentNode({
+  componentType,
+  label,
+  pipelineType,
+  selected,
+  metrics,
+  children,
+}: BaseNodeProps) {
   const config = componentConfig[componentType];
-  
+
   return (
-    <Card 
+    <Card
       className={`min-w-[150px] transition-all duration-200 ${config.color} ${
         selected ? "ring-2 ring-blue-400 shadow-lg" : "shadow-md"
       }`}
@@ -84,11 +87,7 @@ function BaseComponentNode({ componentType, label, pipelineType, selected, metri
         <Badge variant="outline" className="text-xs">
           {pipelineType}
         </Badge>
-        {metrics && (
-          <div className="mt-2 text-xs">
-            {children}
-          </div>
-        )}
+        {metrics && <div className="mt-2 text-xs">{children}</div>}
         <Handle
           type="source"
           position={Position.Right}
@@ -99,16 +98,15 @@ function BaseComponentNode({ componentType, label, pipelineType, selected, metri
   );
 }
 
-
 // Section Node - Container for pipeline
 export function SectionNode({ data }: NodeProps) {
   const nodeData = data as unknown as SectionNodeData;
   return (
-    <div 
-      className={`p-4 rounded-lg border-2 ${nodeData.color || 'border-gray-400'} bg-white/50 backdrop-blur-sm`}
-      style={{ 
-        width: nodeData.width || 850, 
-        height: nodeData.height || 320 
+    <div
+      className={`p-4 rounded-lg border-2 ${nodeData.color || "border-gray-400"} bg-white/50 backdrop-blur-sm`}
+      style={{
+        width: nodeData.width || 850,
+        height: nodeData.height || 320,
       }}
     >
       <div className="flex items-center gap-2 mb-2">
@@ -119,7 +117,9 @@ export function SectionNode({ data }: NodeProps) {
         <div className="text-xs text-gray-600">
           <span>Received: {nodeData.metrics.received || 0}</span>
           {nodeData.metrics.errors > 0 && (
-            <span className="ml-4 text-red-600">Errors: {nodeData.metrics.errors}</span>
+            <span className="ml-4 text-red-600">
+              Errors: {nodeData.metrics.errors}
+            </span>
           )}
         </div>
       )}
@@ -134,7 +134,7 @@ export function ReceiverNode({ data, selected }: NodeProps) {
     <BaseComponentNode
       componentType="receiver"
       label={nodeData.label}
-      pipelineType={nodeData.pipelineType || 'receiver'}
+      pipelineType={nodeData.pipelineType || "receiver"}
       selected={selected}
       metrics={nodeData.metrics}
     >
@@ -155,7 +155,7 @@ export function ProcessorNode({ data, selected }: NodeProps) {
     <BaseComponentNode
       componentType="processor"
       label={nodeData.label}
-      pipelineType={nodeData.pipelineType || 'processor'}
+      pipelineType={nodeData.pipelineType || "processor"}
       selected={selected}
       metrics={nodeData.metrics}
     >
@@ -182,7 +182,7 @@ export function ExporterNode({ data, selected }: NodeProps) {
     <BaseComponentNode
       componentType="exporter"
       label={nodeData.label}
-      pipelineType={nodeData.pipelineType || 'exporter'}
+      pipelineType={nodeData.pipelineType || "exporter"}
       selected={selected}
       metrics={nodeData.metrics}
     >

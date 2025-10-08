@@ -23,24 +23,24 @@ const sizeClasses = {
 
 /**
  * Reusable loading spinner component
- * 
+ *
  * @example
  * ```tsx
  * <LoadingSpinner size="md" message="Loading data..." />
  * ```
  */
-export function LoadingSpinner({ 
-  size = "md", 
+export function LoadingSpinner({
+  size = "md",
   message,
-  className 
+  className,
 }: LoadingSpinnerProps) {
   return (
     <div className={cn("flex items-center justify-center h-64", className)}>
       <div className="flex flex-col items-center gap-2">
-        <div 
+        <div
           className={cn(
             "animate-spin rounded-full border-b-2 border-gray-900",
-            sizeClasses[size]
+            sizeClasses[size],
           )}
         />
         {message && <span className="text-sm text-gray-600">{message}</span>}
@@ -48,4 +48,3 @@ export function LoadingSpinner({
     </div>
   );
 }
-

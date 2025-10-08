@@ -1,10 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InfoCard } from "@/components/ui/info-card";
 
 interface Group {
@@ -29,18 +24,38 @@ interface GroupOverviewProps {
 }
 
 export function GroupOverview({ group, metrics }: GroupOverviewProps) {
-  const metricsItems = metrics ? [
-    { label: "Agents", value: <span className="font-semibold">{metrics.agent_count}</span> },
-    { label: "Metrics", value: <span className="font-semibold">{metrics.metric_count}</span> },
-    { label: "Logs", value: <span className="font-semibold">{metrics.log_count}</span> },
-    { label: "Traces", value: <span className="font-semibold">{metrics.trace_count}</span> },
-    ...(metrics.throughput_rps !== undefined
-      ? [{
-          label: "Throughput",
-          value: <span className="font-semibold">{metrics.throughput_rps.toFixed(2)} rps</span>,
-        }]
-      : []),
-  ] : [];
+  const metricsItems = metrics
+    ? [
+        {
+          label: "Agents",
+          value: <span className="font-semibold">{metrics.agent_count}</span>,
+        },
+        {
+          label: "Metrics",
+          value: <span className="font-semibold">{metrics.metric_count}</span>,
+        },
+        {
+          label: "Logs",
+          value: <span className="font-semibold">{metrics.log_count}</span>,
+        },
+        {
+          label: "Traces",
+          value: <span className="font-semibold">{metrics.trace_count}</span>,
+        },
+        ...(metrics.throughput_rps !== undefined
+          ? [
+              {
+                label: "Throughput",
+                value: (
+                  <span className="font-semibold">
+                    {metrics.throughput_rps.toFixed(2)} rps
+                  </span>
+                ),
+              },
+            ]
+          : []),
+      ]
+    : [];
 
   return (
     <div className="space-y-4">
@@ -49,16 +64,19 @@ export function GroupOverview({ group, metrics }: GroupOverviewProps) {
         items={[
           { label: "ID", value: <span className="font-mono">{group.id}</span> },
           { label: "Name", value: group.name },
-          { label: "Created", value: new Date(group.created_at).toLocaleString() },
-          { label: "Updated", value: new Date(group.updated_at).toLocaleString() },
+          {
+            label: "Created",
+            value: new Date(group.created_at).toLocaleString(),
+          },
+          {
+            label: "Updated",
+            value: new Date(group.updated_at).toLocaleString(),
+          },
         ]}
       />
 
       {metrics && (
-        <InfoCard
-          title="Group Stats (Last 5 min)"
-          items={metricsItems}
-        />
+        <InfoCard title="Group Stats (Last 5 min)" items={metricsItems} />
       )}
 
       {group.labels && Object.keys(group.labels).length > 0 && (
@@ -80,4 +98,3 @@ export function GroupOverview({ group, metrics }: GroupOverviewProps) {
     </div>
   );
 }
-

@@ -126,7 +126,7 @@ export default function AgentsPage() {
           Refresh
         </Button>
       </div>
-      
+
       {/* Agents Table */}
       <Card>
         <CardHeader>
@@ -161,7 +161,7 @@ export default function AgentsPage() {
               </TableHeader>
               <TableBody>
                 {agents.map((agent) => (
-                  <TableRow 
+                  <TableRow
                     key={agent.id}
                     onClick={() => handleAgentClick(agent.id)}
                     className="cursor-pointer hover:bg-muted/50"
@@ -177,7 +177,10 @@ export default function AgentsPage() {
                     <TableCell>
                       {agent.group_id ? (
                         <span
-                          onClick={(e) => agent.group_id && handleGroupClick(agent.group_id, e)}
+                          onClick={(e) =>
+                            agent.group_id &&
+                            handleGroupClick(agent.group_id, e)
+                          }
                           className="text-blue-600 hover:text-blue-800 cursor-pointer underline"
                         >
                           {agent.group_id}

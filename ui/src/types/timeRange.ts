@@ -19,4 +19,3 @@ export const TIME_RANGE_OPTIONS = [
   { value: "6h" as const, label: "6 hours", shortLabel: "Last 6h" },
   { value: "24h" as const, label: "24 hours", shortLabel: "Last 24h" },
 ] as const;
-

@@ -1,4 +1,6 @@
 import { Plus, RefreshCw, FileText, Hash, Edit } from "lucide-react";
+
+import type { Config } from "@/api/configs";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,7 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Config } from "@/api/configs";
 
 interface ConfigsListProps {
   configs: Config[];
@@ -144,4 +145,3 @@ export function ConfigsList({
     </div>
   );
 }
-

@@ -1,4 +1,5 @@
 import Editor from "@monaco-editor/react";
+
 import {
   Card,
   CardContent,
@@ -44,4 +45,3 @@ export function ConfigYamlEditor({ value, onChange }: ConfigYamlEditorProps) {
     </Card>
   );
 }
-

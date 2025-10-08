@@ -4,7 +4,7 @@
 
 export interface YamlComponent {
   name: string;
-  type: 'receiver' | 'processor' | 'exporter';
+  type: "receiver" | "processor" | "exporter";
   lineNumber: number;
 }
 
@@ -14,42 +14,50 @@ export interface YamlComponent {
  */
 export function parseYamlComponents(yamlContent: string): YamlComponent[] {
   const components: YamlComponent[] = [];
-  const lines = yamlContent.split('\n');
-  
-  let currentSection: 'receiver' | 'processor' | 'exporter' | null = null;
+  const lines = yamlContent.split("\n");
+
+  let currentSection: "receiver" | "processor" | "exporter" | null = null;
   let sectionIndent = -1;
-  
+
   lines.forEach((line, index) => {
     const trimmed = line.trim();
     const indent = line.search(/\S/);
-    
+
     // Detect section headers
-    if (trimmed === 'receivers:') {
-      currentSection = 'receiver';
+    if (trimmed === "receivers:") {
+      currentSection = "receiver";
       sectionIndent = indent;
       return;
-    } else if (trimmed === 'processors:') {
-      currentSection = 'processor';
+    } else if (trimmed === "processors:") {
+      currentSection = "processor";
       sectionIndent = indent;
       return;
-    } else if (trimmed === 'exporters:') {
-      currentSection = 'exporter';
+    } else if (trimmed === "exporters:") {
+      currentSection = "exporter";
       sectionIndent = indent;
       return;
-    } else if (trimmed === 'service:' || trimmed === 'extensions:' || trimmed === 'connectors:') {
+    } else if (
+      trimmed === "service:" ||
+      trimmed === "extensions:" ||
+      trimmed === "connectors:"
+    ) {
       currentSection = null;
       return;
     }
-    
+
     // Extract component names (first-level items under sections)
     if (currentSection && indent > sectionIndent && indent !== -1) {
       // Check if this is a component definition (ends with : and is not deeply nested)
-      if (trimmed.endsWith(':') && !trimmed.startsWith('-')) {
+      if (trimmed.endsWith(":") && !trimmed.startsWith("-")) {
         const componentName = trimmed.slice(0, -1).trim();
-        
+
         // Skip if it looks like a sub-property (too indented or contains special chars)
         const expectedIndent = sectionIndent + 2;
-        if (Math.abs(indent - expectedIndent) <= 2 && componentName && !componentName.includes(' ')) {
+        if (
+          Math.abs(indent - expectedIndent) <= 2 &&
+          componentName &&
+          !componentName.includes(" ")
+        ) {
           components.push({
             name: componentName,
             type: currentSection,
@@ -59,7 +67,7 @@ export function parseYamlComponents(yamlContent: string): YamlComponent[] {
       }
     }
   });
-  
+
   return components;
 }
 
@@ -89,7 +97,7 @@ export function formatErrorRate(errorRate: number): string {
   } else if (errorRate > 0) {
     return `${errorRate.toFixed(3)}%`;
   }
-  return '0%';
+  return "0%";
 }
 
 /**
@@ -97,13 +105,13 @@ export function formatErrorRate(errorRate: number): string {
  */
 export function getStatusIcon(errorRate: number): string {
   if (errorRate === 0) {
-    return '✅';
+    return "✅";
   } else if (errorRate < 1) {
-    return '⚠️';
+    return "⚠️";
   } else if (errorRate < 5) {
-    return '⚠️';
+    return "⚠️";
   }
-  return '❌';
+  return "❌";
 }
 
 /**
@@ -111,12 +119,11 @@ export function getStatusIcon(errorRate: number): string {
  */
 export function getStatusColor(errorRate: number): string {
   if (errorRate === 0) {
-    return '#22c55e'; // green
+    return "#22c55e"; // green
   } else if (errorRate < 1) {
-    return '#eab308'; // yellow
+    return "#eab308"; // yellow
   } else if (errorRate < 5) {
-    return '#f97316'; // orange
+    return "#f97316"; // orange
   }
-  return '#ef4444'; // red
+  return "#ef4444"; // red
 }
-

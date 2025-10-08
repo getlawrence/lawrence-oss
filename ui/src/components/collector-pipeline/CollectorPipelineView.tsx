@@ -1,4 +1,3 @@
-import { useState, useEffect, useMemo } from "react";
 import {
   ReactFlow,
   Background,
@@ -8,20 +7,35 @@ import {
   type Edge,
 } from "@xyflow/react";
 import { RefreshCw, Clock, AlertCircle } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 
 import "@xyflow/react/dist/style.css";
 
+import { generatePipelineNodes } from "./PipelineGenerator";
+import {
+  ReceiverNode,
+  ProcessorNode,
+  ExporterNode,
+  SectionNode,
+} from "./PipelineNode";
+
+import {
+  getPipelineMetrics,
+  type PipelineMetricsResponse,
+} from "@/api/collector-pipeline";
+import { getConfigs } from "@/api/configs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { TimeRangeSelect } from "@/components/ui/time-range-select";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-import { ReceiverNode, ProcessorNode, ExporterNode, SectionNode } from "./PipelineNode";
-import { getPipelineMetrics, type PipelineMetricsResponse } from "@/api/collector-pipeline";
-import { generatePipelineNodes } from "./PipelineGenerator";
-import { getConfigs } from "@/api/configs";
 import { type TimeRange, DEFAULT_TIME_RANGE } from "@/types/timeRange";
 
 const nodeTypes = {
@@ -37,14 +51,20 @@ interface CollectorPipelineViewProps {
   effectiveConfig?: string; // Pass effective config from agent object
 }
 
-export function CollectorPipelineView({ agentId, agentName, effectiveConfig: propEffectiveConfig }: CollectorPipelineViewProps) {
+export function CollectorPipelineView({
+  agentId,
+  agentName,
+  effectiveConfig: propEffectiveConfig,
+}: CollectorPipelineViewProps) {
   const [metrics, setMetrics] = useState<PipelineMetricsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>(DEFAULT_TIME_RANGE);
   const [selectedPipeline, setSelectedPipeline] = useState<string>("all");
 
-  const [effectiveConfig, setEffectiveConfig] = useState<string | null>(propEffectiveConfig || null);
+  const [effectiveConfig, setEffectiveConfig] = useState<string | null>(
+    propEffectiveConfig || null,
+  );
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -55,7 +75,7 @@ export function CollectorPipelineView({ agentId, agentName, effectiveConfig: pro
       setEffectiveConfig(propEffectiveConfig);
       return;
     }
-    
+
     try {
       const configsResponse = await getConfigs({ agent_id: agentId, limit: 1 });
       if (configsResponse.configs.length > 0) {
@@ -75,7 +95,9 @@ export function CollectorPipelineView({ agentId, agentName, effectiveConfig: pro
       const data = await getPipelineMetrics(agentId, timeRange);
       setMetrics(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch pipeline metrics");
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch pipeline metrics",
+      );
     } finally {
       setLoading(false);
     }
@@ -92,7 +114,7 @@ export function CollectorPipelineView({ agentId, agentName, effectiveConfig: pro
   // Get unique pipeline types
   const pipelineTypes = useMemo(() => {
     if (!metrics) return [];
-    const types = new Set(metrics.components.map(c => c.pipeline_type));
+    const types = new Set(metrics.components.map((c) => c.pipeline_type));
     return Array.from(types).sort();
   }, [metrics]);
 
@@ -100,7 +122,9 @@ export function CollectorPipelineView({ agentId, agentName, effectiveConfig: pro
   const filteredComponents = useMemo(() => {
     if (!metrics) return [];
     if (selectedPipeline === "all") return metrics.components;
-    return metrics.components.filter(c => c.pipeline_type === selectedPipeline);
+    return metrics.components.filter(
+      (c) => c.pipeline_type === selectedPipeline,
+    );
   }, [metrics, selectedPipeline]);
 
   // Generate nodes and edges for React Flow
@@ -113,7 +137,8 @@ export function CollectorPipelineView({ agentId, agentName, effectiveConfig: pro
     }
 
     // Use the generator to create nodes from config
-    const { nodes: generatedNodes, edges: generatedEdges } = generatePipelineNodes(effectiveConfig);
+    const { nodes: generatedNodes, edges: generatedEdges } =
+      generatePipelineNodes(effectiveConfig);
 
     setNodes(generatedNodes);
     setEdges(generatedEdges);
@@ -123,13 +148,24 @@ export function CollectorPipelineView({ agentId, agentName, effectiveConfig: pro
   const summaryStats = useMemo(() => {
     if (!filteredComponents.length) return null;
 
-    const totalThroughput = filteredComponents.reduce((sum, c) => sum + c.throughput, 0);
-    const totalErrors = filteredComponents.reduce((sum, c) => sum + c.errors, 0);
-    const avgErrorRate = filteredComponents.reduce((sum, c) => sum + c.error_rate, 0) / filteredComponents.length;
-    const componentCounts = filteredComponents.reduce((acc, c) => {
-      acc[c.component_type] = (acc[c.component_type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const totalThroughput = filteredComponents.reduce(
+      (sum, c) => sum + c.throughput,
+      0,
+    );
+    const totalErrors = filteredComponents.reduce(
+      (sum, c) => sum + c.errors,
+      0,
+    );
+    const avgErrorRate =
+      filteredComponents.reduce((sum, c) => sum + c.error_rate, 0) /
+      filteredComponents.length;
+    const componentCounts = filteredComponents.reduce(
+      (acc, c) => {
+        acc[c.component_type] = (acc[c.component_type] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return {
       totalThroughput,
@@ -184,13 +220,16 @@ export function CollectorPipelineView({ agentId, agentName, effectiveConfig: pro
         <div className="p-4 border-b">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">Pipeline:</span>
-            <Select value={selectedPipeline} onValueChange={setSelectedPipeline}>
+            <Select
+              value={selectedPipeline}
+              onValueChange={setSelectedPipeline}
+            >
               <SelectTrigger className="w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Pipelines</SelectItem>
-                {pipelineTypes.map(type => (
+                {pipelineTypes.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type.charAt(0).toUpperCase() + type.slice(1)}
                   </SelectItem>
@@ -225,11 +264,13 @@ export function CollectorPipelineView({ agentId, agentName, effectiveConfig: pro
               <CardContent className="p-3">
                 <div className="text-sm text-gray-600">Components</div>
                 <div className="text-lg font-semibold">
-                  {Object.entries(summaryStats.componentCounts).map(([type, count]) => (
-                    <Badge key={type} variant="outline" className="mr-1">
-                      {type}: {count}
-                    </Badge>
-                  ))}
+                  {Object.entries(summaryStats.componentCounts).map(
+                    ([type, count]) => (
+                      <Badge key={type} variant="outline" className="mr-1">
+                        {type}: {count}
+                      </Badge>
+                    ),
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -238,7 +279,9 @@ export function CollectorPipelineView({ agentId, agentName, effectiveConfig: pro
                 <div className="text-sm text-gray-600">Last Updated</div>
                 <div className="text-lg font-semibold flex items-center">
                   <Clock className="h-4 w-4 mr-1" />
-                  {metrics?.timestamp ? new Date(metrics.timestamp).toLocaleTimeString() : 'N/A'}
+                  {metrics?.timestamp
+                    ? new Date(metrics.timestamp).toLocaleTimeString()
+                    : "N/A"}
                 </div>
               </CardContent>
             </Card>
@@ -254,10 +297,9 @@ export function CollectorPipelineView({ agentId, agentName, effectiveConfig: pro
               <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600">No pipeline components found</p>
               <p className="text-sm text-gray-500">
-                {selectedPipeline === "all" 
+                {selectedPipeline === "all"
                   ? "No components available for this agent"
-                  : `No ${selectedPipeline} components found`
-                }
+                  : `No ${selectedPipeline} components found`}
               </p>
             </div>
           </div>

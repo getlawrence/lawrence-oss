@@ -11,8 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface TelemetryLogsViewProps {
   /**
@@ -37,17 +37,18 @@ interface TelemetryLogsViewProps {
  * Reusable telemetry logs view component
  * Can display logs for either an agent or a group
  */
-export function TelemetryLogsView({ 
-  agentId, 
+export function TelemetryLogsView({
+  agentId,
   groupId,
   title,
-  showAgentId = false 
+  showAgentId = false,
 }: TelemetryLogsViewProps) {
   const [logsData, setLogsData] = useState<LogData[]>([]);
 
   const entityType = agentId ? "agent" : "group";
   const entityId = agentId || groupId;
-  const displayTitle = title || `${entityType === "agent" ? "Agent" : "Group"} Logs`;
+  const displayTitle =
+    title || `${entityType === "agent" ? "Agent" : "Group"} Logs`;
 
   const { isLoading } = useSWR(
     `${entityType}-logs-${entityId}`,
@@ -68,7 +69,7 @@ export function TelemetryLogsView({
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-    }
+    },
   );
 
   const getSeverityColor = (severity?: string) => {
@@ -131,4 +132,3 @@ export function TelemetryLogsView({
     </Card>
   );
 }
-

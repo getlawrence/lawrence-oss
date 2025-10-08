@@ -203,7 +203,7 @@ export default function GroupsPage() {
               </TableHeader>
               <TableBody>
                 {groups.map((group: Group) => (
-                  <TableRow 
+                  <TableRow
                     key={group.id}
                     onClick={() => handleGroupClick(group.id)}
                     className="cursor-pointer hover:bg-muted/50"

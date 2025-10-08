@@ -1,10 +1,6 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import type { ReactNode } from "react";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export interface InfoItem {
   label: string;
@@ -28,7 +24,7 @@ interface InfoCardProps {
 
 /**
  * Reusable card for displaying key-value information pairs
- * 
+ *
  * @example
  * ```tsx
  * <InfoCard
@@ -60,4 +56,3 @@ export function InfoCard({ title, items, icon }: InfoCardProps) {
     </Card>
   );
 }
-

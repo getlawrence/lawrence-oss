@@ -25,8 +25,14 @@ function App() {
                 <Route path="/agents" element={<AgentsPage />} />
                 <Route path="/groups" element={<GroupsPage />} />
                 <Route path="/configs" element={<ConfigsPage />} />
-                <Route path="/configs/new" element={<ConfigsPage mode="create" />} />
-                <Route path="/configs/:configId/edit" element={<ConfigsPage mode="edit" />} />
+                <Route
+                  path="/configs/new"
+                  element={<ConfigsPage mode="create" />}
+                />
+                <Route
+                  path="/configs/:configId/edit"
+                  element={<ConfigsPage mode="edit" />}
+                />
                 <Route path="/telemetry" element={<TelemetryPage />} />
                 <Route path="/topology" element={<TopologyPage />} />
               </Route>

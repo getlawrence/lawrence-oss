@@ -1,9 +1,4 @@
-import {
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Server,
-} from "lucide-react";
+import { CheckCircle, XCircle, AlertCircle, Server } from "lucide-react";
 import useSWR from "swr";
 
 import { getGroupAgents } from "@/api/groups";
@@ -38,7 +33,7 @@ export function GroupAgents({ groupId, onAgentClick }: GroupAgentsProps) {
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-    }
+    },
   );
 
   const getStatusIcon = (status: string) => {
@@ -104,7 +99,9 @@ export function GroupAgents({ groupId, onAgentClick }: GroupAgentsProps) {
                   <TableRow
                     key={agent.id}
                     onClick={() => onAgentClick?.(agent.id)}
-                    className={onAgentClick ? "cursor-pointer hover:bg-muted/50" : ""}
+                    className={
+                      onAgentClick ? "cursor-pointer hover:bg-muted/50" : ""
+                    }
                   >
                     <TableCell>
                       <div className="flex items-center space-x-2">
@@ -127,4 +124,3 @@ export function GroupAgents({ groupId, onAgentClick }: GroupAgentsProps) {
     </Card>
   );
 }
-

@@ -1,10 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InfoCard } from "@/components/ui/info-card";
 
 interface Agent {
@@ -41,13 +36,18 @@ export function AgentOverview({ agent, metrics }: AgentOverviewProps) {
           {
             label: "Status",
             value: (
-              <Badge variant={agent.status === "online" ? "default" : "secondary"}>
+              <Badge
+                variant={agent.status === "online" ? "default" : "secondary"}
+              >
                 {agent.status}
               </Badge>
             ),
           },
           { label: "Group", value: agent.group_name || "No Group" },
-          { label: "Last Seen", value: new Date(agent.last_seen).toLocaleString() },
+          {
+            label: "Last Seen",
+            value: new Date(agent.last_seen).toLocaleString(),
+          },
         ]}
       />
 
@@ -55,12 +55,29 @@ export function AgentOverview({ agent, metrics }: AgentOverviewProps) {
         <InfoCard
           title="Telemetry Stats (Last 5 min)"
           items={[
-            { label: "Metrics", value: <span className="font-semibold">{metrics.metric_count}</span> },
-            { label: "Logs", value: <span className="font-semibold">{metrics.log_count}</span> },
-            { label: "Traces", value: <span className="font-semibold">{metrics.trace_count}</span> },
+            {
+              label: "Metrics",
+              value: (
+                <span className="font-semibold">{metrics.metric_count}</span>
+              ),
+            },
+            {
+              label: "Logs",
+              value: <span className="font-semibold">{metrics.log_count}</span>,
+            },
+            {
+              label: "Traces",
+              value: (
+                <span className="font-semibold">{metrics.trace_count}</span>
+              ),
+            },
             {
               label: "Throughput",
-              value: <span className="font-semibold">{metrics.throughput_rps.toFixed(2)} rps</span>,
+              value: (
+                <span className="font-semibold">
+                  {metrics.throughput_rps.toFixed(2)} rps
+                </span>
+              ),
             },
           ]}
         />
@@ -102,4 +119,3 @@ export function AgentOverview({ agent, metrics }: AgentOverviewProps) {
     </div>
   );
 }
-

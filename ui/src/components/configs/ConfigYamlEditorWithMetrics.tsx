@@ -1,7 +1,8 @@
 import Editor, { type OnMount } from "@monaco-editor/react";
-import { useEffect, useRef, useState } from "react";
 import * as monaco from "monaco-editor";
+import { useEffect, useRef, useState } from "react";
 
+import { type ComponentMetrics } from "@/api/collector-pipeline";
 import {
   Card,
   CardContent,
@@ -9,7 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { type ComponentMetrics } from "@/api/collector-pipeline";
 import {
   parseYamlComponents,
   formatThroughput,
@@ -58,7 +58,7 @@ export function ConfigYamlEditorWithMetrics({
       const componentMetrics = metrics.filter(
         (m) =>
           m.component_name === component.name &&
-          mapComponentType(m.component_type) === component.type
+          mapComponentType(m.component_type) === component.type,
       );
 
       if (componentMetrics.length === 0) {
@@ -72,25 +72,35 @@ export function ConfigYamlEditorWithMetrics({
       const metricsText = formatMetricsText(aggregated);
 
       newDecorations.push({
-        range: new monaco.Range(component.lineNumber, 1, component.lineNumber, 1),
+        range: new monaco.Range(
+          component.lineNumber,
+          1,
+          component.lineNumber,
+          1,
+        ),
         options: {
           after: {
             content: `  ${metricsText}`,
-            inlineClassName: 'metrics-decoration',
+            inlineClassName: "metrics-decoration",
             inlineClassNameAffectsLetterSpacing: true,
           },
-          afterContentClassName: 'metrics-decoration-after',
+          afterContentClassName: "metrics-decoration-after",
           isWholeLine: false,
         },
       });
 
       // Add gutter decoration for visual status
       newDecorations.push({
-        range: new monaco.Range(component.lineNumber, 1, component.lineNumber, 1),
+        range: new monaco.Range(
+          component.lineNumber,
+          1,
+          component.lineNumber,
+          1,
+        ),
         options: {
           isWholeLine: false,
-          linesDecorationsClassName: 'metrics-gutter-decoration',
-          glyphMarginClassName: 'metrics-glyph-margin',
+          linesDecorationsClassName: "metrics-gutter-decoration",
+          glyphMarginClassName: "metrics-glyph-margin",
           glyphMarginHoverMessage: {
             value: formatHoverMessage(component.name, componentMetrics),
           },
@@ -100,17 +110,26 @@ export function ConfigYamlEditorWithMetrics({
       // Add line highlight for components with errors
       if (aggregated.error_rate > 0) {
         newDecorations.push({
-          range: new monaco.Range(component.lineNumber, 1, component.lineNumber, 1),
+          range: new monaco.Range(
+            component.lineNumber,
+            1,
+            component.lineNumber,
+            1,
+          ),
           options: {
             isWholeLine: true,
-            className: aggregated.error_rate >= 5 ? 'line-error' : 'line-warning',
+            className:
+              aggregated.error_rate >= 5 ? "line-error" : "line-warning",
           },
         });
       }
     });
 
     // Apply decorations
-    const newDecorationIds = editor.deltaDecorations(decorations, newDecorations);
+    const newDecorationIds = editor.deltaDecorations(
+      decorations,
+      newDecorations,
+    );
     setDecorations(newDecorationIds);
   }, [metrics, parsedComponents]);
 
@@ -119,7 +138,7 @@ export function ConfigYamlEditorWithMetrics({
     editorRef.current = editor;
 
     // Add custom CSS for decorations
-    const style = document.createElement('style');
+    const style = document.createElement("style");
     style.innerHTML = `
       .metrics-decoration {
         color: #6b7280 !important;
@@ -143,7 +162,7 @@ export function ConfigYamlEditorWithMetrics({
 
     // Register hover provider for detailed metrics
     if (metrics && metrics.length > 0) {
-      monaco.languages.registerHoverProvider('yaml', {
+      monaco.languages.registerHoverProvider("yaml", {
         provideHover: (model, position) => {
           const line = position.lineNumber;
           const component = parsedComponents.find((c) => c.lineNumber === line);
@@ -155,7 +174,7 @@ export function ConfigYamlEditorWithMetrics({
           const componentMetrics = metrics.filter(
             (m) =>
               m.component_name === component.name &&
-              mapComponentType(m.component_type) === component.type
+              mapComponentType(m.component_type) === component.type,
           );
 
           if (componentMetrics.length === 0) {
@@ -163,7 +182,12 @@ export function ConfigYamlEditorWithMetrics({
           }
 
           return {
-            range: new monaco.Range(line, 1, line, model.getLineMaxColumn(line)),
+            range: new monaco.Range(
+              line,
+              1,
+              line,
+              model.getLineMaxColumn(line),
+            ),
             contents: [
               { value: `**${component.name}** (${component.type})` },
               { value: formatHoverMessage(component.name, componentMetrics) },
@@ -187,8 +211,8 @@ export function ConfigYamlEditorWithMetrics({
         </CardTitle>
         <CardDescription>
           {readonly
-            ? 'View OpenTelemetry collector configuration'
-            : 'Edit your OpenTelemetry collector configuration in YAML format'}
+            ? "View OpenTelemetry collector configuration"
+            : "Edit your OpenTelemetry collector configuration in YAML format"}
           {metrics && metrics.length > 0 && (
             <span className="block mt-1 text-xs">
               Hover over components to see detailed metrics
@@ -226,7 +250,7 @@ export function ConfigYamlEditorWithMetrics({
  * Map component type from API to parser type
  */
 function mapComponentType(
-  apiType: string
+  apiType: string,
 ): "receiver" | "processor" | "exporter" {
   // API returns full type like "receiver", "processor", "exporter"
   if (apiType === "receiver") return "receiver";
@@ -263,7 +287,8 @@ function aggregateMetrics(metrics: ComponentMetrics[]): ComponentMetrics {
     aggregated.refused = (aggregated.refused || 0) + (m.refused || 0);
     aggregated.dropped = (aggregated.dropped || 0) + (m.dropped || 0);
     aggregated.sent = (aggregated.sent || 0) + (m.sent || 0);
-    aggregated.send_failed = (aggregated.send_failed || 0) + (m.send_failed || 0);
+    aggregated.send_failed =
+      (aggregated.send_failed || 0) + (m.send_failed || 0);
   });
 
   // Recalculate error rate
@@ -285,7 +310,9 @@ function formatMetricsText(metrics: ComponentMetrics): string {
   }
 
   if (metrics.error_rate > 0) {
-    parts.push(`${getStatusIcon(metrics.error_rate)} ${formatErrorRate(metrics.error_rate)} errors`);
+    parts.push(
+      `${getStatusIcon(metrics.error_rate)} ${formatErrorRate(metrics.error_rate)} errors`,
+    );
   } else if (metrics.throughput > 0) {
     parts.push(`${getStatusIcon(0)} healthy`);
   }
@@ -298,7 +325,7 @@ function formatMetricsText(metrics: ComponentMetrics): string {
  */
 function formatHoverMessage(
   _componentName: string,
-  metrics: ComponentMetrics[]
+  metrics: ComponentMetrics[],
 ): string {
   const lines: string[] = [];
 
@@ -331,4 +358,3 @@ function formatHoverMessage(
 
   return lines.join("\n");
 }
-

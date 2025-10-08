@@ -26,9 +26,9 @@ export interface PipelineMetricsResponse {
 // Get pipeline metrics for a specific agent
 export const getPipelineMetrics = (
   agentId: string,
-  timeRange: string = "5m"
+  timeRange: string = "5m",
 ): Promise<PipelineMetricsResponse> => {
   return apiGet<PipelineMetricsResponse>(
-    `/agents/${agentId}/pipeline-metrics?timeRange=${timeRange}`
+    `/agents/${agentId}/pipeline-metrics?timeRange=${timeRange}`,
   );
 };

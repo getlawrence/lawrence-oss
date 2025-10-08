@@ -1,3 +1,4 @@
+import type { Config } from "@/api/configs";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -6,7 +7,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { Config } from "@/api/configs";
 
 interface ConfigVersionHistoryProps {
   open: boolean;
@@ -58,4 +58,3 @@ export function ConfigVersionHistory({
     </Dialog>
   );
 }
-

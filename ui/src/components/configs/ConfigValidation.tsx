@@ -1,6 +1,7 @@
 import { CheckCircle, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+
 import type { ValidateConfigResponse } from "@/api/configs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface ConfigValidationProps {
   validation: ValidateConfigResponse;
@@ -43,4 +44,3 @@ export function ConfigValidation({ validation }: ConfigValidationProps) {
     </Alert>
   );
 }
-

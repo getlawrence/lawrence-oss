@@ -1,12 +1,15 @@
-import {
-  CheckCircle,
-  XCircle,
-} from "lucide-react";
+import { CheckCircle, XCircle } from "lucide-react";
 import { useState } from "react";
 import useSWR from "swr";
 
 import { getGroup } from "@/api/groups";
 import { getGroupTopology } from "@/api/topology";
+import { AgentDetailsDrawer } from "@/components/AgentDetailsDrawer";
+import { GroupAgents } from "@/components/group-details/GroupAgents";
+import { GroupLogs } from "@/components/group-details/GroupLogs";
+import { GroupMetrics } from "@/components/group-details/GroupMetrics";
+import { GroupOverview } from "@/components/group-details/GroupOverview";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
   Sheet,
   SheetContent,
@@ -14,13 +17,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GroupOverview } from "@/components/group-details/GroupOverview";
-import { GroupAgents } from "@/components/group-details/GroupAgents";
-import { GroupMetrics } from "@/components/group-details/GroupMetrics";
-import { GroupLogs } from "@/components/group-details/GroupLogs";
-import { AgentDetailsDrawer } from "@/components/AgentDetailsDrawer";
 
 interface GroupDetailsDrawerProps {
   groupId: string | null;
@@ -38,12 +35,12 @@ export function GroupDetailsDrawer({
 
   const { data: group, isLoading: groupLoading } = useSWR(
     groupId && open ? `group-${groupId}` : null,
-    () => (groupId ? getGroup(groupId) : null)
+    () => (groupId ? getGroup(groupId) : null),
   );
 
   const { data: groupTopology } = useSWR(
     groupId && open ? `group-topology-${groupId}` : null,
-    () => (groupId ? getGroupTopology(groupId) : null)
+    () => (groupId ? getGroupTopology(groupId) : null),
   );
 
   const getStatusIcon = (agentCount?: number) => {
@@ -96,8 +93,8 @@ export function GroupDetailsDrawer({
 
               <TabsContent value="agents" className="space-y-4">
                 {groupId && (
-                  <GroupAgents 
-                    groupId={groupId} 
+                  <GroupAgents
+                    groupId={groupId}
                     onAgentClick={handleAgentClick}
                   />
                 )}
@@ -123,4 +120,3 @@ export function GroupDetailsDrawer({
     </>
   );
 }
-

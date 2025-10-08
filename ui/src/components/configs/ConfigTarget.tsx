@@ -1,11 +1,7 @@
 import { FileText } from "lucide-react";
+
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -71,4 +67,3 @@ export function ConfigTarget({
     </Card>
   );
 }
-

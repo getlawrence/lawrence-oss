@@ -32,11 +32,11 @@ interface TimeRangeSelectProps {
 
 /**
  * Reusable time range selector component
- * 
+ *
  * @example
  * ```tsx
  * const [timeRange, setTimeRange] = useState<TimeRange>("5m");
- * 
+ *
  * <TimeRangeSelect
  *   value={timeRange}
  *   onValueChange={setTimeRange}
@@ -55,7 +55,7 @@ export function TimeRangeSelect({
     ? TIME_RANGE_OPTIONS.filter(
         (option) =>
           TIME_RANGE_OPTIONS.findIndex((o) => o.value === option.value) <=
-          TIME_RANGE_OPTIONS.findIndex((o) => o.value === maxRange)
+          TIME_RANGE_OPTIONS.findIndex((o) => o.value === maxRange),
       )
     : TIME_RANGE_OPTIONS;
 
@@ -74,4 +74,3 @@ export function TimeRangeSelect({
     </Select>
   );
 }
-

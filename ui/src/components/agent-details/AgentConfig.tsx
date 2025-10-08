@@ -1,8 +1,8 @@
 import { useState } from "react";
 import useSWR from "swr";
 
-import { getConfigs } from "@/api/configs";
 import { getPipelineMetrics } from "@/api/collector-pipeline";
+import { getConfigs } from "@/api/configs";
 import { ConfigYamlEditorWithMetrics } from "@/components/configs/ConfigYamlEditorWithMetrics";
 import {
   Card,
@@ -11,8 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { TimeRangeSelect } from "@/components/ui/time-range-select";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { TimeRangeSelect } from "@/components/ui/time-range-select";
 import { type TimeRange, DEFAULT_TIME_RANGE } from "@/types/timeRange";
 
 interface AgentConfigProps {
@@ -29,7 +29,7 @@ export function AgentConfig({ agentId, effectiveConfig }: AgentConfigProps) {
     async () => {
       const result = await getConfigs({ agent_id: agentId, limit: 1 });
       return result;
-    }
+    },
   );
 
   // Fetch pipeline metrics for the agent
@@ -46,7 +46,7 @@ export function AgentConfig({ agentId, effectiveConfig }: AgentConfigProps) {
     },
     {
       refreshInterval: 5000, // Refresh every 5 seconds
-    }
+    },
   );
 
   // Use effective config from agent if available, otherwise fallback to configs API
@@ -104,8 +104,8 @@ export function AgentConfig({ agentId, effectiveConfig }: AgentConfigProps) {
         <Card className="border-yellow-200 bg-yellow-50">
           <CardContent className="pt-4">
             <p className="text-sm text-yellow-800">
-              No metrics available yet. Metrics will appear once the agent starts
-              sending telemetry data.
+              No metrics available yet. Metrics will appear once the agent
+              starts sending telemetry data.
             </p>
           </CardContent>
         </Card>
@@ -113,4 +113,3 @@ export function AgentConfig({ agentId, effectiveConfig }: AgentConfigProps) {
     </div>
   );
 }
-

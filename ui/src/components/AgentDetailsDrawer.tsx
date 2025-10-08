@@ -1,12 +1,13 @@
-import {
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Server,
-} from "lucide-react";
+import { CheckCircle, XCircle, AlertCircle, Server } from "lucide-react";
 import useSWR from "swr";
 
 import { getAgentTopology } from "@/api/topology";
+import { AgentConfig } from "@/components/agent-details/AgentConfig";
+import { AgentLogs } from "@/components/agent-details/AgentLogs";
+import { AgentMetrics } from "@/components/agent-details/AgentMetrics";
+import { AgentOverview } from "@/components/agent-details/AgentOverview";
+import { CollectorPipelineView } from "@/components/collector-pipeline";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
   Sheet,
   SheetContent,
@@ -14,13 +15,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CollectorPipelineView } from "@/components/collector-pipeline";
-import { AgentOverview } from "@/components/agent-details/AgentOverview";
-import { AgentMetrics } from "@/components/agent-details/AgentMetrics";
-import { AgentLogs } from "@/components/agent-details/AgentLogs";
-import { AgentConfig } from "@/components/agent-details/AgentConfig";
 
 interface AgentDetailsDrawerProps {
   agentId: string | null;
@@ -83,8 +78,8 @@ export function AgentDetailsDrawer({
 
             <TabsContent value="config" className="space-y-4">
               {agentId && (
-                <AgentConfig 
-                  agentId={agentId} 
+                <AgentConfig
+                  agentId={agentId}
                   effectiveConfig={agent?.effective_config}
                 />
               )}
@@ -101,8 +96,8 @@ export function AgentDetailsDrawer({
             <TabsContent value="pipeline" className="space-y-4">
               {agentId ? (
                 <div className="h-[600px]">
-                  <CollectorPipelineView 
-                    agentId={agentId} 
+                  <CollectorPipelineView
+                    agentId={agentId}
                     agentName={agent?.name}
                     effectiveConfig={agent?.effective_config}
                   />

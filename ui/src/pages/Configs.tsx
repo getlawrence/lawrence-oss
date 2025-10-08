@@ -14,7 +14,6 @@ import {
   type ValidateConfigResponse,
 } from "@/api/configs";
 import { getGroups } from "@/api/groups";
-import { Button } from "@/components/ui/button";
 import {
   ConfigsList,
   ConfigEditorHeader,
@@ -23,6 +22,7 @@ import {
   ConfigYamlEditor,
   ConfigVersionHistory,
 } from "@/components/configs";
+import { Button } from "@/components/ui/button";
 
 const DEFAULT_CONFIG = `receivers:
   otlp:
@@ -251,10 +251,7 @@ export default function ConfigsPage({
 
       {validation && <ConfigValidation validation={validation} />}
 
-      <ConfigYamlEditor
-        value={editorContent}
-        onChange={setEditorContent}
-      />
+      <ConfigYamlEditor value={editorContent} onChange={setEditorContent} />
 
       <ConfigVersionHistory
         open={showVersions}
