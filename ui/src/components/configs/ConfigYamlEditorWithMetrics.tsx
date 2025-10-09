@@ -1,20 +1,14 @@
-import Editor, { type OnMount } from "@monaco-editor/react";
+import Editor from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import { useEffect, useRef, useState } from "react";
 
-import { type ComponentMetrics } from "@/api/collector-pipeline";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { useTheme } from "../ThemeProvider";
+
+import { type ComponentMetrics } from "@/api/collector-metrics";
 import {
   parseYamlComponents,
   formatThroughput,
   formatErrorRate,
-  getStatusIcon,
   type YamlComponent,
 } from "@/utils/yaml-parser";
 
@@ -32,8 +26,11 @@ export function ConfigYamlEditorWithMetrics({
   readonly = false,
 }: ConfigYamlEditorWithMetricsProps) {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
-  const [decorations, setDecorations] = useState<string[]>([]);
+  const decorationsRef =
+    useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
   const [parsedComponents, setParsedComponents] = useState<YamlComponent[]>([]);
+
+  const { theme } = useTheme();
 
   // Parse YAML to find components whenever value changes
   useEffect(() => {
@@ -50,6 +47,11 @@ export function ConfigYamlEditorWithMetrics({
     }
 
     const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) {
+      return;
+    }
+
     const newDecorations: monaco.editor.IModelDeltaDecoration[] = [];
 
     // Match parsed components with metrics
@@ -68,181 +70,64 @@ export function ConfigYamlEditorWithMetrics({
       // Aggregate metrics across all pipeline types (traces, metrics, logs)
       const aggregated = aggregateMetrics(componentMetrics);
 
-      // Create inline decoration with metrics
-      const metricsText = formatMetricsText(aggregated);
+      // Create simple decoration with after content
+      const metricsText = formatMetricsTextCompact(aggregated);
 
+      // Find the end of the line to place the decoration
+      const lineLength = model.getLineMaxColumn(component.lineNumber);
+
+      // Try both before and after to see which works
       newDecorations.push({
         range: new monaco.Range(
           component.lineNumber,
-          1,
+          lineLength,
           component.lineNumber,
-          1,
+          lineLength,
         ),
         options: {
           after: {
-            content: `  ${metricsText}`,
-            inlineClassName: "metrics-decoration",
-            inlineClassNameAffectsLetterSpacing: true,
-          },
-          afterContentClassName: "metrics-decoration-after",
-          isWholeLine: false,
-        },
-      });
-
-      // Add gutter decoration for visual status
-      newDecorations.push({
-        range: new monaco.Range(
-          component.lineNumber,
-          1,
-          component.lineNumber,
-          1,
-        ),
-        options: {
-          isWholeLine: false,
-          linesDecorationsClassName: "metrics-gutter-decoration",
-          glyphMarginClassName: "metrics-glyph-margin",
-          glyphMarginHoverMessage: {
-            value: formatHoverMessage(component.name, componentMetrics),
+            content: metricsText,
           },
         },
       });
-
-      // Add line highlight for components with errors
-      if (aggregated.error_rate > 0) {
-        newDecorations.push({
-          range: new monaco.Range(
-            component.lineNumber,
-            1,
-            component.lineNumber,
-            1,
-          ),
-          options: {
-            isWholeLine: true,
-            className:
-              aggregated.error_rate >= 5 ? "line-error" : "line-warning",
-          },
-        });
-      }
     });
 
-    // Apply decorations
-    const newDecorationIds = editor.deltaDecorations(
-      decorations,
-      newDecorations,
-    );
-    setDecorations(newDecorationIds);
+    // Clear old decorations and create new ones
+    if (decorationsRef.current) {
+      decorationsRef.current.clear();
+    }
+
+    if (newDecorations.length > 0) {
+      decorationsRef.current =
+        editor.createDecorationsCollection(newDecorations);
+    }
   }, [metrics, parsedComponents]);
 
-  // Handle editor mount
-  const handleEditorMount: OnMount = (editor, monaco) => {
+  function handleEditorMount(editor: monaco.editor.IStandaloneCodeEditor) {
     editorRef.current = editor;
-
-    // Add custom CSS for decorations
-    const style = document.createElement("style");
-    style.innerHTML = `
-      .metrics-decoration {
-        color: #6b7280 !important;
-        font-size: 0.85em !important;
-        font-style: italic !important;
-        opacity: 0.8 !important;
-      }
-      .line-warning {
-        background-color: rgba(234, 179, 8, 0.1) !important;
-      }
-      .line-error {
-        background-color: rgba(239, 68, 68, 0.1) !important;
-      }
-      .metrics-gutter-decoration {
-        background-color: rgba(34, 197, 94, 0.2) !important;
-        width: 3px !important;
-        margin-left: 3px !important;
-      }
-    `;
-    document.head.appendChild(style);
-
-    // Register hover provider for detailed metrics
-    if (metrics && metrics.length > 0) {
-      monaco.languages.registerHoverProvider("yaml", {
-        provideHover: (model, position) => {
-          const line = position.lineNumber;
-          const component = parsedComponents.find((c) => c.lineNumber === line);
-
-          if (!component) {
-            return null;
-          }
-
-          const componentMetrics = metrics.filter(
-            (m) =>
-              m.component_name === component.name &&
-              mapComponentType(m.component_type) === component.type,
-          );
-
-          if (componentMetrics.length === 0) {
-            return null;
-          }
-
-          return {
-            range: new monaco.Range(
-              line,
-              1,
-              line,
-              model.getLineMaxColumn(line),
-            ),
-            contents: [
-              { value: `**${component.name}** (${component.type})` },
-              { value: formatHoverMessage(component.name, componentMetrics) },
-            ],
-          };
-        },
-      });
-    }
-  };
+  }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">
-          YAML Configuration
-          {metrics && metrics.length > 0 && (
-            <span className="ml-2 text-sm font-normal text-muted-foreground">
-              (with live metrics)
-            </span>
-          )}
-        </CardTitle>
-        <CardDescription>
-          {readonly
-            ? "View OpenTelemetry collector configuration"
-            : "Edit your OpenTelemetry collector configuration in YAML format"}
-          {metrics && metrics.length > 0 && (
-            <span className="block mt-1 text-xs">
-              Hover over components to see detailed metrics
-            </span>
-          )}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="border rounded-lg overflow-hidden">
-          <Editor
-            height="60vh"
-            defaultLanguage="yaml"
-            value={value}
-            onChange={(value) => !readonly && onChange(value || "")}
-            theme="vs-light"
-            onMount={handleEditorMount}
-            options={{
-              minimap: { enabled: false },
-              fontSize: 13,
-              lineNumbers: "on",
-              roundedSelection: false,
-              scrollBeyondLastLine: false,
-              readOnly: readonly,
-              automaticLayout: true,
-              glyphMargin: metrics && metrics.length > 0, // Show glyph margin if we have metrics
-            }}
-          />
-        </div>
-      </CardContent>
-    </Card>
+    <div className="border rounded-lg overflow-hidden">
+      <Editor
+        height="60vh"
+        defaultLanguage="yaml"
+        value={value}
+        onMount={handleEditorMount}
+        onChange={(value) => !readonly && onChange(value || "")}
+        theme={theme === "dark" ? "vs-dark" : "vs-light"}
+        options={{
+          minimap: { enabled: false },
+          fontSize: 13,
+          lineNumbers: "on",
+          roundedSelection: false,
+          scrollBeyondLastLine: false,
+          readOnly: readonly,
+          automaticLayout: true,
+          glyphMargin: false, // No gutter decorations
+        }}
+      />
+    </div>
   );
 }
 
@@ -300,61 +185,18 @@ function aggregateMetrics(metrics: ComponentMetrics[]): ComponentMetrics {
 }
 
 /**
- * Format metrics text for inline display
+ * Format metrics text for inline display (compact version for inline hints)
  */
-function formatMetricsText(metrics: ComponentMetrics): string {
+function formatMetricsTextCompact(metrics: ComponentMetrics): string {
   const parts: string[] = [];
 
-  if (metrics.throughput > 0) {
-    parts.push(`📊 ${formatThroughput(metrics.throughput)}`);
-  }
+  // Always show throughput
+  parts.push(`${formatThroughput(metrics.throughput)}`);
 
+  // Show error rate if > 0
   if (metrics.error_rate > 0) {
-    parts.push(
-      `${getStatusIcon(metrics.error_rate)} ${formatErrorRate(metrics.error_rate)} errors`,
-    );
-  } else if (metrics.throughput > 0) {
-    parts.push(`${getStatusIcon(0)} healthy`);
+    parts.push(`err: ${formatErrorRate(metrics.error_rate)}`);
   }
 
-  return parts.join(" | ");
-}
-
-/**
- * Format hover message with detailed metrics
- */
-function formatHoverMessage(
-  _componentName: string,
-  metrics: ComponentMetrics[],
-): string {
-  const lines: string[] = [];
-
-  metrics.forEach((m) => {
-    lines.push(`\n**Pipeline: ${m.pipeline_type}**`);
-    lines.push(`- Throughput: ${formatThroughput(m.throughput)}`);
-    lines.push(`- Error Rate: ${formatErrorRate(m.error_rate)}`);
-
-    if (m.received !== undefined && m.received > 0) {
-      lines.push(`- Received: ${m.received.toLocaleString()}`);
-    }
-    if (m.accepted !== undefined && m.accepted > 0) {
-      lines.push(`- Accepted: ${m.accepted.toLocaleString()}`);
-    }
-    if (m.sent !== undefined && m.sent > 0) {
-      lines.push(`- Sent: ${m.sent.toLocaleString()}`);
-    }
-    if (m.dropped !== undefined && m.dropped > 0) {
-      lines.push(`- Dropped: ${m.dropped.toLocaleString()}`);
-    }
-    if (m.send_failed !== undefined && m.send_failed > 0) {
-      lines.push(`- Send Failed: ${m.send_failed.toLocaleString()}`);
-    }
-  });
-
-  const aggregated = aggregateMetrics(metrics);
-  lines.push(`\n**Total Across All Pipelines**`);
-  lines.push(`- Total Throughput: ${formatThroughput(aggregated.throughput)}`);
-  lines.push(`- Overall Error Rate: ${formatErrorRate(aggregated.error_rate)}`);
-
-  return lines.join("\n");
+  return parts.join(" • ");
 }

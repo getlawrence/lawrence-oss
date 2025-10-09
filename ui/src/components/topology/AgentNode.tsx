@@ -3,6 +3,7 @@ import { CheckCircle, XCircle, AlertCircle, Server } from "lucide-react";
 import type { AgentNodeData } from "./types";
 
 import { Badge } from "@/components/ui/badge";
+import { formatCount } from "@/utils";
 
 interface AgentNodeProps {
   data: AgentNodeData;
@@ -33,8 +34,8 @@ export function AgentNode({ data }: AgentNodeProps) {
       </div>
       {data.metrics && (
         <div className="text-xs text-gray-600 space-y-1">
-          <div>Metrics: {data.metrics.metric_count}</div>
-          <div>Logs: {data.metrics.log_count}</div>
+          <div>Metrics: {formatCount(data.metrics.metric_count)}</div>
+          <div>Logs: {formatCount(data.metrics.log_count)}</div>
           <div>Throughput: {data.metrics.throughput_rps.toFixed(2)} rps</div>
         </div>
       )}

@@ -176,22 +176,28 @@ func (ts *TestServer) initServices() {
 		ts.t.Fatalf("Failed to create app store: %v", err)
 	}
 
+	// Create agent service without config sender initially
 	ts.agentService = services.NewAgentService(appStore, ts.logger)
-	ts.telemetryService = services.NewTelemetryQueryService(ts.telemetryReader, ts.agentService, ts.logger)
 }
 
 // initServers initializes all servers
 func (ts *TestServer) initServers() {
-	// API Server
-	ts.apiServer = api.NewServer(ts.agentService, ts.telemetryService, ts.logger)
-
-	// OpAMP Server
+	// OpAMP Server components
 	agents := opamp.NewAgents(ts.logger)
 	opampServer, err := opamp.NewServer(agents, ts.agentService, ts.opampMetrics, "localhost:4317", "localhost:4318", ts.logger)
 	if err != nil {
 		ts.t.Fatalf("Failed to create OpAMP server: %v", err)
 	}
 	ts.opampServer = opampServer
+
+	// Create config sender (separate concern from AgentService)
+	configSender := opamp.NewConfigSender(agents, ts.logger)
+
+	// Create telemetry service
+	ts.telemetryService = services.NewTelemetryQueryService(ts.telemetryReader, ts.agentService, ts.logger)
+
+	// API Server
+	ts.apiServer = api.NewServer(ts.agentService, ts.telemetryService, configSender, ts.logger)
 
 	// OTLP Receivers - use telemetry writer directly
 	grpcServer, err := receiver.NewGRPCServer(ts.OTLPGRPCPort, ts.telemetryWriter, ts.otlpMetrics, ts.logger)

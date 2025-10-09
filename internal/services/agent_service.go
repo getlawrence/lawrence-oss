@@ -31,6 +31,10 @@ type AgentService interface {
 	GetLatestConfigForAgent(ctx context.Context, agentID uuid.UUID) (*Config, error)
 	GetLatestConfigForGroup(ctx context.Context, groupID string) (*Config, error)
 	ListConfigs(ctx context.Context, filter ConfigFilter) ([]*Config, error)
+
+	// StoreConfigForAgent validates and stores configuration for an agent
+	// Returns the stored config or error if agent doesn't exist or doesn't support remote config
+	StoreConfigForAgent(ctx context.Context, agentID uuid.UUID, content string) (*Config, error)
 }
 
 // Agent represents an OpenTelemetry agent

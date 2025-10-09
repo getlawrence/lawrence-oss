@@ -38,6 +38,7 @@ type MockAgentService struct {
 	GetLatestConfigForAgentErr    error
 	GetLatestConfigForGroupErr    error
 	ListConfigsErr                error
+	StoreConfigForAgentErr        error
 }
 
 // NewMockAgentService creates a new mock agent service
@@ -364,4 +365,36 @@ func (m *MockAgentService) ListConfigs(ctx context.Context, filter services.Conf
 	}
 
 	return configs, nil
+}
+
+// StoreConfigForAgent implements services.AgentService
+func (m *MockAgentService) StoreConfigForAgent(ctx context.Context, agentID uuid.UUID, content string) (*services.Config, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.StoreConfigForAgentErr != nil {
+		return nil, m.StoreConfigForAgentErr
+	}
+
+	// Get current version
+	version := 1
+	for _, config := range m.configs {
+		if config.AgentID != nil && *config.AgentID == agentID {
+			if config.Version >= version {
+				version = config.Version + 1
+			}
+		}
+	}
+
+	// Create and store a mock config
+	config := &services.Config{
+		ID:        uuid.New().String(),
+		AgentID:   &agentID,
+		Content:   content,
+		Version:   version,
+		CreatedAt: time.Now(),
+	}
+	m.configs[config.ID] = config
+
+	return config, nil
 }

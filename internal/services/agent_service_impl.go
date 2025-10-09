@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"crypto/sha256"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -304,4 +306,58 @@ func (s *AgentServiceImpl) ListConfigs(ctx context.Context, filter ConfigFilter)
 	}
 
 	return result, nil
+}
+
+// StoreConfigForAgent validates and stores configuration for an agent (storage only, no delivery)
+func (s *AgentServiceImpl) StoreConfigForAgent(ctx context.Context, agentID uuid.UUID, content string) (*Config, error) {
+	// 1. Validate agent exists and has remote config capability
+	agent, err := s.GetAgent(ctx, agentID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get agent: %w", err)
+	}
+	if agent == nil {
+		return nil, fmt.Errorf("agent not found")
+	}
+
+	// 2. Check if agent has remote config capability
+	hasCapability := false
+	for _, cap := range agent.Capabilities {
+		if cap == "accepts_remote_config" {
+			hasCapability = true
+			break
+		}
+	}
+	if !hasCapability {
+		return nil, fmt.Errorf("agent does not support remote config")
+	}
+
+	// 3. Store config in database with versioning
+	configHash := fmt.Sprintf("%x", sha256.Sum256([]byte(content)))
+
+	// Get latest version for this agent
+	latestConfig, _ := s.GetLatestConfigForAgent(ctx, agentID)
+	version := 1
+	if latestConfig != nil {
+		version = latestConfig.Version + 1
+	}
+
+	newConfig := &Config{
+		ID:         uuid.New().String(),
+		AgentID:    &agentID,
+		ConfigHash: configHash,
+		Content:    content,
+		Version:    version,
+		CreatedAt:  time.Now(),
+	}
+
+	if err := s.CreateConfig(ctx, newConfig); err != nil {
+		return nil, fmt.Errorf("failed to store config: %w", err)
+	}
+
+	s.logger.Info("Configuration stored for agent",
+		zap.String("agent_id", agentID.String()),
+		zap.String("config_id", newConfig.ID),
+		zap.Int("version", version))
+
+	return newConfig, nil
 }

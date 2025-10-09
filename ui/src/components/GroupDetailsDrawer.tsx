@@ -67,7 +67,7 @@ export function GroupDetailsDrawer({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+        <SheetContent className="w-full min-w[70vw] sm:max-w-2xl overflow-y-auto px-6">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               {group && getStatusIcon(groupTopology?.agent_count)}

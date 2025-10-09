@@ -45,26 +45,7 @@ export function useTopologyLayout(
       return flowNodes;
     }
 
-    // Position groups in top row
-    groupNodes.forEach((node, idx) => {
-      flowNodes.push({
-        id: node.id,
-        type: "group",
-        data: {
-          name: node.name,
-          status: node.status,
-          agent_count:
-            topologyData.groups?.find(
-              (g) => g.id === node.id.replace("group-", ""),
-            )?.agent_count || 0,
-        },
-        position: { x: idx * 300 + 50, y: 50 },
-        sourcePosition: Position.Bottom,
-        targetPosition: Position.Top,
-      });
-    });
-
-    // Position agents in rows below groups
+    // Instance level: only show agent nodes
     const agentsPerRow = 4;
     agentNodes.forEach((node, idx) => {
       const row = Math.floor(idx / agentsPerRow);
@@ -80,7 +61,7 @@ export function useTopologyLayout(
           metrics: node.metrics,
           labels: node.labels,
         },
-        position: { x: col * 250 + 50, y: row * 200 + 300 },
+        position: { x: col * 250 + 50, y: row * 200 + 150 },
         sourcePosition: Position.Top,
         targetPosition: Position.Bottom,
       });
@@ -100,8 +81,10 @@ export function useTopologyLayout(
           edge.source.startsWith("group-") && edge.target.startsWith("group-")
         );
       }
-      // Instance level: show all edges
-      return true;
+      // Instance level: only show edges between agents
+      return (
+        edge.source.startsWith("agent-") && edge.target.startsWith("agent-")
+      );
     });
 
     return filteredEdges.map((edge, idx) => ({

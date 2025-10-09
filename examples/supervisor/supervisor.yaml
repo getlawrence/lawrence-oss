@@ -4,6 +4,19 @@ server:
     insecure_skip_verify: true
     insecure: true
 
+telemetry:
+  resource:
+    agent.group_name: demo-group
+    service.name: demo-supervisor
+    deployment.environment: development
+  logs:
+    processors:
+      - batch:
+          exporter:
+            otlp:
+              protocol: grpc
+              endpoint: http://lawrence:4317
+
 capabilities:
   reports_effective_config: true
   reports_own_metrics: true
@@ -14,6 +27,10 @@ capabilities:
 
 agent:
   executable: /otelcol-contrib
+  passthrough_logs: true
+  description:
+    identifying_attributes:
+      agent.group_name: demo-group
   config_files:
     - /collector.yaml
 

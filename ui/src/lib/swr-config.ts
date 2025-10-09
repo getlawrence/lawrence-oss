@@ -32,20 +32,6 @@ export const swrConfig: SWRConfiguration = {
   // Performance optimizations
   dedupingInterval: 2000, // Dedupe requests within 2 seconds
   focusThrottleInterval: 5000, // Throttle focus revalidation
-
-  // Global error handler
-  onError: (_error: unknown, _key: string) => {
-    // TODO: Add proper error reporting (e.g., Sentry)
-    // console.error('SWR Error:', { key, error });
-  },
-
-  // Global success handler
-  onSuccess: (_data: unknown, _key: string) => {
-    // Optional: Add global success logging
-    if (process.env.NODE_ENV === "development") {
-      // console.log('SWR Success:', { key, data });
-    }
-  },
 };
 
 // Specialized configurations for different data types

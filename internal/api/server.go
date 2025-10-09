@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
@@ -17,11 +18,17 @@ import (
 	"github.com/getlawrence/lawrence-oss/internal/services"
 )
 
+// ConfigSender defines the interface for sending configurations to agents
+type ConfigSender interface {
+	SendConfigToAgent(agentId uuid.UUID, configContent string) error
+}
+
 // Server represents the HTTP API server
 type Server struct {
 	router           *gin.Engine
 	agentService     services.AgentService
 	telemetryService services.TelemetryQueryService
+	configSender     ConfigSender
 	logger           *zap.Logger
 	httpServer       *http.Server
 	metrics          *metrics.APIMetrics
@@ -29,7 +36,7 @@ type Server struct {
 }
 
 // NewServer creates a new API server
-func NewServer(agentService services.AgentService, telemetryService services.TelemetryQueryService, logger *zap.Logger) *Server {
+func NewServer(agentService services.AgentService, telemetryService services.TelemetryQueryService, configSender ConfigSender, logger *zap.Logger) *Server {
 	// Set Gin to release mode for production
 	gin.SetMode(gin.ReleaseMode)
 
@@ -49,6 +56,7 @@ func NewServer(agentService services.AgentService, telemetryService services.Tel
 		router:           router,
 		agentService:     agentService,
 		telemetryService: telemetryService,
+		configSender:     configSender,
 		logger:           logger,
 		metrics:          apiMetrics,
 		registry:         registry,
@@ -88,14 +96,13 @@ func (s *Server) Stop(ctx context.Context) error {
 // registerRoutes registers all API routes
 func (s *Server) registerRoutes() {
 	// Initialize handlers
-	agentHandlers := handlers.NewAgentHandlers(s.agentService, s.logger)
+	agentHandlers := handlers.NewAgentHandlers(s.agentService, s.configSender, s.logger)
 	configHandlers := handlers.NewConfigHandlers(s.agentService, s.logger)
 	telemetryHandlers := handlers.NewTelemetryHandlers(s.telemetryService, s.logger)
 	lawrenceQLHandlers := handlers.NewLawrenceQLHandlers(s.telemetryService, s.logger)
 	groupHandlers := handlers.NewGroupHandlers(s.agentService, s.logger)
 	topologyHandlers := handlers.NewTopologyHandlers(s.agentService, s.telemetryService, s.logger)
 	healthHandlers := handlers.NewHealthHandlers(s.agentService, s.telemetryService, s.logger)
-	pipelineHandlers := handlers.NewCollectorPipelineHandler(s.telemetryService, s.logger)
 
 	// Metrics endpoint
 	s.router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(s.registry, promhttp.HandlerOpts{})))
@@ -112,8 +119,8 @@ func (s *Server) registerRoutes() {
 			agents.GET("", agentHandlers.HandleGetAgents)
 			agents.GET("/stats", agentHandlers.HandleGetAgentStats) // Must come before /:id
 			agents.GET("/:id", agentHandlers.HandleGetAgent)
-			agents.GET("/:id/pipeline-metrics", pipelineHandlers.HandleGetPipelineMetrics)
 			agents.PATCH("/:id/group", agentHandlers.HandleUpdateAgentGroup)
+			agents.POST("/:id/config", agentHandlers.HandleSendConfigToAgent)
 		}
 
 		// Config routes

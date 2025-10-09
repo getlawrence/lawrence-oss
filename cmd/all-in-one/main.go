@@ -45,8 +45,6 @@ func main() {
 
 	// Add subcommands
 	rootCmd.AddCommand(versionCommand())
-	rootCmd.AddCommand(envCommand())
-	rootCmd.AddCommand(statusCommand())
 	rootCmd.AddCommand(configCommand())
 
 	// Add flags
@@ -145,16 +143,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	opampMetrics := metrics.NewOpAMPMetrics(metricsFactory)
 	otlpMetrics := metrics.NewOTLPMetrics(metricsFactory)
 
-	// Initialize service layer
-	logger.Info("Initializing service layer")
-
-	// Create agent service
-	agentService := services.NewAgentService(appStore, logger)
-
-	// Create telemetry query service
-	telemetryService := services.NewTelemetryQueryService(telemetryReader, agentService, logger)
-
-	// Initialize OpAMP server
+	// Initialize OpAMP components
 	logger.Info("Initializing OpAMP server")
 	agents := opamp.NewAgents(logger)
 
@@ -169,10 +158,25 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 		agentHTTPEndpoint = config.OTLP.HTTPEndpoint
 	}
 
+	// Initialize service layer
+	logger.Info("Initializing service layer")
+
+	// Create agent service (without config sender initially to break circular dependency)
+	agentService := services.NewAgentService(appStore, logger)
+
+	// Create OpAMP server with agent service (for persistence)
 	opampServer, err := opamp.NewServer(agents, agentService, opampMetrics, agentGRPCEndpoint, agentHTTPEndpoint, logger)
 	if err != nil {
 		logger.Fatal("Failed to create OpAMP server", zap.Error(err))
 	}
+
+	// Create config sender (separate concern from AgentService)
+	configSender := opamp.NewConfigSender(agents, logger)
+
+	// Create telemetry query service
+	telemetryService := services.NewTelemetryQueryService(telemetryReader, agentService, logger)
+
+	// Start OpAMP server
 	if err := opampServer.Start(config.Server.OpAMPPort); err != nil {
 		logger.Fatal("Failed to start OpAMP server", zap.Error(err))
 	}
@@ -211,7 +215,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 
 	// Initialize HTTP API server
 	logger.Info("Initializing HTTP API server")
-	apiServer := api.NewServer(agentService, telemetryService, logger)
+	apiServer := api.NewServer(agentService, telemetryService, configSender, logger)
 
 	// Start API server in a goroutine
 	go func() {
@@ -251,31 +255,6 @@ func versionCommand() *cobra.Command {
 		Short: "Print version information",
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Printf("%s v%s\n", appName, version)
-		},
-	}
-}
-
-// envCommand returns the environment subcommand
-func envCommand() *cobra.Command {
-	return &cobra.Command{
-		Use:   "env",
-		Short: "Print environment variables",
-		Run: func(cmd *cobra.Command, args []string) {
-			for _, env := range os.Environ() {
-				fmt.Println(env)
-			}
-		},
-	}
-}
-
-// statusCommand returns the status subcommand
-func statusCommand() *cobra.Command {
-	return &cobra.Command{
-		Use:   "status",
-		Short: "Print service status",
-		Run: func(cmd *cobra.Command, args []string) {
-			// TODO: Implement health check
-			fmt.Println("Service status: Running")
 		},
 	}
 }

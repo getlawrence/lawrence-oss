@@ -114,6 +114,51 @@ Start your collector:
 otelcol-contrib --config collector-config.yaml
 ```
 
+## Development
+
+### Quick Start
+
+The development setup includes hot reloading for both the Go backend and React UI:
+
+```bash
+# Start all services with hot reloading
+docker compose up -d
+
+# View logs
+docker compose logs -f lawrence
+
+# Access the UI at http://localhost:8080
+# UI dev server runs on http://localhost:5173
+```
+
+### What You Get
+
+- **Hot Reloading**: Changes to Go files automatically rebuild and restart
+- **Fast Rebuilds**: Persistent build cache for quick iterations  
+- **Debug Support**: Remote debugging on port 2345 with Delve
+- **Isolated Environment**: No need to install Go, Air, or build tools locally
+
+### Local Development (Without Docker)
+
+```bash
+# Install Air for hot reloading
+go install github.com/air-verse/air@latest
+
+# Run with hot reloading
+make dev
+
+# Or manually
+air -c .air.toml
+```
+
+Requirements: Go 1.24+, GCC/G++, SQLite development libraries
+
+### Additional Resources
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution guidelines and best practices
+- `.air.toml` - Air configuration for hot reloading customization
+- `Dockerfile.dev` - Development container configuration
+
 ## Architecture
 
 Lawrence consists of several integrated components running in a single process:

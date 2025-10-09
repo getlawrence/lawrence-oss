@@ -1,4 +1,4 @@
-import { apiGet, apiPatch } from "./base";
+import { apiGet, apiPatch, apiPost } from "./base";
 
 export interface Agent {
   id: string;
@@ -7,7 +7,10 @@ export interface Agent {
   last_seen: string;
   version: string;
   group_id?: string;
+  group_name?: string;
   labels: Record<string, string>;
+  capabilities?: string[];
+  effective_config?: string;
 }
 
 export interface AgentStats {
@@ -46,4 +49,25 @@ export const updateAgentGroup = (
   groupId: string,
 ): Promise<void> => {
   return apiPatch<void>(`/agents/${id}/group`, { group_id: groupId });
+};
+
+// Send configuration to agent request/response types
+export interface SendConfigToAgentRequest {
+  content: string;
+}
+
+export interface SendConfigToAgentResponse {
+  success: boolean;
+  message: string;
+  config_id?: string;
+}
+
+// Send configuration to agent
+export const sendConfigToAgent = (
+  agentId: string,
+  content: string,
+): Promise<SendConfigToAgentResponse> => {
+  return apiPost<SendConfigToAgentResponse>(`/agents/${agentId}/config`, {
+    content,
+  });
 };

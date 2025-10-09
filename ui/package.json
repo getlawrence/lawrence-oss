@@ -27,7 +27,7 @@
     "vite"
   ],
   "author": "Lawrence Agent Contributors",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "dependencies": {
     "@clerk/clerk-react": "^5.47.0",
     "@hookform/resolvers": "^5.2.1",

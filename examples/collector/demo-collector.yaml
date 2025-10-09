@@ -30,7 +30,6 @@ extensions:
     capabilities:
       reports_effective_config: true
       reports_health: true
-    instance_uid: 4a91648b-5089-4d0c-9e97-895958d312e3
 
 service:
   extensions: [opamp, health_check]
@@ -55,7 +54,6 @@ service:
       # Resource attributes for identifying this collector
       agent.group_name: demo-group
       service.name: demo-collector
-      service.instance.id: 4a91648b-5089-4d0c-9e97-895958d312e3
       deployment.environment: development
 
     # Metrics telemetry - sent to lawrence-oss backend

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -10,16 +11,23 @@ import (
 	"github.com/getlawrence/lawrence-oss/internal/services"
 )
 
+// ConfigSender defines the interface for sending configurations to agents
+type ConfigSender interface {
+	SendConfigToAgent(agentId uuid.UUID, configContent string) error
+}
+
 // AgentHandlers handles agent-related API endpoints
 type AgentHandlers struct {
 	agentService services.AgentService
+	configSender ConfigSender
 	logger       *zap.Logger
 }
 
 // NewAgentHandlers creates a new agent handlers instance
-func NewAgentHandlers(agentService services.AgentService, logger *zap.Logger) *AgentHandlers {
+func NewAgentHandlers(agentService services.AgentService, configSender ConfigSender, logger *zap.Logger) *AgentHandlers {
 	return &AgentHandlers{
 		agentService: agentService,
+		configSender: configSender,
 		logger:       logger,
 	}
 }
@@ -156,4 +164,97 @@ func (h *AgentHandlers) HandleGetAgentStats(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, stats)
+}
+
+// SendConfigRequest represents the request to send config to an agent
+type SendConfigRequest struct {
+	Content string `json:"content" binding:"required"`
+}
+
+// SendConfigResponse represents the response after sending config to an agent
+type SendConfigResponse struct {
+	Success  bool   `json:"success"`
+	Message  string `json:"message"`
+	ConfigID string `json:"config_id,omitempty"`
+}
+
+// HandleSendConfigToAgent handles POST /api/v1/agents/:id/config
+// Orchestrates config storage (via AgentService) and delivery (via ConfigSender)
+func (h *AgentHandlers) HandleSendConfigToAgent(c *gin.Context) {
+	// 1. Parse agent ID from URL
+	agentID := c.Param("id")
+	if agentID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Agent ID is required"})
+		return
+	}
+
+	// Parse UUID
+	agentUUID, err := uuid.Parse(agentID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid agent ID format"})
+		return
+	}
+
+	// 2. Parse config content from request body
+	var req SendConfigRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid request body: %v", err)})
+		return
+	}
+
+	if req.Content == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Config content is required"})
+		return
+	}
+
+	// 3. Store config in database (validates agent and capability)
+	config, err := h.agentService.StoreConfigForAgent(c.Request.Context(), agentUUID, req.Content)
+	if err != nil {
+		h.logger.Error("Failed to store config",
+			zap.String("agent_id", agentID),
+			zap.Error(err))
+
+		// Map service errors to appropriate HTTP status codes
+		statusCode := http.StatusInternalServerError
+		message := err.Error()
+
+		if err.Error() == "agent not found" {
+			statusCode = http.StatusNotFound
+		} else if err.Error() == "agent does not support remote config" {
+			statusCode = http.StatusBadRequest
+		}
+
+		c.JSON(statusCode, SendConfigResponse{
+			Success: false,
+			Message: message,
+		})
+		return
+	}
+
+	// 4. Send config to agent via OpAMP
+	if err := h.configSender.SendConfigToAgent(agentUUID, req.Content); err != nil {
+		h.logger.Error("Failed to send config to agent",
+			zap.String("agent_id", agentID),
+			zap.String("config_id", config.ID),
+			zap.Error(err))
+
+		// Config was stored but delivery failed
+		c.JSON(http.StatusAccepted, SendConfigResponse{
+			Success:  false,
+			Message:  fmt.Sprintf("Config stored but delivery failed: %v", err),
+			ConfigID: config.ID,
+		})
+		return
+	}
+
+	// 5. Return success response
+	h.logger.Info("Configuration sent to agent successfully",
+		zap.String("agent_id", agentID),
+		zap.String("config_id", config.ID))
+
+	c.JSON(http.StatusOK, SendConfigResponse{
+		Success:  true,
+		Message:  "Configuration sent to agent successfully",
+		ConfigID: config.ID,
+	})
 }

@@ -251,6 +251,15 @@ func (s *Server) UpdateConfig(agentId uuid.UUID, config map[string]interface{}, 
 	return nil
 }
 
+// GetAgent returns an agent by ID (for API handler access)
+func (s *Server) GetAgent(agentId uuid.UUID) (*Agent, error) {
+	agent := s.agents.FindAgent(agentId)
+	if agent == nil {
+		return nil, fmt.Errorf("agent not found")
+	}
+	return agent, nil
+}
+
 func (s *Server) ListAgents() map[uuid.UUID]*Agent {
 	return s.agents.GetAllAgentsReadonlyClone()
 }
@@ -302,17 +311,26 @@ func (s *Server) processAgentGrouping(ctx context.Context, agent *Agent, msg *pr
 	}
 
 	// Set initial config based on group membership (or default)
-	if groupChanged {
-		config := s.getConfigForAgent(ctx, agent)
-		if config != "" {
-			agent.mux.Lock()
-			agent.CustomInstanceConfig = config
-			agent.calcRemoteConfig()
-			agent.mux.Unlock()
+	// Apply config on first connect OR when group changes
+	isFirstConnect := agent.Status == nil || agent.CustomInstanceConfig == ""
 
-			s.logger.Info("Set initial config for agent",
-				zap.String("agentId", agent.InstanceIdStr),
-				zap.String("groupId", groupID))
+	if groupChanged || isFirstConnect {
+		// Check if agent accepts remote config
+		if agent.hasCapability(protobufs.AgentCapabilities_AgentCapabilities_AcceptsRemoteConfig) {
+			config := s.getConfigForAgent(ctx, agent)
+			if config != "" {
+				agent.mux.Lock()
+				agent.CustomInstanceConfig = config
+				configChanged := agent.calcRemoteConfig()
+				agent.mux.Unlock()
+
+				s.logger.Info("Set initial config for agent",
+					zap.String("agentId", agent.InstanceIdStr),
+					zap.String("groupId", groupID),
+					zap.Bool("firstConnect", isFirstConnect),
+					zap.Bool("groupChanged", groupChanged),
+					zap.Bool("configChanged", configChanged))
+			}
 		}
 	}
 }
@@ -342,11 +360,28 @@ func (s *Server) extractGroupInfo(desc *protobufs.AgentDescription) (groupID str
 }
 
 // getConfigForAgent returns the configuration for an agent
-// In OSS version, we just return the default config
+// Priority: Agent-specific config > Group config > Default config
 func (s *Server) getConfigForAgent(ctx context.Context, agent *Agent) string {
-	// For OSS version, always return default config
-	// In the future, this could be extended to support group-specific configs
-	// stored in the local SQLite database
+	// 1. Try to get agent-specific config
+	if agentConfig, err := s.agentService.GetLatestConfigForAgent(ctx, agent.InstanceId); err == nil && agentConfig != nil {
+		s.logger.Info("Using agent-specific config",
+			zap.String("agentId", agent.InstanceIdStr),
+			zap.String("configId", agentConfig.ID))
+		return agentConfig.Content
+	}
+
+	// 2. Try to get group config if agent belongs to a group
+	if agent.GroupID != nil && *agent.GroupID != "" {
+		if groupConfig, err := s.agentService.GetLatestConfigForGroup(ctx, *agent.GroupID); err == nil && groupConfig != nil {
+			s.logger.Info("Using group config",
+				zap.String("agentId", agent.InstanceIdStr),
+				zap.String("groupId", *agent.GroupID),
+				zap.String("configId", groupConfig.ID))
+			return groupConfig.Content
+		}
+	}
+
+	// 3. Fall back to default config
 	s.logger.Debug("Using default config for agent",
 		zap.String("agentId", agent.InstanceIdStr))
 	return DefaultOTelConfig
