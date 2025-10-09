@@ -251,41 +251,6 @@ func (s *Server) UpdateConfig(agentId uuid.UUID, config map[string]interface{}, 
 	return nil
 }
 
-// SendConfigToAgent sends a configuration to a specific agent
-// Returns an error if the agent doesn't exist, is not online, or doesn't support remote config
-func (s *Server) SendConfigToAgent(agentId uuid.UUID, configContent string) error {
-	agent := s.agents.FindAgent(agentId)
-	if agent == nil {
-		return fmt.Errorf("agent not found")
-	}
-
-	// Check if agent has capability to accept remote config
-	if !agent.hasCapability(protobufs.AgentCapabilities_AgentCapabilities_AcceptsRemoteConfig) {
-		return fmt.Errorf("agent does not support remote config")
-	}
-
-	// Create config map
-	configMap := &protobufs.AgentConfigMap{
-		ConfigMap: map[string]*protobufs.AgentConfigFile{
-			"": {Body: []byte(configContent)},
-		},
-	}
-
-	// Send config with notification channel
-	notifyChannel := make(chan struct{}, 1)
-	agent.SetCustomConfig(configMap, notifyChannel)
-
-	// Optional: wait for confirmation with timeout
-	select {
-	case <-notifyChannel:
-		s.logger.Info("Config successfully applied to agent",
-			zap.String("agentId", agentId.String()))
-		return nil
-	case <-time.After(30 * time.Second):
-		return fmt.Errorf("timeout waiting for agent to apply config")
-	}
-}
-
 // GetAgent returns an agent by ID (for API handler access)
 func (s *Server) GetAgent(agentId uuid.UUID) (*Agent, error) {
 	agent := s.agents.FindAgent(agentId)

@@ -25,12 +25,17 @@ type AgentServiceImpl struct {
 }
 
 // NewAgentService creates a new agent service
-func NewAgentService(appStore applicationstore.ApplicationStore, opampSender OpAMPConfigSender, logger *zap.Logger) AgentService {
+func NewAgentService(appStore applicationstore.ApplicationStore, logger *zap.Logger) AgentService {
 	return &AgentServiceImpl{
 		appStore:    appStore,
-		opampSender: opampSender,
+		opampSender: nil, // Set via SetConfigSender after construction
 		logger:      logger,
 	}
+}
+
+// SetConfigSender sets the config sender (used to break circular dependency)
+func (s *AgentServiceImpl) SetConfigSender(sender OpAMPConfigSender) {
+	s.opampSender = sender
 }
 
 // CreateAgent creates an agent
@@ -317,6 +322,11 @@ func (s *AgentServiceImpl) ListConfigs(ctx context.Context, filter ConfigFilter)
 
 // SendConfigToAgent sends configuration to a connected agent
 func (s *AgentServiceImpl) SendConfigToAgent(ctx context.Context, agentID uuid.UUID, content string) error {
+	// 0. Check if config sender is set
+	if s.opampSender == nil {
+		return fmt.Errorf("config sender not initialized")
+	}
+
 	// 1. Validate agent exists and has remote config capability
 	agent, err := s.GetAgent(ctx, agentID)
 	if err != nil {

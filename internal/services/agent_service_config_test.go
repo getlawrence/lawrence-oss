@@ -32,7 +32,8 @@ func TestSendConfigToAgent_Success(t *testing.T) {
 	store := memory.NewStore()
 	mockOpAMP := new(MockOpAMPSender)
 	logger := zap.NewNop()
-	service := NewAgentService(store, mockOpAMP, logger)
+	service := NewAgentService(store, logger)
+	service.(*AgentServiceImpl).SetConfigSender(mockOpAMP)
 
 	agentID := uuid.New()
 	configContent := "receivers:\n  otlp:\n    protocols:\n      grpc:"
@@ -74,7 +75,8 @@ func TestSendConfigToAgent_AgentNotFound(t *testing.T) {
 	store := memory.NewStore()
 	mockOpAMP := new(MockOpAMPSender)
 	logger := zap.NewNop()
-	service := NewAgentService(store, mockOpAMP, logger)
+	service := NewAgentService(store, logger)
+	service.(*AgentServiceImpl).SetConfigSender(mockOpAMP)
 
 	agentID := uuid.New()
 
@@ -89,7 +91,8 @@ func TestSendConfigToAgent_AgentOffline(t *testing.T) {
 	store := memory.NewStore()
 	mockOpAMP := new(MockOpAMPSender)
 	logger := zap.NewNop()
-	service := NewAgentService(store, mockOpAMP, logger)
+	service := NewAgentService(store, logger)
+	service.(*AgentServiceImpl).SetConfigSender(mockOpAMP)
 
 	agentID := uuid.New()
 
@@ -122,7 +125,8 @@ func TestSendConfigToAgent_NoCapability(t *testing.T) {
 	store := memory.NewStore()
 	mockOpAMP := new(MockOpAMPSender)
 	logger := zap.NewNop()
-	service := NewAgentService(store, mockOpAMP, logger)
+	service := NewAgentService(store, logger)
+	service.(*AgentServiceImpl).SetConfigSender(mockOpAMP)
 
 	agentID := uuid.New()
 
@@ -152,7 +156,8 @@ func TestSendConfigToAgent_OpAMPSendFails(t *testing.T) {
 	store := memory.NewStore()
 	mockOpAMP := new(MockOpAMPSender)
 	logger := zap.NewNop()
-	service := NewAgentService(store, mockOpAMP, logger)
+	service := NewAgentService(store, logger)
+	service.(*AgentServiceImpl).SetConfigSender(mockOpAMP)
 
 	agentID := uuid.New()
 	configContent := "test-config"
@@ -191,7 +196,8 @@ func TestSendConfigToAgent_Versioning(t *testing.T) {
 	store := memory.NewStore()
 	mockOpAMP := new(MockOpAMPSender)
 	logger := zap.NewNop()
-	service := NewAgentService(store, mockOpAMP, logger)
+	service := NewAgentService(store, logger)
+	service.(*AgentServiceImpl).SetConfigSender(mockOpAMP)
 
 	agentID := uuid.New()
 

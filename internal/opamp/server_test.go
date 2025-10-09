@@ -135,16 +135,11 @@ func (m *MockAgentService) SendConfigToAgent(ctx context.Context, agentID uuid.U
 func TestSendConfigToAgent_AgentNotFound(t *testing.T) {
 	logger := zap.NewNop()
 	agents := NewAgents(logger)
-	mockService := new(MockAgentService)
 
-	server := &Server{
-		logger:       logger,
-		agents:       agents,
-		agentService: mockService,
-	}
+	configSender := NewConfigSender(agents, logger)
 
 	agentID := uuid.New()
-	err := server.SendConfigToAgent(agentID, "test-config")
+	err := configSender.SendConfigToAgent(agentID, "test-config")
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "agent not found")
@@ -153,13 +148,8 @@ func TestSendConfigToAgent_AgentNotFound(t *testing.T) {
 func TestSendConfigToAgent_NoCapability(t *testing.T) {
 	logger := zap.NewNop()
 	agents := NewAgents(logger)
-	mockService := new(MockAgentService)
 
-	server := &Server{
-		logger:       logger,
-		agents:       agents,
-		agentService: mockService,
-	}
+	configSender := NewConfigSender(agents, logger)
 
 	// Create an agent without remote config capability
 	agentID := uuid.New()
@@ -173,7 +163,7 @@ func TestSendConfigToAgent_NoCapability(t *testing.T) {
 
 	agents.agentsById[agentID] = agent
 
-	err := server.SendConfigToAgent(agentID, "test-config")
+	err := configSender.SendConfigToAgent(agentID, "test-config")
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "does not support remote config")
