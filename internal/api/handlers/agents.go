@@ -11,16 +11,23 @@ import (
 	"github.com/getlawrence/lawrence-oss/internal/services"
 )
 
+// ConfigSender defines the interface for sending configurations to agents
+type ConfigSender interface {
+	SendConfigToAgent(agentId uuid.UUID, configContent string) error
+}
+
 // AgentHandlers handles agent-related API endpoints
 type AgentHandlers struct {
 	agentService services.AgentService
+	configSender ConfigSender
 	logger       *zap.Logger
 }
 
 // NewAgentHandlers creates a new agent handlers instance
-func NewAgentHandlers(agentService services.AgentService, logger *zap.Logger) *AgentHandlers {
+func NewAgentHandlers(agentService services.AgentService, configSender ConfigSender, logger *zap.Logger) *AgentHandlers {
 	return &AgentHandlers{
 		agentService: agentService,
+		configSender: configSender,
 		logger:       logger,
 	}
 }
@@ -172,6 +179,7 @@ type SendConfigResponse struct {
 }
 
 // HandleSendConfigToAgent handles POST /api/v1/agents/:id/config
+// Orchestrates config storage (via AgentService) and delivery (via ConfigSender)
 func (h *AgentHandlers) HandleSendConfigToAgent(c *gin.Context) {
 	// 1. Parse agent ID from URL
 	agentID := c.Param("id")
@@ -199,9 +207,10 @@ func (h *AgentHandlers) HandleSendConfigToAgent(c *gin.Context) {
 		return
 	}
 
-	// 3. Send config via service layer (handles all validation and storage)
-	if err := h.agentService.SendConfigToAgent(c.Request.Context(), agentUUID, req.Content); err != nil {
-		h.logger.Error("Failed to send config to agent",
+	// 3. Store config in database (validates agent and capability)
+	config, err := h.agentService.StoreConfigForAgent(c.Request.Context(), agentUUID, req.Content)
+	if err != nil {
+		h.logger.Error("Failed to store config",
 			zap.String("agent_id", agentID),
 			zap.Error(err))
 
@@ -222,9 +231,30 @@ func (h *AgentHandlers) HandleSendConfigToAgent(c *gin.Context) {
 		return
 	}
 
-	// 4. Return success response
+	// 4. Send config to agent via OpAMP
+	if err := h.configSender.SendConfigToAgent(agentUUID, req.Content); err != nil {
+		h.logger.Error("Failed to send config to agent",
+			zap.String("agent_id", agentID),
+			zap.String("config_id", config.ID),
+			zap.Error(err))
+
+		// Config was stored but delivery failed
+		c.JSON(http.StatusAccepted, SendConfigResponse{
+			Success: false,
+			Message: fmt.Sprintf("Config stored but delivery failed: %v", err),
+			ConfigID: config.ID,
+		})
+		return
+	}
+
+	// 5. Return success response
+	h.logger.Info("Configuration sent to agent successfully",
+		zap.String("agent_id", agentID),
+		zap.String("config_id", config.ID))
+
 	c.JSON(http.StatusOK, SendConfigResponse{
-		Success: true,
-		Message: "Configuration sent to agent successfully",
+		Success:  true,
+		Message:  "Configuration sent to agent successfully",
+		ConfigID: config.ID,
 	})
 }

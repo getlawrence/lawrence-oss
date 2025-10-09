@@ -125,9 +125,12 @@ func (m *MockAgentService) ListConfigs(ctx context.Context, filter services.Conf
 	return args.Get(0).([]*services.Config), args.Error(1)
 }
 
-func (m *MockAgentService) SendConfigToAgent(ctx context.Context, agentID uuid.UUID, content string) error {
+func (m *MockAgentService) StoreConfigForAgent(ctx context.Context, agentID uuid.UUID, content string) (*services.Config, error) {
 	args := m.Called(ctx, agentID, content)
-	return args.Error(0)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*services.Config), args.Error(1)
 }
 
 // Tests

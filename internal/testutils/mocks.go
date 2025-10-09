@@ -38,7 +38,7 @@ type MockAgentService struct {
 	GetLatestConfigForAgentErr    error
 	GetLatestConfigForGroupErr    error
 	ListConfigsErr                error
-	SendConfigToAgentErr          error
+	StoreConfigForAgentErr        error
 }
 
 // NewMockAgentService creates a new mock agent service
@@ -367,13 +367,34 @@ func (m *MockAgentService) ListConfigs(ctx context.Context, filter services.Conf
 	return configs, nil
 }
 
-// SendConfigToAgent implements services.AgentService
-func (m *MockAgentService) SendConfigToAgent(ctx context.Context, agentID uuid.UUID, content string) error {
-	if m.SendConfigToAgentErr != nil {
-		return m.SendConfigToAgentErr
+// StoreConfigForAgent implements services.AgentService
+func (m *MockAgentService) StoreConfigForAgent(ctx context.Context, agentID uuid.UUID, content string) (*services.Config, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.StoreConfigForAgentErr != nil {
+		return nil, m.StoreConfigForAgentErr
 	}
 
-	// Simple mock implementation - just pretend it worked
-	// In real tests, you'd set error flags to simulate failures
-	return nil
+	// Get current version
+	version := 1
+	for _, config := range m.configs {
+		if config.AgentID != nil && *config.AgentID == agentID {
+			if config.Version >= version {
+				version = config.Version + 1
+			}
+		}
+	}
+
+	// Create and store a mock config
+	config := &services.Config{
+		ID:        uuid.New().String(),
+		AgentID:   &agentID,
+		Content:   content,
+		Version:   version,
+		CreatedAt: time.Now(),
+	}
+	m.configs[config.ID] = config
+
+	return config, nil
 }

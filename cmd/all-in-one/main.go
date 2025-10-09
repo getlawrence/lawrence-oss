@@ -170,9 +170,8 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 		logger.Fatal("Failed to create OpAMP server", zap.Error(err))
 	}
 
-	// Create config sender and inject into agent service (breaks circular dependency)
+	// Create config sender (separate concern from AgentService)
 	configSender := opamp.NewConfigSender(agents, logger)
-	agentService.(*services.AgentServiceImpl).SetConfigSender(configSender)
 
 	// Create telemetry query service
 	telemetryService := services.NewTelemetryQueryService(telemetryReader, agentService, logger)
@@ -216,7 +215,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 
 	// Initialize HTTP API server
 	logger.Info("Initializing HTTP API server")
-	apiServer := api.NewServer(agentService, telemetryService, logger)
+	apiServer := api.NewServer(agentService, telemetryService, configSender, logger)
 
 	// Start API server in a goroutine
 	go func() {

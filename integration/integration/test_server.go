@@ -190,15 +190,14 @@ func (ts *TestServer) initServers() {
 	}
 	ts.opampServer = opampServer
 
-	// Create config sender and inject into agent service
+	// Create config sender (separate concern from AgentService)
 	configSender := opamp.NewConfigSender(agents, ts.logger)
-	ts.agentService.(*services.AgentServiceImpl).SetConfigSender(configSender)
 
-	// Create telemetry service (needs agent service to be complete)
+	// Create telemetry service
 	ts.telemetryService = services.NewTelemetryQueryService(ts.telemetryReader, ts.agentService, ts.logger)
 
 	// API Server
-	ts.apiServer = api.NewServer(ts.agentService, ts.telemetryService, ts.logger)
+	ts.apiServer = api.NewServer(ts.agentService, ts.telemetryService, configSender, ts.logger)
 
 	// OTLP Receivers - use telemetry writer directly
 	grpcServer, err := receiver.NewGRPCServer(ts.OTLPGRPCPort, ts.telemetryWriter, ts.otlpMetrics, ts.logger)
