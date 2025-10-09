@@ -37,7 +37,7 @@ interface CollectorPipelineViewProps {
 
 export function CollectorPipelineView({
   agentId,
-  agentName,
+  agentName: _agentName,
   effectiveConfig: propEffectiveConfig,
 }: CollectorPipelineViewProps) {
   const [loading, setLoading] = useState(true);
