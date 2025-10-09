@@ -38,16 +38,22 @@ export const formatCount = (count: number): string => {
   if (count < 1000000) {
     const formatted = (count / 1000).toFixed(1);
     // Remove trailing .0 if present
-    return formatted.endsWith('.0') ? formatted.slice(0, -2) + 'K' : formatted + 'K';
+    return formatted.endsWith(".0")
+      ? formatted.slice(0, -2) + "K"
+      : formatted + "K";
   }
 
   if (count < 1000000000) {
     const formatted = (count / 1000000).toFixed(1);
     // Remove trailing .0 if present
-    return formatted.endsWith('.0') ? formatted.slice(0, -2) + 'M' : formatted + 'M';
+    return formatted.endsWith(".0")
+      ? formatted.slice(0, -2) + "M"
+      : formatted + "M";
   }
 
   const formatted = (count / 1000000000).toFixed(1);
   // Remove trailing .0 if present
-  return formatted.endsWith('.0') ? formatted.slice(0, -2) + 'B' : formatted + 'B';
+  return formatted.endsWith(".0")
+    ? formatted.slice(0, -2) + "B"
+    : formatted + "B";
 };

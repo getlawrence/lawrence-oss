@@ -93,7 +93,10 @@ export function TelemetryLogsView({
     return <LoadingSpinner />;
   }
 
-  const logCountText = logsData.length > 0 ? `${logsData.length} logs in last hour` : "No logs available";
+  const logCountText =
+    logsData.length > 0
+      ? `${logsData.length} logs in last hour`
+      : "No logs available";
 
   return (
     <Card>

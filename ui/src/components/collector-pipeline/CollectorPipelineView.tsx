@@ -77,7 +77,6 @@ export function CollectorPipelineView({
     fetchConfig();
   }, [agentId, propEffectiveConfig]);
 
-
   // Generate nodes and edges for React Flow
   useEffect(() => {
     if (!effectiveConfig) {
@@ -94,7 +93,6 @@ export function CollectorPipelineView({
     setNodes(generatedNodes);
     setEdges(generatedEdges);
   }, [effectiveConfig]);
-
 
   if (loading) {
     return (

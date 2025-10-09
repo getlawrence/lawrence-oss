@@ -44,7 +44,7 @@ interface MetricsQueryResponse {
  */
 export async function fetchAgentComponentMetrics(
   agentId: string,
-  timeRangeMinutes: number = 5
+  timeRangeMinutes: number = 5,
 ): Promise<ComponentMetrics[]> {
   const endTime = new Date();
   const startTime = new Date(endTime.getTime() - timeRangeMinutes * 60 * 1000);
@@ -57,7 +57,7 @@ export async function fetchAgentComponentMetrics(
       start_time: startTime.toISOString(),
       end_time: endTime.toISOString(),
       limit: 10000,
-    }
+    },
   );
 
   // Filter for OpenTelemetry Collector metrics
@@ -65,7 +65,7 @@ export async function fetchAgentComponentMetrics(
     (m) =>
       m.metric_name.startsWith("otelcol_receiver_") ||
       m.metric_name.startsWith("otelcol_processor_") ||
-      m.metric_name.startsWith("otelcol_exporter_")
+      m.metric_name.startsWith("otelcol_exporter_"),
   );
 
   // Group metrics by component
@@ -170,7 +170,7 @@ function extractComponentType(metricName: string): string {
  */
 function calculateThroughput(
   component: Partial<ComponentMetrics>,
-  timeRangeMinutes: number
+  timeRangeMinutes: number,
 ): number {
   const total =
     (component.accepted || 0) +

@@ -26,7 +26,8 @@ export function ConfigYamlEditorWithMetrics({
   readonly = false,
 }: ConfigYamlEditorWithMetricsProps) {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
-  const decorationsRef = useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
+  const decorationsRef =
+    useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
   const [parsedComponents, setParsedComponents] = useState<YamlComponent[]>([]);
 
   const { theme } = useTheme();
@@ -81,13 +82,13 @@ export function ConfigYamlEditorWithMetrics({
           component.lineNumber,
           lineLength,
           component.lineNumber,
-          lineLength
+          lineLength,
         ),
         options: {
           after: {
             content: metricsText,
-          }
-        }
+          },
+        },
       });
     });
 
@@ -97,7 +98,8 @@ export function ConfigYamlEditorWithMetrics({
     }
 
     if (newDecorations.length > 0) {
-      decorationsRef.current = editor.createDecorationsCollection(newDecorations);
+      decorationsRef.current =
+        editor.createDecorationsCollection(newDecorations);
     }
   }, [metrics, parsedComponents]);
 

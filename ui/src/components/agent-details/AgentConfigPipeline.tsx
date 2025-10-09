@@ -166,7 +166,6 @@ export function AgentConfigPipeline({
         </div>
 
         <TabsContent value="code" className="space-y-4 mt-4">
-
           {metricsLoading && metrics.length === 0 ? (
             <div className="text-sm text-gray-500 text-center py-2">
               Loading metrics...
@@ -215,4 +214,3 @@ function timeRangeToMinutes(timeRange: TimeRange): number {
       return 5;
   }
 }
-
