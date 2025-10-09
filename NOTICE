@@ -1,0 +1,275 @@
+Lawrence OSS
+Copyright 2025 Lawrence Agent Contributors
+
+This product includes software developed at Lawrence OSS project
+(https://github.com/getlawrence/lawrence-oss).
+
+================================================================================
+
+This software contains code from many other open source projects. See below for
+details about the license of each project.
+
+================================================================================
+Apache 2.0 Licensed Components
+================================================================================
+
+The following components are licensed under the Apache License 2.0:
+
+Apache Arrow
+  https://github.com/apache/arrow-go
+  Copyright 2016-2024 The Apache Software Foundation
+
+Apache Thrift
+  https://github.com/apache/thrift
+  Copyright 2006-2024 The Apache Software Foundation
+
+OpenTelemetry Go
+  https://github.com/open-telemetry/opentelemetry-go
+  Copyright 2019-2024 The OpenTelemetry Authors
+
+OpenTelemetry OpAMP
+  https://github.com/open-telemetry/opamp-go
+  Copyright 2022-2024 The OpenTelemetry Authors
+
+Google Protocol Buffers
+  https://github.com/protocolbuffers/protobuf
+  Copyright 2008 Google Inc.
+
+gRPC
+  https://github.com/grpc/grpc-go
+  Copyright 2014-2024 gRPC authors
+
+Prometheus Client Library
+  https://github.com/prometheus/client_golang
+  Copyright 2012-2015 The Prometheus Authors
+
+================================================================================
+MIT Licensed Components
+================================================================================
+
+The following components are licensed under the MIT License:
+
+Gin Web Framework
+  https://github.com/gin-gonic/gin
+  Copyright (c) 2014 Manuel Martínez-Almeida
+
+Go SQLite3
+  https://github.com/mattn/go-sqlite3
+  Copyright (c) 2012-2018 Yasuhiro Matsumoto
+
+DuckDB Go Driver
+  https://github.com/marcboeker/go-duckdb
+  Copyright (c) 2021 Marc Boeker
+
+Cobra CLI
+  https://github.com/spf13/cobra
+  Copyright (c) 2013 Steve Francia
+
+Viper Configuration
+  https://github.com/spf13/viper
+  Copyright (c) 2014 Steve Francia
+
+Testify
+  https://github.com/stretchr/testify
+  Copyright (c) 2012-2020 Mat Ryer, Tyler Bunnell and contributors
+
+Gorilla WebSocket
+  https://github.com/gorilla/websocket
+  Copyright (c) 2013 The Gorilla WebSocket Authors
+
+Google UUID
+  https://github.com/google/uuid
+  Copyright (c) 2009,2014 Google Inc.
+
+React
+  https://github.com/facebook/react
+  Copyright (c) Meta Platforms, Inc. and affiliates
+
+React Router
+  https://github.com/remix-run/react-router
+  Copyright (c) Remix Software Inc. 2020-2021
+
+Radix UI
+  https://github.com/radix-ui/primitives
+  Copyright (c) 2022 WorkOS
+
+Monaco Editor
+  https://github.com/microsoft/monaco-editor
+  Copyright (c) 2018 Microsoft Corporation
+
+Tailwind CSS
+  https://github.com/tailwindlabs/tailwindcss
+  Copyright (c) Tailwind Labs, Inc.
+
+Recharts
+  https://github.com/recharts/recharts
+  Copyright (c) 2015-2024 Recharts Group
+
+SWR
+  https://github.com/vercel/swr
+  Copyright (c) 2019-2024 Vercel, Inc.
+
+Lucide Icons
+  https://github.com/lucide-icons/lucide
+  Copyright (c) 2020, Lucide Contributors
+
+js-yaml
+  https://github.com/nodeca/js-yaml
+  Copyright (C) 2011-2015 by Vitaly Puzrin
+
+React Hook Form
+  https://github.com/react-hook-form/react-hook-form
+  Copyright (c) 2019-present Beier (Bill) Luo
+
+TanStack Table
+  https://github.com/TanStack/table
+  Copyright (c) 2016 Tanner Linsley
+
+ReactFlow (xyflow)
+  https://github.com/xyflow/xyflow
+  Copyright (c) 2019 webkid GmbH
+
+================================================================================
+BSD Licensed Components
+================================================================================
+
+The following components are licensed under BSD Licenses:
+
+Zap Logging Library (BSD-style, MIT)
+  https://github.com/uber-go/zap
+  Copyright (c) 2016-2017 Uber Technologies, Inc.
+
+Go Protobuf (BSD-3-Clause)
+  https://github.com/golang/protobuf
+  Copyright 2010 The Go Authors
+
+fsnotify (BSD-3-Clause)
+  https://github.com/fsnotify/fsnotify
+  Copyright (c) 2012 The Go Authors
+  Copyright (c) 2012-2019 fsnotify Authors
+
+Go Crypto (BSD-3-Clause)
+  https://golang.org/x/crypto
+  Copyright (c) 2009 The Go Authors
+
+Go Net (BSD-3-Clause)
+  https://golang.org/x/net
+  Copyright (c) 2009 The Go Authors
+
+Go Sys (BSD-3-Clause)
+  https://golang.org/x/sys
+  Copyright (c) 2009 The Go Authors
+
+Go Text (BSD-3-Clause)
+  https://golang.org/x/text
+  Copyright (c) 2009 The Go Authors
+
+Sonic JSON Parser (Apache-2.0)
+  https://github.com/bytedance/sonic
+  Copyright 2021 CloudWeGo Authors
+
+================================================================================
+ISC Licensed Components
+================================================================================
+
+The following components are licensed under the ISC License:
+
+glob-parent
+  https://github.com/gulpjs/glob-parent
+  Copyright (c) 2015, 2019 Elan Shanker
+
+================================================================================
+CC0-1.0 / Public Domain
+================================================================================
+
+xxhash
+  https://github.com/cespare/xxhash
+  To the extent possible under law, Caleb Spare has waived all copyright
+  and related or neighboring rights to xxhash.
+
+================================================================================
+Additional Notices
+================================================================================
+
+OpenTelemetry
+-------------
+This product includes OpenTelemetry components:
+- OpenTelemetry Protocol (OTLP)
+- OpenTelemetry OpAMP Protocol
+- OpenTelemetry Semantic Conventions
+
+The OpenTelemetry project is licensed under the Apache License 2.0.
+For more information: https://opentelemetry.io
+
+Google Cloud Platform Libraries
+--------------------------------
+This product includes Google Cloud Platform Go libraries.
+These libraries are licensed under the Apache License 2.0.
+Copyright (c) Google LLC
+
+TypeScript
+----------
+TypeScript is licensed under the Apache License 2.0.
+Copyright (c) Microsoft Corporation.
+
+Vite
+----
+Vite is licensed under the MIT License.
+Copyright (c) 2019-present, Yuxi (Evan) You and Vite contributors.
+
+================================================================================
+Transitive Dependencies
+================================================================================
+
+This software also includes many transitive dependencies with various licenses,
+primarily Apache 2.0, MIT, and BSD variants. For a complete list of all
+dependencies and their licenses, please refer to:
+
+Backend (Go):
+- go.mod file in the repository root
+- Run: go list -m all
+
+Frontend (JavaScript/TypeScript):
+- ui/package.json file
+- Run: npm list or pnpm list
+
+All dependencies are used in compliance with their respective licenses.
+
+================================================================================
+License Verification
+================================================================================
+
+To verify the licenses of all dependencies in this project:
+
+For Go dependencies:
+  go list -m -json all | jq -r '.Path'
+
+For Node.js dependencies:
+  cd ui && pnpm licenses list
+
+================================================================================
+Export Compliance
+================================================================================
+
+This distribution includes cryptographic software. The country in which you
+currently reside may have restrictions on the import, possession, use, and/or
+re-export to another country, of encryption software. BEFORE using any
+encryption software, please check your country's laws, regulations and policies
+concerning the import, possession, or use, and re-export of encryption software,
+to see if this is permitted. See http://www.wassenaar.org/ for more information.
+
+The U.S. Government Department of Commerce, Bureau of Industry and Security (BIS),
+has classified this software as Export Commodity Control Number (ECCN) 5D002.C.1,
+which includes information security software using or performing cryptographic
+functions with asymmetric algorithms. The form and manner of this distribution
+makes it eligible for export under the License Exception ENC Technology Software
+Unrestricted (TSU) exception (see the BIS Export Administration Regulations,
+Section 740.13) for both object code and source code.
+
+================================================================================
+
+For detailed license texts, please refer to the LICENSE file and the individual
+project repositories listed above.
+
+For questions about licensing, please contact the Lawrence OSS project maintainers.
+

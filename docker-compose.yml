@@ -1,19 +1,33 @@
 services:
+  # Go backend with hot reloading (development mode)
   lawrence:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: lawrence-oss
     ports:
       - "8080:8080"    # HTTP API
       - "4320:4320"    # OpAMP server
       - "4317:4317"    # OTLP gRPC
       - "4318:4318"    # OTLP HTTP
+      - "2345:2345"    # Delve debugger (optional)
     volumes:
+      # Mount source code for hot reloading
+      - ./cmd:/app/cmd
+      - ./internal:/app/internal
+      - ./go.mod:/app/go.mod
+      - ./go.sum:/app/go.sum
+      - ./lawrence.yaml:/app/lawrence.yaml
+      # Persist data directory
       - lawrence-data:/app/data
-      - ./lawrence.yaml:/app/lawrence.yaml:ro
+      # Persist go build cache for faster rebuilds
+      - go-build-cache:/root/.cache/go-build
+      - go-mod-cache:/go/pkg/mod
     environment:
-      - GIN_MODE=release
+      - GIN_MODE=debug
+      - CGO_ENABLED=1
+      - LOG_LEVEL=debug
+      - LOG_FORMAT=console
       - TZ=UTC
     restart: unless-stopped
     healthcheck:
@@ -21,7 +35,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 10s
     networks:
       - lawrence-network
 
@@ -74,6 +88,10 @@ services:
 
 volumes:
   lawrence-data:
+    driver: local
+  go-build-cache:
+    driver: local
+  go-mod-cache:
     driver: local
 
 networks:

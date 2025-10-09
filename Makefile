@@ -90,42 +90,40 @@ install-tools:
 docker-build:
 	docker build -t lawrence-oss:latest .
 
-# Run with Docker Compose (production)
+# Run with Docker Compose
 docker-run:
 	docker compose up -d
-
-# Run with Docker Compose (development)
-docker-dev:
-	docker compose -f docker-compose.dev.yml up -d
 
 # Stop all containers
 docker-stop:
 	docker compose down
-	docker compose -f docker-compose.dev.yml down
 
 # Clean up Docker resources
 docker-clean:
 	docker compose down -v
-	docker compose -f docker-compose.dev.yml down -v
 	docker system prune -f
 	docker volume prune -f
 
 # Build and run in one command
 docker-quick:
-	docker build -t lawrence-oss:latest . && docker compose up -d
+	docker compose up -d --build
 
 # View logs
 docker-logs:
 	docker compose logs -f
 
-# View development logs
-docker-logs-dev:
-	docker compose -f docker-compose.dev.yml logs -f
+# View logs for backend only
+docker-logs-backend:
+	docker compose logs -f lawrence
 
-# Shell into container
+# View logs for UI only
+docker-logs-ui:
+	docker compose logs -f ui
+
+# Shell into backend container
 docker-shell:
 	docker compose exec lawrence sh
 
-# Shell into development container
-docker-shell-dev:
-	docker compose -f docker-compose.dev.yml exec lawrence sh
+# Shell into UI container
+docker-shell-ui:
+	docker compose exec ui sh

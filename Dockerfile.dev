@@ -1,0 +1,99 @@
+# Development Dockerfile for Lawrence OSS Go Backend
+# Includes hot reloading and debugging support
+
+FROM golang:1.24-bookworm
+
+# Install build and development dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    ca-certificates \
+    tzdata \
+    gcc \
+    g++ \
+    libsqlite3-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Air for hot reloading
+RUN go install github.com/air-verse/air@latest
+
+# Install Delve for debugging
+RUN go install github.com/go-delve/delve/cmd/dlv@latest
+
+# Set working directory
+WORKDIR /app
+
+# Copy go mod files first for better layer caching
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+# Note: In dev mode, you'll typically mount the source code as a volume
+# This COPY is a fallback for when volume mounting isn't used
+COPY . .
+
+# Expose ports
+# 8080 - HTTP API
+# 4320 - OpAMP server
+# 4317 - OTLP gRPC
+# 4318 - OTLP HTTP
+# 2345 - Delve debugger (optional)
+EXPOSE 8080 4320 4317 4318 2345
+
+# Set environment variables for development
+ENV CGO_ENABLED=1
+ENV GIN_MODE=debug
+ENV TZ=UTC
+
+# Create .air.toml configuration file for hot reloading
+RUN echo '[build]\n\
+  cmd = "go build -o ./tmp/main ./cmd/all-in-one"\n\
+  bin = "tmp/main"\n\
+  full_bin = "./tmp/main --config /app/lawrence.yaml"\n\
+  include_ext = ["go", "yaml", "yml"]\n\
+  exclude_dir = ["assets", "tmp", "vendor", "ui", "node_modules"]\n\
+  include_dir = ["cmd", "internal"]\n\
+  exclude_file = []\n\
+  exclude_regex = ["_test.go"]\n\
+  exclude_unchanged = false\n\
+  follow_symlink = false\n\
+  log = "build-errors.log"\n\
+  poll = false\n\
+  poll_interval = 0\n\
+  delay = 1000\n\
+  stop_on_error = false\n\
+  send_interrupt = false\n\
+  kill_delay = "0s"\n\
+  rerun = false\n\
+  rerun_delay = 500\n\
+\n\
+[log]\n\
+  main_only = false\n\
+  time = false\n\
+  silent = false\n\
+\n\
+[color]\n\
+  main = "magenta"\n\
+  watcher = "cyan"\n\
+  build = "yellow"\n\
+  runner = "green"\n\
+\n\
+[misc]\n\
+  clean_on_exit = false\n\
+\n\
+[screen]\n\
+  clear_on_rebuild = false\n\
+  keep_scroll = true' > /app/.air.toml
+
+# Default command uses Air for hot reloading
+CMD ["air", "-c", ".air.toml"]
+
+# Alternative commands:
+# For debugging with Delve:
+#   docker run -p 2345:2345 -v $(pwd):/app lawrence-dev dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient ./cmd/all-in-one
+# 
+# For running without hot reload:
+#   docker run -v $(pwd):/app lawrence-dev go run ./cmd/all-in-one
+

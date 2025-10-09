@@ -1,0 +1,109 @@
+# Air configuration for hot reloading during development
+# See: https://github.com/air-verse/air
+
+root = "."
+testdata_dir = "testdata"
+tmp_dir = "tmp"
+
+[build]
+  # Command to build the application
+  cmd = "go build -o ./tmp/main ./cmd/all-in-one"
+  
+  # Binary to run
+  bin = "tmp/main"
+  
+  # Full command with arguments
+  full_bin = "./tmp/main --config ./lawrence.yaml --log-level debug --log-format console"
+  
+  # Watch these extensions
+  include_ext = ["go", "yaml", "yml"]
+  
+  # Exclude these directories from watching
+  exclude_dir = ["assets", "tmp", "vendor", "ui", "node_modules", "dist", "data", ".git"]
+  
+  # Include these directories
+  include_dir = ["cmd", "internal"]
+  
+  # Exclude files
+  exclude_file = []
+  
+  # Exclude files matching these regexes
+  exclude_regex = ["_test.go", "_gen.go"]
+  
+  # Don't rebuild if unchanged
+  exclude_unchanged = false
+  
+  # Follow symlinks
+  follow_symlink = false
+  
+  # Log file for build errors
+  log = "build-errors.log"
+  
+  # Use polling instead of fsnotify (useful for some filesystems)
+  poll = false
+  poll_interval = 0 # ms
+  
+  # Delay before rebuilding (ms)
+  delay = 1000
+  
+  # Stop on build error
+  stop_on_error = false
+  
+  # Send interrupt signal before killing process
+  send_interrupt = false
+  
+  # Delay after sending interrupt signal
+  kill_delay = "0s"
+  
+  # Rerun build on startup
+  rerun = false
+  rerun_delay = 500
+  
+  # Add build arguments
+  args_bin = []
+  
+  # Add build tags
+  build_tags = []
+  
+  # Add environment variables for build
+  # CGO_ENABLED is required for DuckDB and SQLite
+  envs = [
+    "CGO_ENABLED=1",
+  ]
+
+[log]
+  # Show main process logs
+  main_only = false
+  
+  # Display timestamp
+  time = false
+  
+  # Silent mode (only show build errors)
+  silent = false
+
+[color]
+  # Terminal output colors
+  main = "magenta"
+  watcher = "cyan"
+  build = "yellow"
+  runner = "green"
+  app = ""
+
+[misc]
+  # Delete tmp directory on exit
+  clean_on_exit = false
+
+[screen]
+  # Clear screen on rebuild
+  clear_on_rebuild = false
+  
+  # Keep scroll position
+  keep_scroll = true
+
+[proxy]
+  # Enable proxy for development
+  # This is useful if you want to add middleware or modify requests
+  enabled = false
+  proxy_port = 8090
+  app_port = 8080
+

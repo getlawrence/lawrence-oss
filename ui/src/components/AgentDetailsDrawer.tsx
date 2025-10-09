@@ -2,11 +2,10 @@ import { CheckCircle, XCircle, AlertCircle, Server } from "lucide-react";
 import useSWR from "swr";
 
 import { getAgentTopology } from "@/api/topology";
-import { AgentConfig } from "@/components/agent-details/AgentConfig";
 import { AgentLogs } from "@/components/agent-details/AgentLogs";
 import { AgentMetrics } from "@/components/agent-details/AgentMetrics";
 import { AgentOverview } from "@/components/agent-details/AgentOverview";
-import { CollectorPipelineView } from "@/components/collector-pipeline";
+import { AgentConfigPipeline } from "@/components/agent-details/AgentConfigPipeline";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
   Sheet,
@@ -66,12 +65,11 @@ export function AgentDetailsDrawer({
           </div>
         ) : agent ? (
           <Tabs defaultValue="overview" className="mt-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="config">Config</TabsTrigger>
               <TabsTrigger value="metrics">Metrics</TabsTrigger>
               <TabsTrigger value="logs">Logs</TabsTrigger>
-              <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4 py-4">
@@ -80,10 +78,11 @@ export function AgentDetailsDrawer({
 
             <TabsContent value="config" className="space-y-4 py-4">
               {agentId && (
-                <AgentConfig
+                <AgentConfigPipeline
                   agentId={agentId}
                   effectiveConfig={agent?.effective_config}
                   agent={agent}
+                  agentName={agent?.name}
                 />
               )}
             </TabsContent>
@@ -94,22 +93,6 @@ export function AgentDetailsDrawer({
 
             <TabsContent value="logs" className="space-y-4 py-4">
               {agentId && <AgentLogs agentId={agentId} />}
-            </TabsContent>
-
-            <TabsContent value="pipeline" className="space-y-4 py-4">
-              {agentId ? (
-                <div className="h-[600px]">
-                  <CollectorPipelineView
-                    agentId={agentId}
-                    agentName={agent?.name}
-                    effectiveConfig={agent?.effective_config}
-                  />
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  No agent selected
-                </div>
-              )}
             </TabsContent>
           </Tabs>
         ) : null}

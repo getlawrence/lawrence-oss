@@ -45,8 +45,6 @@ func main() {
 
 	// Add subcommands
 	rootCmd.AddCommand(versionCommand())
-	rootCmd.AddCommand(envCommand())
-	rootCmd.AddCommand(statusCommand())
 	rootCmd.AddCommand(configCommand())
 
 	// Add flags
@@ -259,31 +257,6 @@ func versionCommand() *cobra.Command {
 		Short: "Print version information",
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Printf("%s v%s\n", appName, version)
-		},
-	}
-}
-
-// envCommand returns the environment subcommand
-func envCommand() *cobra.Command {
-	return &cobra.Command{
-		Use:   "env",
-		Short: "Print environment variables",
-		Run: func(cmd *cobra.Command, args []string) {
-			for _, env := range os.Environ() {
-				fmt.Println(env)
-			}
-		},
-	}
-}
-
-// statusCommand returns the status subcommand
-func statusCommand() *cobra.Command {
-	return &cobra.Command{
-		Use:   "status",
-		Short: "Print service status",
-		Run: func(cmd *cobra.Command, args []string) {
-			// TODO: Implement health check
-			fmt.Println("Service status: Running")
 		},
 	}
 }
