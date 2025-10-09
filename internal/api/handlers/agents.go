@@ -240,8 +240,8 @@ func (h *AgentHandlers) HandleSendConfigToAgent(c *gin.Context) {
 
 		// Config was stored but delivery failed
 		c.JSON(http.StatusAccepted, SendConfigResponse{
-			Success: false,
-			Message: fmt.Sprintf("Config stored but delivery failed: %v", err),
+			Success:  false,
+			Message:  fmt.Sprintf("Config stored but delivery failed: %v", err),
 			ConfigID: config.ID,
 		})
 		return
