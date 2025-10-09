@@ -14,8 +14,8 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Air for hot reloading
-RUN go install github.com/air-verse/air@latest
+# Install Air for hot reloading (pinned version compatible with Go 1.24)
+RUN go install github.com/air-verse/air@v1.52.3
 
 # Install Delve for debugging
 RUN go install github.com/go-delve/delve/cmd/dlv@latest
