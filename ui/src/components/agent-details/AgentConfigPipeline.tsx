@@ -1,13 +1,15 @@
+import { Code, Workflow, Settings, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import useSWR from "swr";
-import { Code, Workflow, Settings, AlertTriangle } from "lucide-react";
 
 import { type Agent } from "@/api/agents";
+import { sendConfigToAgent } from "@/api/agents";
 import { fetchAgentComponentMetrics } from "@/api/collector-metrics";
 import { getConfigs } from "@/api/configs";
-import { sendConfigToAgent } from "@/api/agents";
-import { ConfigYamlEditorWithMetrics } from "@/components/configs/ConfigYamlEditorWithMetrics";
 import { CollectorPipelineView } from "@/components/collector-pipeline/CollectorPipelineView";
+import { ConfigYamlEditorWithMetrics } from "@/components/configs/ConfigYamlEditorWithMetrics";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardDescription,
@@ -15,10 +17,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { type TimeRange, DEFAULT_TIME_RANGE } from "@/types/timeRange";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { type TimeRange, DEFAULT_TIME_RANGE } from "@/types/timeRange";
 
 interface AgentConfigPipelineProps {
   agentId: string;

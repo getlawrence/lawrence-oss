@@ -1,6 +1,8 @@
-import Editor, { type OnMount } from "@monaco-editor/react";
+import Editor from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import { useEffect, useRef, useState } from "react";
+
+import { useTheme } from "../ThemeProvider";
 
 import { type ComponentMetrics } from "@/api/collector-metrics";
 import {
@@ -9,7 +11,6 @@ import {
   formatErrorRate,
   type YamlComponent,
 } from "@/utils/yaml-parser";
-import { useTheme } from "../ThemeProvider";
 
 interface ConfigYamlEditorWithMetricsProps {
   value: string;

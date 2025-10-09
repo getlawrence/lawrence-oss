@@ -2,10 +2,10 @@ import { CheckCircle, XCircle, AlertCircle, Server } from "lucide-react";
 import useSWR from "swr";
 
 import { getAgentTopology } from "@/api/topology";
+import { AgentConfigPipeline } from "@/components/agent-details/AgentConfigPipeline";
 import { AgentLogs } from "@/components/agent-details/AgentLogs";
 import { AgentMetrics } from "@/components/agent-details/AgentMetrics";
 import { AgentOverview } from "@/components/agent-details/AgentOverview";
-import { AgentConfigPipeline } from "@/components/agent-details/AgentConfigPipeline";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
   Sheet,
