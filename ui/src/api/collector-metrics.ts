@@ -68,18 +68,35 @@ export async function fetchAgentComponentMetrics(
       m.metric_name.startsWith("otelcol_exporter_"),
   );
 
+
   // Group metrics by component
   const componentMap = new Map<string, Partial<ComponentMetrics>>();
 
   for (const metric of collectorMetrics) {
     const labels = metric.labels || {};
+    const attributes = metric.metric_attributes || {};
 
-    // Extract component information from labels
+    // Extract component information from labels or attributes
     // Typical labels: receiver, processor, exporter, service_name, transport
     const componentType = extractComponentType(metric.metric_name);
     const componentName =
-      labels.receiver || labels.processor || labels.exporter || "unknown";
-    const pipelineType = labels.service_name || "unknown"; // service_name is like "traces", "metrics", "logs"
+      labels.receiver || labels.processor || labels.exporter ||
+      (attributes.receiver as string) || (attributes.processor as string) || (attributes.exporter as string) || "unknown";
+
+    // Try to get pipeline type from labels/attributes first, then fall back to inferring from metric name
+    let pipelineType = labels.service_name || (attributes.service_name as string);
+    if (!pipelineType || pipelineType === "unknown" || !["traces", "metrics", "logs"].includes(pipelineType)) {
+      // Infer pipeline type from metric name
+      const inferredType = extractPipelineType(metric.metric_name);
+      if (inferredType) {
+        pipelineType = inferredType;
+      }
+    }
+
+    // Skip metrics where we can't determine the pipeline type
+    if (!pipelineType || !["traces", "metrics", "logs"].includes(pipelineType)) {
+      continue;
+    }
 
     const key = `${componentType}-${componentName}-${pipelineType}`;
 
@@ -163,6 +180,26 @@ function extractComponentType(metricName: string): string {
     return "exporter";
   }
   return "unknown";
+}
+
+/**
+ * Extract pipeline type from metric name
+ * OTEL Collector metrics include the data type in the metric name
+ */
+function extractPipelineType(metricName: string): string | null {
+  // Check for spans (traces)
+  if (metricName.includes("_spans") || metricName.includes("_span_")) {
+    return "traces";
+  }
+  // Check for metric points (metrics)
+  if (metricName.includes("_metric_points") || metricName.includes("_metrics")) {
+    return "metrics";
+  }
+  // Check for log records (logs)
+  if (metricName.includes("_log_records") || metricName.includes("_logs")) {
+    return "logs";
+  }
+  return null;
 }
 
 /**
