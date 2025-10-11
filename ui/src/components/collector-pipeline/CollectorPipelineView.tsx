@@ -20,8 +20,8 @@ import {
   SectionNode,
 } from "./PipelineNode";
 
-import { getConfigs } from "@/api/configs";
 import { fetchAgentComponentMetrics } from "@/api/collector-metrics";
+import { getConfigs } from "@/api/configs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const nodeTypes = {

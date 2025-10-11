@@ -51,7 +51,7 @@ export function generatePipelineNodes(
   let parsedConfig;
   try {
     parsedConfig = yaml.load(effectiveConfig) as any;
-  } catch (_error) {
+  } catch {
     return {
       nodes: [
         {
