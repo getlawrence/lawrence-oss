@@ -130,7 +130,7 @@ export function generatePipelineNodes(
       type: "section",
       position: { x: 50, y: yOffset },
       data: {
-        type: pipelineType as 'traces' | 'metrics' | 'logs',
+        type: pipelineType as "traces" | "metrics" | "logs",
         label: displayName,
         width: 850,
         height: 320,

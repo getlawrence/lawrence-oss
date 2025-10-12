@@ -1,7 +1,7 @@
-import { COLOR_SCHEME } from '../canvas-constants';
-import type { PipelineType } from '../canvas-types';
+import { COLOR_SCHEME } from "../canvas-constants";
+import type { PipelineType } from "../canvas-types";
 
-import { Badge } from '@/components/ui/badge';
+import { Badge } from "@/components/ui/badge";
 
 interface SectionNodeProps {
   data: {
@@ -23,29 +23,33 @@ export const SectionNode = ({ data }: SectionNodeProps) => {
   // Use explicit Tailwind classes based on the color
   const colors = (() => {
     switch (baseColor) {
-      case 'blue':
+      case "blue":
         return {
-          bg: 'bg-blue-50/50 dark:bg-blue-500/[0.02]',
-          border: 'border-blue-200 dark:border-blue-800/40',
-          badge: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700'
+          bg: "bg-blue-50/50 dark:bg-blue-500/[0.02]",
+          border: "border-blue-200 dark:border-blue-800/40",
+          badge:
+            "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700",
         };
-      case 'green':
+      case "green":
         return {
-          bg: 'bg-green-50/50 dark:bg-green-500/[0.02]',
-          border: 'border-green-200 dark:border-green-800/40',
-          badge: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700'
+          bg: "bg-green-50/50 dark:bg-green-500/[0.02]",
+          border: "border-green-200 dark:border-green-800/40",
+          badge:
+            "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700",
         };
-      case 'purple':
+      case "purple":
         return {
-          bg: 'bg-purple-50/50 dark:bg-purple-500/[0.02]',
-          border: 'border-purple-200 dark:border-purple-800/40',
-          badge: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700'
+          bg: "bg-purple-50/50 dark:bg-purple-500/[0.02]",
+          border: "border-purple-200 dark:border-purple-800/40",
+          badge:
+            "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700",
         };
       default:
         return {
-          bg: 'bg-gray-50/50 dark:bg-gray-500/[0.02]',
-          border: 'border-gray-200 dark:border-gray-800/40',
-          badge: 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700'
+          bg: "bg-gray-50/50 dark:bg-gray-500/[0.02]",
+          border: "border-gray-200 dark:border-gray-800/40",
+          badge:
+            "bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700",
         };
     }
   })();
@@ -60,7 +64,9 @@ export const SectionNode = ({ data }: SectionNodeProps) => {
       }}
     >
       {/* Section header */}
-      <div className={`h-10 px-4 flex items-center justify-between border-b ${colors.border} bg-white dark:bg-background rounded-t-lg`}>
+      <div
+        className={`h-10 px-4 flex items-center justify-between border-b ${colors.border} bg-white dark:bg-background rounded-t-lg`}
+      >
         <div className="flex items-center gap-2">
           <Badge variant="outline" className={`${colors.badge} shadow-sm`}>
             {data.label || colorScheme.label}

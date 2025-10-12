@@ -1,8 +1,8 @@
-import type { SectionType } from './canvas-types';
+import type { SectionType } from "./canvas-types";
 
 export const LAYOUT_CONFIG = {
   // Layout strategy - vertical stacking for pipeline flow visualization
-  LAYOUT_STRATEGY: 'vertical' as const,
+  LAYOUT_STRATEGY: "vertical" as const,
 
   // Section dimensions - optimized for vertical pipeline flow
   SECTION_HEIGHT: 500,
@@ -35,46 +35,49 @@ export const LAYOUT_CONFIG = {
 // Unified color scheme for all components
 export const COLOR_SCHEME = {
   traces: {
-    color: 'blue',
-    label: 'Traces',
-    background: 'rgba(59, 130, 246, 0.05)',
+    color: "blue",
+    label: "Traces",
+    background: "rgba(59, 130, 246, 0.05)",
   },
   metrics: {
-    color: 'green',
-    label: 'Metrics',
-    background: 'rgba(34, 197, 94, 0.05)',
+    color: "green",
+    label: "Metrics",
+    background: "rgba(34, 197, 94, 0.05)",
   },
   logs: {
-    color: 'purple',
-    label: 'Logs',
-    background: 'rgba(168, 85, 247, 0.05)',
+    color: "purple",
+    label: "Logs",
+    background: "rgba(168, 85, 247, 0.05)",
   },
   connectors: {
-    color: 'amber',
-    label: 'Connectors',
-    background: 'rgba(217, 119, 6, 0.05)',
+    color: "amber",
+    label: "Connectors",
+    background: "rgba(217, 119, 6, 0.05)",
   },
   exporters: {
-    color: 'purple',
-    label: 'Exporters',
-    background: 'rgba(168, 85, 247, 0.05)',
+    color: "purple",
+    label: "Exporters",
+    background: "rgba(168, 85, 247, 0.05)",
   },
   processors: {
-    color: 'green',
-    label: 'Processors',
-    background: 'rgba(34, 197, 94, 0.05)',
+    color: "green",
+    label: "Processors",
+    background: "rgba(34, 197, 94, 0.05)",
   },
   receivers: {
-    color: 'blue',
-    label: 'Receivers',
-    background: 'rgba(59, 130, 246, 0.05)',
-  }
+    color: "blue",
+    label: "Receivers",
+    background: "rgba(59, 130, 246, 0.05)",
+  },
 };
 
-export const PIPELINE_SECTIONS: Record<SectionType, {
-  label: string;
-  background: string;
-}> = {
+export const PIPELINE_SECTIONS: Record<
+  SectionType,
+  {
+    label: string;
+    background: string;
+  }
+> = {
   traces: COLOR_SCHEME.traces,
   metrics: COLOR_SCHEME.metrics,
   logs: COLOR_SCHEME.logs,
@@ -82,42 +85,42 @@ export const PIPELINE_SECTIONS: Record<SectionType, {
 
 export const styles = {
   handleStyle: {
-    width: '14px',
-    height: '14px',
-    background: '#555',
-    border: '2px solid #fff',
-    borderRadius: '7px',
+    width: "14px",
+    height: "14px",
+    background: "#555",
+    border: "2px solid #fff",
+    borderRadius: "7px",
     zIndex: 20,
   },
 
   validConnectionStyle: {
-    stroke: '#ff9800',
+    stroke: "#ff9800",
     strokeWidth: 3,
     animated: true,
     zIndex: 1000,
-    type: 'smoothstep',
+    type: "smoothstep",
   },
 
   node: {
     base: {
-      padding: '10px',
-      borderRadius: '4px',
-      border: '1px solid #ddd',
-      background: 'white',
-      fontSize: '12px',
-      transition: 'all 0.2s ease',
+      padding: "10px",
+      borderRadius: "4px",
+      border: "1px solid #ddd",
+      background: "white",
+      fontSize: "12px",
+      transition: "all 0.2s ease",
     },
     receiver: {
-      background: '#e3f2fd',
-      borderColor: '#90caf9',
+      background: "#e3f2fd",
+      borderColor: "#90caf9",
     },
     processor: {
-      background: '#f1f8e9',
-      borderColor: '#aed581',
+      background: "#f1f8e9",
+      borderColor: "#aed581",
     },
     exporter: {
-      background: '#f3e5f5',
-      borderColor: '#ce93d8',
+      background: "#f3e5f5",
+      borderColor: "#ce93d8",
     },
-  }
+  },
 };

@@ -1,4 +1,4 @@
-export type PipelineType = 'traces' | 'metrics' | 'logs';
+export type PipelineType = "traces" | "metrics" | "logs";
 export type SectionType = PipelineType;
 
 export interface PipelineConfig {
