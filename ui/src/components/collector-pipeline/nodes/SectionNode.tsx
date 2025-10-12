@@ -1,6 +1,7 @@
-import { Badge } from '@/components/ui/badge';
 import { COLOR_SCHEME } from '../canvas-constants';
 import type { PipelineType } from '../canvas-types';
+
+import { Badge } from '@/components/ui/badge';
 
 interface SectionNodeProps {
   data: {

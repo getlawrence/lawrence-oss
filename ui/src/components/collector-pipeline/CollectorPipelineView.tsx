@@ -12,13 +12,13 @@ import useSWR from "swr";
 
 import "@xyflow/react/dist/style.css";
 
-import { generatePipelineNodes } from "./PipelineGenerator";
 import {
   ReceiverNode,
   ProcessorNode,
   ExporterNode,
   SectionNode,
 } from "./nodes";
+import { generatePipelineNodes } from "./PipelineGenerator";
 
 import { fetchAgentComponentMetrics } from "@/api/collector-metrics";
 import { getConfigs } from "@/api/configs";

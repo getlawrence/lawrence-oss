@@ -1,7 +1,8 @@
 import { Handle, Position } from '@xyflow/react';
-import { Card, CardContent } from '@/components/ui/card';
 import { ArrowDown, Grip } from 'lucide-react';
+
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface ReceiverNodeProps {
   data: any;
