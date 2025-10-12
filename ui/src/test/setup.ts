@@ -17,19 +17,19 @@ Object.defineProperty(window, "matchMedia", {
 });
 
 // Mock monaco-editor modules
-vi.mock('monaco-editor', () => ({
+vi.mock("monaco-editor", () => ({
   default: {},
   editor: {},
 }));
 
-vi.mock('@monaco-editor/loader', () => ({
+vi.mock("@monaco-editor/loader", () => ({
   default: {
     init: vi.fn(() => Promise.resolve()),
     config: vi.fn(),
   },
 }));
 
-vi.mock('@monaco-editor/react', () => ({
+vi.mock("@monaco-editor/react", () => ({
   default: vi.fn(() => null),
   Editor: vi.fn(() => null),
 }));
