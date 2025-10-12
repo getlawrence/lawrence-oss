@@ -89,7 +89,9 @@ export function AgentOverview({ agent, metrics }: AgentOverviewProps) {
       {agent.capabilities && agent.capabilities.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Capabilities</CardTitle>
+            <CardTitle className="text-lg font-semibold">
+              Capabilities
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
@@ -106,7 +108,7 @@ export function AgentOverview({ agent, metrics }: AgentOverviewProps) {
       {agent.labels && Object.keys(agent.labels).length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Labels</CardTitle>
+            <CardTitle className="text-lg font-semibold">Labels</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">

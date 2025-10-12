@@ -2,6 +2,7 @@ import { Plus, RefreshCw, FileText, Hash, Edit } from "lucide-react";
 
 import type { Config } from "@/api/configs";
 import { PageTable } from "@/components/shared/PageTable";
+import { TruncatedId } from "@/components/shared/TruncatedId";
 import { Button } from "@/components/ui/button";
 import { TableCell } from "@/components/ui/table";
 
@@ -54,14 +55,19 @@ export function ConfigsList({
       getRowKey={(config) => config.id}
       renderRow={(config) => (
         <>
-          <TableCell className="font-mono text-sm">
-            {config.id.slice(0, 8)}...
+          <TableCell>
+            <TruncatedId id={config.id} maxLength={8} />
           </TableCell>
           <TableCell>
             {config.agent_id ? (
-              <span className="text-blue-600">
-                Agent: {config.agent_id.slice(0, 8)}...
-              </span>
+              <div className="flex items-center gap-1">
+                <span className="text-blue-600 text-sm">Agent:</span>
+                <TruncatedId
+                  id={config.agent_id}
+                  maxLength={8}
+                  className="text-blue-600"
+                />
+              </div>
             ) : config.group_id ? (
               <span className="text-green-600">Group: {config.group_id}</span>
             ) : (
@@ -73,10 +79,14 @@ export function ConfigsList({
               v{config.version}
             </span>
           </TableCell>
-          <TableCell className="font-mono text-xs">
-            <div className="flex items-center">
-              <Hash className="h-3 w-3 mr-1" />
-              {config.config_hash.slice(0, 8)}...
+          <TableCell>
+            <div className="flex items-center gap-1">
+              <Hash className="h-3 w-3 text-muted-foreground" />
+              <TruncatedId
+                id={config.config_hash}
+                maxLength={8}
+                showCopyButton={false}
+              />
             </div>
           </TableCell>
           <TableCell>

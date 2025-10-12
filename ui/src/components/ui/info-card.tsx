@@ -40,7 +40,7 @@ export function InfoCard({ title, items, icon }: InfoCardProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
           {icon}
           {title}
         </CardTitle>
