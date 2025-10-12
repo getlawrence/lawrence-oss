@@ -79,11 +79,8 @@ export default defineConfig({
     server: {
       deps: {
         inline: ['monaco-editor', '@monaco-editor/loader', '@monaco-editor/react'],
+        external: ['**/node_modules/@monaco-editor/**'],
       },
-    },
-    alias: {
-      'monaco-editor': path.resolve(__dirname, './src/test/__mocks__/monaco-editor.ts'),
-      '@monaco-editor/loader': path.resolve(__dirname, './src/test/__mocks__/monaco-loader.ts'),
     },
   },
   resolve: {
