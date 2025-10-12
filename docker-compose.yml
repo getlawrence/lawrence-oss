@@ -41,10 +41,10 @@ services:
 
   # Development UI server with hot-reloading
   ui:
-    image: node:20-alpine
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
     container_name: lawrence-ui
-    working_dir: /app
-    command: sh -c "npm install -g pnpm && pnpm install && pnpm dev --host"
     ports:
       - "5173:5173"    # Vite dev server
     volumes:
