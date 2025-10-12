@@ -224,7 +224,9 @@ export function TelemetryLogsView({
                     {dateString} {timeString}
                   </span>
                   <div className="flex-1 text-sm min-w-0">
-                    <div className="font-mono text-xs break-all">{log.body}</div>
+                    <div className="font-mono text-xs break-all">
+                      {log.body}
+                    </div>
                     {showAgentId && log.agent_id && (
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                         Agent: {log.agent_id}

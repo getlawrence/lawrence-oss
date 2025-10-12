@@ -1,4 +1,11 @@
-import { Clock, Database, LineChart, TableIcon, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  Clock,
+  Database,
+  LineChart,
+  TableIcon,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
 import { useState } from "react";
 
 import type { LawrenceQLResponse } from "../../api/lawrence-ql";
@@ -95,10 +102,16 @@ export function QueryResults({ results }: QueryResultsProps) {
               <TableRow>
                 <TableHead className="w-10 py-2 px-2"></TableHead>
                 <TableHead className="w-20 py-2 px-2">Type</TableHead>
-                <TableHead className="min-w-[120px] max-w-[200px] py-2 px-2">Name</TableHead>
-                <TableHead className="min-w-[140px] py-2 px-2">Timestamp</TableHead>
+                <TableHead className="min-w-[120px] max-w-[200px] py-2 px-2">
+                  Name
+                </TableHead>
+                <TableHead className="min-w-[140px] py-2 px-2">
+                  Timestamp
+                </TableHead>
                 <TableHead className="min-w-[150px] py-2 px-2">Value</TableHead>
-                <TableHead className="min-w-[150px] py-2 px-2">Labels</TableHead>
+                <TableHead className="min-w-[150px] py-2 px-2">
+                  Labels
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -114,19 +127,23 @@ export function QueryResults({ results }: QueryResultsProps) {
                       ? "log"
                       : "trace");
 
-                const otherLabels = Object.entries(
-                  result.labels || {},
-                ).filter(([key]) => key !== "__name__" && key !== "name");
+                const otherLabels = Object.entries(result.labels || {}).filter(
+                  ([key]) => key !== "__name__" && key !== "name",
+                );
 
                 const isExpanded = expandedRows.has(idx);
                 const valueStr = formatValue(result.value);
                 const hasLongValue = valueStr.length > 50;
                 const hasMultipleLabels = otherLabels.length > 3;
-                const shouldShowExpand = hasLongValue || hasMultipleLabels || result.data;
+                const shouldShowExpand =
+                  hasLongValue || hasMultipleLabels || result.data;
 
                 return (
                   <>
-                    <TableRow key={idx} className={isExpanded ? "border-b-0" : ""}>
+                    <TableRow
+                      key={idx}
+                      className={isExpanded ? "border-b-0" : ""}
+                    >
                       <TableCell className="w-10 py-1 px-2">
                         {shouldShowExpand && (
                           <Button
@@ -144,7 +161,10 @@ export function QueryResults({ results }: QueryResultsProps) {
                         )}
                       </TableCell>
                       <TableCell className="w-20 py-1 px-2">
-                        <Badge variant={getTypeBadgeVariant(result.type)} className="text-xs py-0">
+                        <Badge
+                          variant={getTypeBadgeVariant(result.type)}
+                          className="text-xs py-0"
+                        >
                           {result.type}
                         </Badge>
                       </TableCell>
@@ -158,25 +178,39 @@ export function QueryResults({ results }: QueryResultsProps) {
                         {new Date(result.timestamp).toLocaleString()}
                       </TableCell>
                       <TableCell className="min-w-[150px] font-mono text-xs py-1 px-2">
-                        <div className="truncate max-w-[300px]" title={valueStr}>
+                        <div
+                          className="truncate max-w-[300px]"
+                          title={valueStr}
+                        >
                           {valueStr}
                         </div>
                       </TableCell>
                       <TableCell className="min-w-[150px] py-1 px-2">
                         <div className="flex flex-wrap gap-1 max-w-[300px]">
-                          {otherLabels.slice(0, isExpanded ? undefined : 3).map(([key, value]) => (
+                          {otherLabels
+                            .slice(0, isExpanded ? undefined : 3)
+                            .map(([key, value]) => (
+                              <Badge
+                                key={key}
+                                variant="secondary"
+                                className="text-xs py-0 px-1.5"
+                              >
+                                <span
+                                  className="truncate max-w-[150px]"
+                                  title={`${key}=${value}`}
+                                >
+                                  {key}=
+                                  {String(value).length > 20
+                                    ? `${String(value).substring(0, 20)}...`
+                                    : value}
+                                </span>
+                              </Badge>
+                            ))}
+                          {!isExpanded && otherLabels.length > 3 && (
                             <Badge
-                              key={key}
-                              variant="secondary"
+                              variant="outline"
                               className="text-xs py-0 px-1.5"
                             >
-                              <span className="truncate max-w-[150px]" title={`${key}=${value}`}>
-                                {key}={String(value).length > 20 ? `${String(value).substring(0, 20)}...` : value}
-                              </span>
-                            </Badge>
-                          ))}
-                          {!isExpanded && otherLabels.length > 3 && (
-                            <Badge variant="outline" className="text-xs py-0 px-1.5">
                               +{otherLabels.length - 3} more
                             </Badge>
                           )}
