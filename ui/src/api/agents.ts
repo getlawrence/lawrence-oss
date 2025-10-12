@@ -71,3 +71,16 @@ export const sendConfigToAgent = (
     content,
   });
 };
+
+// Restart agent request/response types
+export interface RestartAgentResponse {
+  success: boolean;
+  message: string;
+}
+
+// Restart agent
+export const restartAgent = (
+  agentId: string,
+): Promise<RestartAgentResponse> => {
+  return apiPost<RestartAgentResponse>(`/agents/${agentId}/restart`, {});
+};

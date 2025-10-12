@@ -1,4 +1,4 @@
-.PHONY: all ui build run docker test clean deps docker-build docker-run docker-dev docker-stop docker-clean
+.PHONY: all ui build build-backend run docker test clean deps docker-build docker-run docker-run-single docker-stop docker-clean
 
 # Variables
 BINARY_NAME=lawrence
@@ -23,6 +23,12 @@ build: ui
 	@mkdir -p $(BUILD_DIR)
 	go build -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/all-in-one
 
+# Build Go binary without UI (for testing)
+build-backend:
+	@echo "Building $(BINARY_NAME) (backend only)..."
+	@mkdir -p $(BUILD_DIR)
+	go build -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/all-in-one
+
 # Build for Linux (for Docker)
 build-linux:
 	@echo "Building $(BINARY_NAME) for Linux..."
@@ -39,12 +45,12 @@ run-config: build
 	@mkdir -p $(DATA_DIR)
 	./$(BUILD_DIR)/$(BINARY_NAME) --config lawrence.yaml
 
-# Build Docker image
+# Build Docker image (legacy)
 docker:
 	docker build -t lawrence/all-in-one:latest .
 
-# Run Docker container
-docker-run:
+# Run Docker container (legacy - use docker-run for compose)
+docker-run-single:
 	docker run -p 8080:8080 -p 4317:4317 -p 4318:4318 \
 		-v $(PWD)/$(DATA_DIR):/data \
 		lawrence/all-in-one:latest

@@ -88,3 +88,21 @@ func (agent *Agent) shouldOfferOwnTelemetry() (metrics, traces, logs bool) {
 
 	return metrics, traces, logs
 }
+
+// SendRestartCommand sends a restart command to the agent
+func (agent *Agent) SendRestartCommand() {
+	var capabilities uint64
+	if agent.Status != nil {
+		capabilities = agent.Status.Capabilities
+	}
+
+	agent.SendToAgent(
+		&protobufs.ServerToAgent{
+			InstanceUid:  agent.InstanceId[:],
+			Capabilities: capabilities,
+			Command: &protobufs.ServerToAgentCommand{
+				Type: protobufs.CommandType_CommandType_Restart,
+			},
+		},
+	)
+}

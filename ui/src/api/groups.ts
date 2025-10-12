@@ -74,3 +74,18 @@ export const getGroupAgents = (
 ): Promise<GetGroupAgentsResponse> => {
   return apiGet<GetGroupAgentsResponse>(`/groups/${groupId}/agents`);
 };
+
+// Restart group request/response types
+export interface RestartGroupResponse {
+  success: boolean;
+  message: string;
+  restarted_count: number;
+  failed_count: number;
+}
+
+// Restart all agents in group
+export const restartGroup = (
+  groupId: string,
+): Promise<RestartGroupResponse> => {
+  return apiPost<RestartGroupResponse>(`/groups/${groupId}/restart`, {});
+};

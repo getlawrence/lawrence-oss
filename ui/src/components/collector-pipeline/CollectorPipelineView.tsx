@@ -7,18 +7,18 @@ import {
   type Edge,
 } from "@xyflow/react";
 import { RefreshCw, AlertCircle } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import useSWR from "swr";
 
 import "@xyflow/react/dist/style.css";
 
-import { generatePipelineNodes } from "./PipelineGenerator";
 import {
   ReceiverNode,
   ProcessorNode,
   ExporterNode,
   SectionNode,
-} from "./PipelineNode";
+} from "./nodes";
+import { generatePipelineNodes } from "./PipelineGenerator";
 
 import { fetchAgentComponentMetrics } from "@/api/collector-metrics";
 import { getConfigs } from "@/api/configs";
@@ -42,13 +42,6 @@ export function CollectorPipelineView({
   agentName: _agentName,
   effectiveConfig: propEffectiveConfig,
 }: CollectorPipelineViewProps) {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const [effectiveConfig, setEffectiveConfig] = useState<string | null>(
-    propEffectiveConfig || null,
-  );
-
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
@@ -69,31 +62,27 @@ export function CollectorPipelineView({
   );
 
   // Fetch agent config only if not provided via props
-  const fetchConfig = async () => {
-    if (propEffectiveConfig) {
-      setEffectiveConfig(propEffectiveConfig);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
+  const {
+    data: configsData,
+    error: configError,
+    isLoading: configLoading,
+  } = useSWR(
+    propEffectiveConfig ? null : `agent-config-pipeline-${agentId}`,
+    async () => {
       const configsResponse = await getConfigs({ agent_id: agentId, limit: 1 });
-      if (configsResponse.configs.length > 0) {
-        setEffectiveConfig(configsResponse.configs[0].content);
-      }
-    } catch (err) {
-      console.error("Failed to fetch agent config:", err);
-      setError("Failed to fetch agent configuration");
-    } finally {
-      setLoading(false);
-    }
-  };
+      return configsResponse;
+    },
+  );
 
-  useEffect(() => {
-    fetchConfig();
-  }, [agentId, propEffectiveConfig]);
+  // Determine the effective config to use
+  const effectiveConfig =
+    propEffectiveConfig ||
+    (configsData?.configs && configsData.configs.length > 0
+      ? configsData.configs[0].content
+      : null);
+
+  const loading = !propEffectiveConfig && configLoading;
+  const error = configError ? "Failed to fetch agent configuration" : null;
 
   // Generate nodes and edges for React Flow
   useEffect(() => {
@@ -110,7 +99,7 @@ export function CollectorPipelineView({
 
     setNodes(generatedNodes);
     setEdges(generatedEdges);
-  }, [effectiveConfig, metricsData]);
+  }, [effectiveConfig, metricsData, setNodes, setEdges]);
 
   if (loading) {
     return (

@@ -31,7 +31,10 @@ export function AgentOverview({ agent, metrics }: AgentOverviewProps) {
       <InfoCard
         title="Agent Information"
         items={[
-          { label: "ID", value: <span className="font-mono">{agent.id}</span> },
+          {
+            label: "ID",
+            value: <span className="font-mono">{agent.id}</span>,
+          },
           { label: "Version", value: agent.version },
           {
             label: "Status",

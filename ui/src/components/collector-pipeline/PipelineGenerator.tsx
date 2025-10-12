@@ -102,44 +102,9 @@ export function generatePipelineNodes(
     };
   }
 
-  // Define pipeline types with their colors and icons
-  const pipelineTypes = {
-    traces: {
-      color: "border-orange-400",
-      icon: (
-        <div className="w-4 h-4 bg-white rounded-sm flex items-center justify-center text-orange-600 font-bold text-xs">
-          {"{}"}
-        </div>
-      ),
-    },
-    metrics: {
-      color: "border-blue-400",
-      icon: (
-        <div className="w-4 h-4 bg-white rounded-sm flex items-center justify-center text-blue-600">
-          <div className="w-2 h-2 bg-current rounded-sm"></div>
-        </div>
-      ),
-    },
-    logs: {
-      color: "border-green-400",
-      icon: (
-        <div className="w-4 h-4 bg-white rounded-sm flex items-center justify-center text-green-600">
-          <div className="space-y-0.5">
-            <div className="w-1 h-1 bg-current rounded-full"></div>
-            <div className="w-1 h-1 bg-current rounded-full"></div>
-            <div className="w-1 h-1 bg-current rounded-full"></div>
-          </div>
-        </div>
-      ),
-    },
-  };
-
   // Create pipeline nodes based on actual configuration
   Object.entries(pipelines).forEach(([pipelineName]) => {
     const pipelineType = pipelineName.toLowerCase();
-    const typeConfig =
-      pipelineTypes[pipelineType as keyof typeof pipelineTypes] ||
-      pipelineTypes.traces;
 
     // Determine pipeline display name
     const displayName =
@@ -159,39 +124,23 @@ export function generatePipelineNodes(
     );
     const totalErrors = pipelineMetrics.reduce((sum, m) => sum + m.errors, 0);
 
-    // Create section container node (Otail style)
+    // Create section container node (styled)
     const sectionNode: Node = {
       id: `section-${pipelineName}`,
       type: "section",
       position: { x: 50, y: yOffset },
       data: {
-        label: `${displayName} Pipeline`,
-        pipelineType: pipelineType,
-        pipelineName: pipelineName,
-        color: typeConfig.color,
-        icon: typeConfig.icon,
+        type: pipelineType as "traces" | "metrics" | "logs",
+        label: displayName,
         width: 850,
         height: 320,
         metrics: {
           received: totalReceived,
           errors: totalErrors,
         },
-        // Add flow pattern indicators
-        flowPattern: {
-          fanIn:
-            (parsedConfig.receivers &&
-              Object.keys(parsedConfig.receivers).length > 1) ||
-            false,
-          chain:
-            (parsedConfig.processors &&
-              Object.keys(parsedConfig.processors).length > 0) ||
-            false,
-          fanOut:
-            (parsedConfig.exporters &&
-              Object.keys(parsedConfig.exporters).length > 1) ||
-            false,
-        },
       },
+      selectable: false,
+      draggable: false,
     };
     nodes.push(sectionNode);
 

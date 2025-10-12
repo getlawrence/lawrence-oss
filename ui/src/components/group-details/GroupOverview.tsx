@@ -1,3 +1,4 @@
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InfoCard } from "@/components/ui/info-card";
@@ -21,9 +22,17 @@ interface GroupMetrics {
 interface GroupOverviewProps {
   group: Group;
   metrics?: GroupMetrics;
+  restartMessage?: {
+    type: "success" | "error";
+    text: string;
+  } | null;
 }
 
-export function GroupOverview({ group, metrics }: GroupOverviewProps) {
+export function GroupOverview({
+  group,
+  metrics,
+  restartMessage,
+}: GroupOverviewProps) {
   const metricsItems = metrics
     ? [
         {
@@ -59,10 +68,21 @@ export function GroupOverview({ group, metrics }: GroupOverviewProps) {
 
   return (
     <div className="space-y-4">
+      {restartMessage && (
+        <Alert
+          variant={restartMessage.type === "error" ? "destructive" : "default"}
+        >
+          <AlertDescription>{restartMessage.text}</AlertDescription>
+        </Alert>
+      )}
+
       <InfoCard
         title="Group Information"
         items={[
-          { label: "ID", value: <span className="font-mono">{group.id}</span> },
+          {
+            label: "ID",
+            value: <span className="font-mono">{group.id}</span>,
+          },
           { label: "Name", value: group.name },
           {
             label: "Created",

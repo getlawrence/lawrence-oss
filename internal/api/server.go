@@ -18,9 +18,11 @@ import (
 	"github.com/getlawrence/lawrence-oss/internal/services"
 )
 
-// ConfigSender defines the interface for sending configurations to agents
-type ConfigSender interface {
+// AgentCommander defines the interface for sending commands to agents
+type AgentCommander interface {
 	SendConfigToAgent(agentId uuid.UUID, configContent string) error
+	RestartAgent(agentId uuid.UUID) error
+	RestartAgentsInGroup(groupId string) ([]uuid.UUID, []error)
 }
 
 // Server represents the HTTP API server
@@ -28,7 +30,7 @@ type Server struct {
 	router           *gin.Engine
 	agentService     services.AgentService
 	telemetryService services.TelemetryQueryService
-	configSender     ConfigSender
+	commander        AgentCommander
 	logger           *zap.Logger
 	httpServer       *http.Server
 	metrics          *metrics.APIMetrics
@@ -36,7 +38,7 @@ type Server struct {
 }
 
 // NewServer creates a new API server
-func NewServer(agentService services.AgentService, telemetryService services.TelemetryQueryService, configSender ConfigSender, logger *zap.Logger) *Server {
+func NewServer(agentService services.AgentService, telemetryService services.TelemetryQueryService, commander AgentCommander, logger *zap.Logger) *Server {
 	// Set Gin to release mode for production
 	gin.SetMode(gin.ReleaseMode)
 
@@ -56,7 +58,7 @@ func NewServer(agentService services.AgentService, telemetryService services.Tel
 		router:           router,
 		agentService:     agentService,
 		telemetryService: telemetryService,
-		configSender:     configSender,
+		commander:        commander,
 		logger:           logger,
 		metrics:          apiMetrics,
 		registry:         registry,
@@ -96,11 +98,11 @@ func (s *Server) Stop(ctx context.Context) error {
 // registerRoutes registers all API routes
 func (s *Server) registerRoutes() {
 	// Initialize handlers
-	agentHandlers := handlers.NewAgentHandlers(s.agentService, s.configSender, s.logger)
+	agentHandlers := handlers.NewAgentHandlers(s.agentService, s.commander, s.logger)
 	configHandlers := handlers.NewConfigHandlers(s.agentService, s.logger)
 	telemetryHandlers := handlers.NewTelemetryHandlers(s.telemetryService, s.logger)
 	lawrenceQLHandlers := handlers.NewLawrenceQLHandlers(s.telemetryService, s.logger)
-	groupHandlers := handlers.NewGroupHandlers(s.agentService, s.logger)
+	groupHandlers := handlers.NewGroupHandlers(s.agentService, s.commander, s.logger)
 	topologyHandlers := handlers.NewTopologyHandlers(s.agentService, s.telemetryService, s.logger)
 	healthHandlers := handlers.NewHealthHandlers(s.agentService, s.telemetryService, s.logger)
 
@@ -121,6 +123,7 @@ func (s *Server) registerRoutes() {
 			agents.GET("/:id", agentHandlers.HandleGetAgent)
 			agents.PATCH("/:id/group", agentHandlers.HandleUpdateAgentGroup)
 			agents.POST("/:id/config", agentHandlers.HandleSendConfigToAgent)
+			agents.POST("/:id/restart", agentHandlers.HandleRestartAgent)
 		}
 
 		// Config routes
@@ -164,6 +167,7 @@ func (s *Server) registerRoutes() {
 			groups.POST("/:id/config", groupHandlers.HandleAssignConfig)
 			groups.GET("/:id/config", groupHandlers.HandleGetGroupConfig)
 			groups.GET("/:id/agents", groupHandlers.HandleGetGroupAgents)
+			groups.POST("/:id/restart", groupHandlers.HandleRestartGroup)
 		}
 
 		// Topology routes

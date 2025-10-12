@@ -12,6 +12,7 @@ import { useState, useMemo } from "react";
 import useSWR from "swr";
 
 import { getAgents } from "@/api/agents";
+import { getGroups } from "@/api/groups";
 import { AgentDetailsDrawer } from "@/components/AgentDetailsDrawer";
 import { GroupDetailsDrawer } from "@/components/GroupDetailsDrawer";
 import { PageTable } from "@/components/shared/PageTable";
@@ -38,6 +39,10 @@ export default function AgentsPage() {
     error: agentsError,
     mutate: mutateAgents,
   } = useSWR("agents", getAgents, { refreshInterval: 30000 });
+
+  const { data: groupsData } = useSWR("groups", getGroups, {
+    refreshInterval: 30000,
+  });
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -99,6 +104,17 @@ export default function AgentsPage() {
     if (sortOrder === "asc") return <ArrowUp className="h-4 w-4" />;
     return <ArrowUpDown className="h-4 w-4" />;
   };
+
+  // Create a map of group IDs to group names
+  const groupIdToName = useMemo(() => {
+    const map: Record<string, string> = {};
+    if (groupsData?.groups) {
+      groupsData.groups.forEach((group) => {
+        map[group.id] = group.name;
+      });
+    }
+    return map;
+  }, [groupsData]);
 
   // Filter and sort agents
   const filteredAndSortedAgents = useMemo(() => {
@@ -214,7 +230,7 @@ export default function AgentsPage() {
                   }
                   className="text-blue-600 hover:text-blue-800 cursor-pointer underline"
                 >
-                  {agent.group_id}
+                  {groupIdToName[agent.group_id] || agent.group_id}
                 </span>
               ) : (
                 "No Group"

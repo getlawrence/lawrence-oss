@@ -36,6 +36,8 @@ Thumbs.db
 ui/node_modules/
 ui/dist/
 ui/.pnpm-store/
+ui/package-lock.json
+ui/coverage/
 
 # Environment files
 .env

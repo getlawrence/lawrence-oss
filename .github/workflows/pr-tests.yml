@@ -68,8 +68,6 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'npm'
-        cache-dependency-path: ui/package.json
         
     - name: Install frontend dependencies
       working-directory: ui
@@ -126,8 +124,8 @@ jobs:
     - name: Install dependencies
       run: go mod download
       
-    - name: Build application
-      run: make build
+    - name: Build application (backend only)
+      run: make build-backend
       
     - name: Run integration tests
       run: go test -v ./integration/...
@@ -203,8 +201,6 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'npm'
-        cache-dependency-path: ui/package.json
         
     - name: Install dependencies
       run: |

@@ -25,11 +25,19 @@ func init() {
 	gin.SetMode(gin.TestMode)
 }
 
-// mockConfigSender is a simple mock for ConfigSender
+// mockConfigSender is a simple mock for AgentCommander
 type mockConfigSender struct{}
 
 func (m *mockConfigSender) SendConfigToAgent(agentId uuid.UUID, configContent string) error {
 	return nil
+}
+
+func (m *mockConfigSender) RestartAgent(agentId uuid.UUID) error {
+	return nil
+}
+
+func (m *mockConfigSender) RestartAgentsInGroup(groupId string) ([]uuid.UUID, []error) {
+	return []uuid.UUID{}, []error{}
 }
 
 func setupAgentHandlersTest() (*AgentHandlers, *testutils.MockAgentService) {
