@@ -51,7 +51,7 @@ services:
       - ./ui:/app
       - /app/node_modules  # Prevent overwriting node_modules
     environment:
-      - VITE_API_URL=http://localhost:8080
+      - VITE_BACKEND_URL=http://localhost:8080
     depends_on:
       - lawrence
     networks:
