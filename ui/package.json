@@ -30,6 +30,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@clerk/clerk-react": "^5.47.0",
+    "@dagrejs/dagre": "^1.1.5",
     "@hookform/resolvers": "^5.2.1",
     "@icons-pack/react-simple-icons": "^13.7.0",
     "@monaco-editor/react": "^4.7.0",

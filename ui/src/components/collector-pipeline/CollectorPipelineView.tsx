@@ -18,7 +18,7 @@ import {
   ProcessorNode,
   ExporterNode,
   SectionNode,
-} from "./PipelineNode";
+} from "./nodes";
 
 import { fetchAgentComponentMetrics } from "@/api/collector-metrics";
 import { getConfigs } from "@/api/configs";
