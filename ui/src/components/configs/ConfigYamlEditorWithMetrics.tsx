@@ -1,6 +1,6 @@
-import Editor, { type OnMount, loader } from "@monaco-editor/react";
-import { useEffect, useRef, useState } from "react";
+import Editor, { type OnMount } from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
+import { useEffect, useRef, useState } from "react";
 
 import { useTheme } from "../ThemeProvider";
 
