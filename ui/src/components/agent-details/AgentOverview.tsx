@@ -66,7 +66,9 @@ export function AgentOverview({ agent, metrics }: AgentOverviewProps) {
   return (
     <div className="space-y-4">
       {restartMessage && (
-        <Alert variant={restartMessage.type === "error" ? "destructive" : "default"}>
+        <Alert
+          variant={restartMessage.type === "error" ? "destructive" : "default"}
+        >
           <AlertDescription>{restartMessage.text}</AlertDescription>
         </Alert>
       )}
@@ -75,7 +77,10 @@ export function AgentOverview({ agent, metrics }: AgentOverviewProps) {
         <InfoCard
           title="Agent Information"
           items={[
-            { label: "ID", value: <span className="font-mono">{agent.id}</span> },
+            {
+              label: "ID",
+              value: <span className="font-mono">{agent.id}</span>,
+            },
             { label: "Version", value: agent.version },
             {
               label: "Status",
@@ -102,7 +107,9 @@ export function AgentOverview({ agent, metrics }: AgentOverviewProps) {
             disabled={agent.status !== "online" || isRestarting}
             className="ml-4"
           >
-            <RotateCw className={`h-4 w-4 mr-2 ${isRestarting ? "animate-spin" : ""}`} />
+            <RotateCw
+              className={`h-4 w-4 mr-2 ${isRestarting ? "animate-spin" : ""}`}
+            />
             {isRestarting ? "Restarting..." : "Restart"}
           </Button>
         )}

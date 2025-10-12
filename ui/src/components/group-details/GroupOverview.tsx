@@ -93,7 +93,9 @@ export function GroupOverview({ group, metrics }: GroupOverviewProps) {
   return (
     <div className="space-y-4">
       {restartMessage && (
-        <Alert variant={restartMessage.type === "error" ? "destructive" : "default"}>
+        <Alert
+          variant={restartMessage.type === "error" ? "destructive" : "default"}
+        >
           <AlertDescription>{restartMessage.text}</AlertDescription>
         </Alert>
       )}
@@ -102,7 +104,10 @@ export function GroupOverview({ group, metrics }: GroupOverviewProps) {
         <InfoCard
           title="Group Information"
           items={[
-            { label: "ID", value: <span className="font-mono">{group.id}</span> },
+            {
+              label: "ID",
+              value: <span className="font-mono">{group.id}</span>,
+            },
             { label: "Name", value: group.name },
             {
               label: "Created",
@@ -122,7 +127,9 @@ export function GroupOverview({ group, metrics }: GroupOverviewProps) {
             disabled={isRestarting}
             className="ml-4"
           >
-            <RotateCw className={`h-4 w-4 mr-2 ${isRestarting ? "animate-spin" : ""}`} />
+            <RotateCw
+              className={`h-4 w-4 mr-2 ${isRestarting ? "animate-spin" : ""}`}
+            />
             {isRestarting ? "Restarting..." : "Restart All"}
           </Button>
         )}
