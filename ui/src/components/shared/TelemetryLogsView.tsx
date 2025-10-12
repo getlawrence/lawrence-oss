@@ -199,36 +199,54 @@ export function TelemetryLogsView({
           </div>
         </div>
         <ScrollArea className="h-96">
-          {logsData.map((log, idx) => (
-            <div key={idx} className="py-3 border-b last:border-0">
-              <div className="flex items-start gap-2">
-                <Badge
-                  className={`text-xs ${getSeverityColor(log.severity_text)}`}
-                >
-                  {log.severity_text || "UNKNOWN"}
-                </Badge>
-                <div className="flex-1 text-sm">
-                  <div className="font-mono text-xs break-all">{log.body}</div>
-                  {log.log_attributes &&
-                    Object.keys(log.log_attributes).length > 0 && (
-                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 font-mono">
-                        {Object.entries(log.log_attributes).map(
-                          ([key, value]) => (
-                            <span key={key} className="mr-3">
-                              {key}={value}
-                            </span>
-                          ),
-                        )}
+          {logsData.map((log, idx) => {
+            const logDate = new Date(log.timestamp);
+            const timeString = logDate.toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+              hour12: false,
+            });
+            const dateString = logDate.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            });
+
+            return (
+              <div key={idx} className="py-1 border-b last:border-0">
+                <div className="flex items-start gap-1.5">
+                  <Badge
+                    className={`text-xs shrink-0 py-0 px-1.5 ${getSeverityColor(log.severity_text)}`}
+                  >
+                    {log.severity_text || "UNKNOWN"}
+                  </Badge>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0 font-mono">
+                    {dateString} {timeString}
+                  </span>
+                  <div className="flex-1 text-sm min-w-0">
+                    <div className="font-mono text-xs break-all">{log.body}</div>
+                    {showAgentId && log.agent_id && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        Agent: {log.agent_id}
                       </div>
                     )}
-                  <div className="text-xs text-gray-500 mt-1">
-                    {showAgentId && `Agent: ${log.agent_id} • `}
-                    {new Date(log.timestamp).toLocaleString()}
+                    {log.log_attributes &&
+                      Object.keys(log.log_attributes).length > 0 && (
+                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 font-mono">
+                          {Object.entries(log.log_attributes).map(
+                            ([key, value]) => (
+                              <span key={key} className="mr-2">
+                                {key}={value}
+                              </span>
+                            ),
+                          )}
+                        </div>
+                      )}
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {logsData.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               No logs available

@@ -1,10 +1,5 @@
-import { RotateCw } from "lucide-react";
-import { useState } from "react";
-
-import { restartGroup } from "@/api/groups";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InfoCard } from "@/components/ui/info-card";
 
@@ -27,36 +22,17 @@ interface GroupMetrics {
 interface GroupOverviewProps {
   group: Group;
   metrics?: GroupMetrics;
-}
-
-export function GroupOverview({ group, metrics }: GroupOverviewProps) {
-  const [isRestarting, setIsRestarting] = useState(false);
-  const [restartMessage, setRestartMessage] = useState<{
+  restartMessage?: {
     type: "success" | "error";
     text: string;
-  } | null>(null);
+  } | null;
+}
 
-  const handleRestart = async () => {
-    setIsRestarting(true);
-    setRestartMessage(null);
-    try {
-      const response = await restartGroup(group.id);
-      if (response.success) {
-        const summary = `${response.message} (${response.restarted_count} restarted, ${response.failed_count} failed)`;
-        setRestartMessage({ type: "success", text: summary });
-        // Clear message after 7 seconds
-        setTimeout(() => setRestartMessage(null), 7000);
-      } else {
-        setRestartMessage({ type: "error", text: response.message });
-      }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to restart group";
-      setRestartMessage({ type: "error", text: errorMessage });
-    } finally {
-      setIsRestarting(false);
-    }
-  };
+export function GroupOverview({
+  group,
+  metrics,
+  restartMessage,
+}: GroupOverviewProps) {
   const metricsItems = metrics
     ? [
         {
@@ -100,40 +76,24 @@ export function GroupOverview({ group, metrics }: GroupOverviewProps) {
         </Alert>
       )}
 
-      <div className="flex items-center justify-between">
-        <InfoCard
-          title="Group Information"
-          items={[
-            {
-              label: "ID",
-              value: <span className="font-mono">{group.id}</span>,
-            },
-            { label: "Name", value: group.name },
-            {
-              label: "Created",
-              value: new Date(group.created_at).toLocaleString(),
-            },
-            {
-              label: "Updated",
-              value: new Date(group.updated_at).toLocaleString(),
-            },
-          ]}
-        />
-        {metrics && metrics.agent_count > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRestart}
-            disabled={isRestarting}
-            className="ml-4"
-          >
-            <RotateCw
-              className={`h-4 w-4 mr-2 ${isRestarting ? "animate-spin" : ""}`}
-            />
-            {isRestarting ? "Restarting..." : "Restart All"}
-          </Button>
-        )}
-      </div>
+      <InfoCard
+        title="Group Information"
+        items={[
+          {
+            label: "ID",
+            value: <span className="font-mono">{group.id}</span>,
+          },
+          { label: "Name", value: group.name },
+          {
+            label: "Created",
+            value: new Date(group.created_at).toLocaleString(),
+          },
+          {
+            label: "Updated",
+            value: new Date(group.updated_at).toLocaleString(),
+          },
+        ]}
+      />
 
       {metrics && (
         <InfoCard title="Group Stats (Last 5 min)" items={metricsItems} />
