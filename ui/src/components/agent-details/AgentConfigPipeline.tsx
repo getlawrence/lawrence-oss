@@ -124,11 +124,11 @@ export function AgentConfigPipeline({
           <TabsList>
             <TabsTrigger value="code" className="flex items-center gap-2">
               <Code className="h-4 w-4" />
-              Code View
+              YAML
             </TabsTrigger>
             <TabsTrigger value="pipeline" className="flex items-center gap-2">
               <Workflow className="h-4 w-4" />
-              Pipeline View
+              Pipeline
             </TabsTrigger>
           </TabsList>
 
