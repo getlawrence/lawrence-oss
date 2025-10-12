@@ -17,10 +17,10 @@ export function TopologyHeader({
   refreshing,
 }: TopologyHeaderProps) {
   return (
-    <div className="h-16 border-b bg-white px-4 flex items-center justify-between flex-shrink-0">
+    <div className="h-16 border-b bg-background px-4 flex items-center justify-between flex-shrink-0">
       <div>
         <h1 className="text-2xl font-bold">Topology</h1>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted-foreground">
           Visualize your agent infrastructure
         </p>
       </div>

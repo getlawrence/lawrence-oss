@@ -40,8 +40,9 @@ export default defineConfig({
       '@radix-ui/react-tooltip',
       '@tanstack/react-table',
       'recharts',
+      '@monaco-editor/react',
     ],
-    force: true,
+    exclude: ['monaco-editor'],
   },
   build: {
     sourcemap: false,
@@ -79,15 +80,16 @@ export default defineConfig({
     server: {
       deps: {
         inline: ['monaco-editor', '@monaco-editor/loader', '@monaco-editor/react'],
-        external: ['**/node_modules/@monaco-editor/**'],
       },
+    },
+    alias: {
+      'monaco-editor': path.resolve(__dirname, './src/test/__mocks__/monaco-editor.ts'),
+      '@monaco-editor/loader': path.resolve(__dirname, './src/test/__mocks__/monaco-loader.ts'),
     },
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      'monaco-editor': path.resolve(__dirname, './src/test/__mocks__/monaco-editor.ts'),
-      '@monaco-editor/loader': path.resolve(__dirname, './src/test/__mocks__/monaco-loader.ts'),
     },
   },
 });

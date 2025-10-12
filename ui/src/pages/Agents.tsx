@@ -53,9 +53,13 @@ export default function AgentsPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "online":
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return (
+          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+        );
       case "offline":
-        return <XCircle className="h-4 w-4 text-gray-500" />;
+        return (
+          <XCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+        );
       case "error":
         return <AlertCircle className="h-4 w-4 text-red-500" />;
       default:
@@ -67,12 +71,22 @@ export default function AgentsPage() {
     switch (status) {
       case "online":
         return (
-          <Badge variant="default" className="bg-green-100 text-green-800">
+          <Badge
+            variant="default"
+            className="bg-green-500/10 text-green-700 border-green-500/20 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30"
+          >
             Online
           </Badge>
         );
       case "offline":
-        return <Badge variant="secondary">Offline</Badge>;
+        return (
+          <Badge
+            variant="default"
+            className="bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30"
+          >
+            Offline
+          </Badge>
+        );
       case "error":
         return <Badge variant="destructive">Error</Badge>;
       default:
@@ -146,7 +160,7 @@ export default function AgentsPage() {
           <h1 className="text-2xl font-bold text-red-600 mb-4">
             Error Loading Data
           </h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             {agentsError?.message || "Failed to load agent data"}
           </p>
           <Button onClick={handleRefresh} className="mt-4">
@@ -172,6 +186,7 @@ export default function AgentsPage() {
             icon: RefreshCw,
             onClick: handleRefresh,
             disabled: refreshing,
+            variant: "ghost" as const,
           },
         ]}
         cardTitle={`Agents (${agents.length})`}
@@ -228,7 +243,7 @@ export default function AgentsPage() {
                   onClick={(e) =>
                     agent.group_id && handleGroupClick(agent.group_id, e)
                   }
-                  className="text-blue-600 hover:text-blue-800 cursor-pointer underline"
+                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer underline"
                 >
                   {groupIdToName[agent.group_id] || agent.group_id}
                 </span>

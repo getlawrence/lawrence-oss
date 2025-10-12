@@ -6,7 +6,7 @@ export default function TelemetryPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Telemetry Explorer</h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Query and explore metrics, logs, and traces using Lawrence QL
           </p>
         </div>

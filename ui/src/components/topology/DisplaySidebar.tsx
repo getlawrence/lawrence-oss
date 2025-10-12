@@ -225,10 +225,10 @@ function AgentsDisplaySection({
                   className={cn(
                     "w-2 h-2 rounded-full",
                     agent.status === "online"
-                      ? "bg-green-500"
+                      ? "bg-green-600 dark:bg-green-400"
                       : agent.status === "error"
                         ? "bg-red-500"
-                        : "bg-gray-400",
+                        : "bg-amber-600 dark:bg-amber-400",
                   )}
                 />
                 <div className="flex-1 min-w-0">

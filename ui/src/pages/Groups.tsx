@@ -84,7 +84,7 @@ export default function GroupsPage() {
           <h1 className="text-2xl font-bold text-red-600 mb-4">
             Error Loading Groups
           </h1>
-          <p className="text-gray-600">{groupsError.message}</p>
+          <p className="text-muted-foreground">{groupsError.message}</p>
           <Button onClick={handleRefresh} className="mt-4">
             <RefreshCw className="h-4 w-4 mr-2" />
             Retry
@@ -107,11 +107,13 @@ export default function GroupsPage() {
             icon: RefreshCw,
             onClick: handleRefresh,
             disabled: refreshing,
+            variant: "ghost" as const,
           },
           {
             label: "Create Group",
             icon: Plus,
             onClick: () => setCreateDialogOpen(true),
+            variant: "default" as const,
           },
         ]}
         cardTitle={`Groups (${groups.length})`}
@@ -140,21 +142,24 @@ export default function GroupsPage() {
                 {Object.entries(group.labels).map(([key, value]) => (
                   <span
                     key={key}
-                    className="text-xs bg-gray-100 px-2 py-1 rounded"
+                    className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded"
                   >
                     {key}={value}
                   </span>
                 ))}
                 {Object.keys(group.labels).length === 0 && (
-                  <span className="text-xs text-gray-500">No labels</span>
+                  <span className="text-xs text-muted-foreground">
+                    No labels
+                  </span>
                 )}
               </div>
             </TableCell>
             <TableCell>
               <Button
-                variant="destructive"
+                variant="ghost"
                 size="sm"
                 onClick={(e) => handleDeleteClick(group, e)}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/30"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>

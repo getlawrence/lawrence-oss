@@ -1,5 +1,5 @@
-import Editor from "@monaco-editor/react";
-import * as monaco from "monaco-editor";
+import Editor, { type OnMount } from "@monaco-editor/react";
+import type * as Monaco from "monaco-editor";
 import { useEffect, useRef, useState } from "react";
 
 import { useTheme } from "../ThemeProvider";
@@ -25,9 +25,10 @@ export function ConfigYamlEditorWithMetrics({
   metrics,
   readonly = false,
 }: ConfigYamlEditorWithMetricsProps) {
-  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
+  const monacoRef = useRef<typeof Monaco | null>(null);
   const decorationsRef =
-    useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
+    useRef<Monaco.editor.IEditorDecorationsCollection | null>(null);
   const [parsedComponents, setParsedComponents] = useState<YamlComponent[]>([]);
 
   const { theme } = useTheme();
@@ -42,17 +43,23 @@ export function ConfigYamlEditorWithMetrics({
 
   // Update decorations when metrics or parsed components change
   useEffect(() => {
-    if (!editorRef.current || !metrics || metrics.length === 0) {
+    if (
+      !editorRef.current ||
+      !monacoRef.current ||
+      !metrics ||
+      metrics.length === 0
+    ) {
       return;
     }
 
     const editor = editorRef.current;
+    const monaco = monacoRef.current;
     const model = editor.getModel();
     if (!model) {
       return;
     }
 
-    const newDecorations: monaco.editor.IModelDeltaDecoration[] = [];
+    const newDecorations: Monaco.editor.IModelDeltaDecoration[] = [];
 
     // Match parsed components with metrics
     parsedComponents.forEach((component) => {
@@ -103,9 +110,10 @@ export function ConfigYamlEditorWithMetrics({
     }
   }, [metrics, parsedComponents]);
 
-  function handleEditorMount(editor: monaco.editor.IStandaloneCodeEditor) {
+  const handleEditorMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
-  }
+    monacoRef.current = monaco;
+  };
 
   return (
     <div className="border rounded-lg overflow-hidden">

@@ -79,10 +79,10 @@ export function PageTable<T>({
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Page Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center pb-4 border-b border-border">
         <div>
           <h1 className="text-3xl font-bold">{pageTitle}</h1>
-          <p className="text-gray-600">{pageDescription}</p>
+          <p className="text-muted-foreground mt-1">{pageDescription}</p>
         </div>
         {pageActions.length > 0 && (
           <div className="flex space-x-2">

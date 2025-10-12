@@ -7,3 +7,4 @@ export type {
 } from "./PageTable";
 export { TelemetryLogsView } from "./TelemetryLogsView";
 export { TelemetryMetricsView } from "./TelemetryMetricsView";
+export { TruncatedId } from "./TruncatedId";

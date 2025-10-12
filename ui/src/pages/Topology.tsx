@@ -68,7 +68,7 @@ export default function TopologyPage() {
           <h1 className="text-2xl font-bold text-red-600 mb-4">
             Error Loading Topology
           </h1>
-          <p className="text-gray-600">{error.message}</p>
+          <p className="text-muted-foreground">{error.message}</p>
           <Button onClick={handleRefresh} className="mt-4">
             <RefreshCw className="h-4 w-4 mr-2" />
             Retry

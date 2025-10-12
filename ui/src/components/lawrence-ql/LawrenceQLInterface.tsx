@@ -78,7 +78,7 @@ export function LawrenceQLInterface() {
                     }
                   }}
                 />
-                <div className="text-xs text-muted-foreground mt-2">
+                <div className="text-xs text-muted-foreground/70 mt-2">
                   Press Cmd/Ctrl + Enter to execute
                 </div>
               </div>
