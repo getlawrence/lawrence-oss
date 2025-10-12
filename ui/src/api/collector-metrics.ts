@@ -68,7 +68,6 @@ export async function fetchAgentComponentMetrics(
       m.metric_name.startsWith("otelcol_exporter_"),
   );
 
-
   // Group metrics by component
   const componentMap = new Map<string, Partial<ComponentMetrics>>();
 
@@ -80,12 +79,22 @@ export async function fetchAgentComponentMetrics(
     // Typical labels: receiver, processor, exporter, service_name, transport
     const componentType = extractComponentType(metric.metric_name);
     const componentName =
-      labels.receiver || labels.processor || labels.exporter ||
-      (attributes.receiver as string) || (attributes.processor as string) || (attributes.exporter as string) || "unknown";
+      labels.receiver ||
+      labels.processor ||
+      labels.exporter ||
+      (attributes.receiver as string) ||
+      (attributes.processor as string) ||
+      (attributes.exporter as string) ||
+      "unknown";
 
     // Try to get pipeline type from labels/attributes first, then fall back to inferring from metric name
-    let pipelineType = labels.service_name || (attributes.service_name as string);
-    if (!pipelineType || pipelineType === "unknown" || !["traces", "metrics", "logs"].includes(pipelineType)) {
+    let pipelineType =
+      labels.service_name || (attributes.service_name as string);
+    if (
+      !pipelineType ||
+      pipelineType === "unknown" ||
+      !["traces", "metrics", "logs"].includes(pipelineType)
+    ) {
       // Infer pipeline type from metric name
       const inferredType = extractPipelineType(metric.metric_name);
       if (inferredType) {
@@ -94,7 +103,10 @@ export async function fetchAgentComponentMetrics(
     }
 
     // Skip metrics where we can't determine the pipeline type
-    if (!pipelineType || !["traces", "metrics", "logs"].includes(pipelineType)) {
+    if (
+      !pipelineType ||
+      !["traces", "metrics", "logs"].includes(pipelineType)
+    ) {
       continue;
     }
 
@@ -192,7 +204,10 @@ function extractPipelineType(metricName: string): string | null {
     return "traces";
   }
   // Check for metric points (metrics)
-  if (metricName.includes("_metric_points") || metricName.includes("_metrics")) {
+  if (
+    metricName.includes("_metric_points") ||
+    metricName.includes("_metrics")
+  ) {
     return "metrics";
   }
   // Check for log records (logs)

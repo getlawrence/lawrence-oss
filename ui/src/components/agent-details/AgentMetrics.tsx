@@ -236,7 +236,9 @@ export function AgentMetrics({ agentId }: AgentMetricsProps) {
                   {metric.icon}
                 </div>
                 <div className="flex-1">
-                  <p className="text-xs text-muted-foreground">{metric.label}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {metric.label}
+                  </p>
                   <p className="text-lg font-semibold">{metric.value}</p>
                 </div>
               </div>
@@ -429,8 +431,8 @@ function ComponentMetricCard({ component, icon }: ComponentMetricCardProps) {
           {component.name}
         </CardTitle>
         <CardDescription>
-          {component.metrics.length} data points •{" "}
-          {metricsByName.size} unique metrics
+          {component.metrics.length} data points • {metricsByName.size} unique
+          metrics
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

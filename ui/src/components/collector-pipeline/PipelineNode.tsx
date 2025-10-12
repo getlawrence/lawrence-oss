@@ -142,7 +142,9 @@ export function ReceiverNode({ data, selected }: NodeProps) {
       {nodeData.metrics?.received !== undefined && (
         <div className="flex justify-between">
           <span className="text-gray-600">Received:</span>
-          <span className="font-medium">{formatCount(nodeData.metrics.received)}</span>
+          <span className="font-medium">
+            {formatCount(nodeData.metrics.received)}
+          </span>
         </div>
       )}
     </BaseComponentNode>
@@ -163,13 +165,17 @@ export function ProcessorNode({ data, selected }: NodeProps) {
       {nodeData.metrics?.processed !== undefined && (
         <div className="flex justify-between">
           <span className="text-gray-600">Processed:</span>
-          <span className="font-medium">{formatCount(nodeData.metrics.processed)}</span>
+          <span className="font-medium">
+            {formatCount(nodeData.metrics.processed)}
+          </span>
         </div>
       )}
       {nodeData.metrics?.batches !== undefined && (
         <div className="flex justify-between">
           <span className="text-gray-600">Batches:</span>
-          <span className="font-medium">{formatCount(nodeData.metrics.batches)}</span>
+          <span className="font-medium">
+            {formatCount(nodeData.metrics.batches)}
+          </span>
         </div>
       )}
     </BaseComponentNode>
@@ -190,7 +196,9 @@ export function ExporterNode({ data, selected }: NodeProps) {
       {nodeData.metrics?.exported !== undefined && (
         <div className="flex justify-between">
           <span className="text-gray-600">Exported:</span>
-          <span className="font-medium">{formatCount(nodeData.metrics.exported)}</span>
+          <span className="font-medium">
+            {formatCount(nodeData.metrics.exported)}
+          </span>
         </div>
       )}
     </BaseComponentNode>

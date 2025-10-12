@@ -86,7 +86,8 @@ export function TelemetryLogsView({
   );
 
   const getSeverityColor = (severity?: string) => {
-    if (!severity) return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-800";
+    if (!severity)
+      return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-800";
     switch (severity.toUpperCase()) {
       case "ERROR":
       case "FATAL":
@@ -150,18 +151,30 @@ export function TelemetryLogsView({
                   {severityFilter === "all" ? (
                     "All Severities"
                   ) : (
-                    <Badge className={`text-xs ${getSeverityColor(severityFilter)}`}>
+                    <Badge
+                      className={`text-xs ${getSeverityColor(severityFilter)}`}
+                    >
                       {severityFilter}
                     </Badge>
                   )}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{getSeverityOption("all", "All Severities")}</SelectItem>
-                <SelectItem value="error">{getSeverityOption("error", "error")}</SelectItem>
-                <SelectItem value="warn">{getSeverityOption("warn", "warn")}</SelectItem>
-                <SelectItem value="info">{getSeverityOption("info", "info")}</SelectItem>
-                <SelectItem value="debug">{getSeverityOption("debug", "debug")}</SelectItem>
+                <SelectItem value="all">
+                  {getSeverityOption("all", "All Severities")}
+                </SelectItem>
+                <SelectItem value="error">
+                  {getSeverityOption("error", "error")}
+                </SelectItem>
+                <SelectItem value="warn">
+                  {getSeverityOption("warn", "warn")}
+                </SelectItem>
+                <SelectItem value="info">
+                  {getSeverityOption("info", "info")}
+                </SelectItem>
+                <SelectItem value="debug">
+                  {getSeverityOption("debug", "debug")}
+                </SelectItem>
               </SelectContent>
             </Select>
             <div className="flex-1 min-w-[200px]">
@@ -196,15 +209,18 @@ export function TelemetryLogsView({
                 </Badge>
                 <div className="flex-1 text-sm">
                   <div className="font-mono text-xs break-all">{log.body}</div>
-                  {log.log_attributes && Object.keys(log.log_attributes).length > 0 && (
-                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 font-mono">
-                      {Object.entries(log.log_attributes).map(([key, value]) => (
-                        <span key={key} className="mr-3">
-                          {key}={value}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  {log.log_attributes &&
+                    Object.keys(log.log_attributes).length > 0 && (
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 font-mono">
+                        {Object.entries(log.log_attributes).map(
+                          ([key, value]) => (
+                            <span key={key} className="mr-3">
+                              {key}={value}
+                            </span>
+                          ),
+                        )}
+                      </div>
+                    )}
                   <div className="text-xs text-gray-500 mt-1">
                     {showAgentId && `Agent: ${log.agent_id} • `}
                     {new Date(log.timestamp).toLocaleString()}
