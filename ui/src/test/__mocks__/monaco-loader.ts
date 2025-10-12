@@ -3,4 +3,3 @@ export default {
   init: () => Promise.resolve(),
   config: () => {},
 };
-
