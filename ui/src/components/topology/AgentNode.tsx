@@ -28,7 +28,7 @@ export function AgentNode({ data }: AgentNodeProps) {
   };
 
   return (
-    <div className="bg-white border-2 border-blue-500 rounded-lg p-3 shadow-lg min-w-[200px]">
+    <div className="bg-white border-2 border-blue-500 rounded-lg p-3 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.02] min-w-[200px] dark:bg-gray-800 dark:border-blue-400">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Server className="h-5 w-5 text-blue-500" />

@@ -60,19 +60,36 @@ export function AgentOverview({ agent, metrics }: AgentOverviewProps) {
           items={[
             {
               label: "Metrics",
-              value: (
-                <span className="font-semibold">{metrics.metric_count}</span>
-              ),
+              value:
+                metrics.metric_count === 0 ? (
+                  <span className="text-muted-foreground text-xs">
+                    No data received
+                  </span>
+                ) : (
+                  <span className="font-semibold">{metrics.metric_count}</span>
+                ),
             },
             {
               label: "Logs",
-              value: <span className="font-semibold">{metrics.log_count}</span>,
+              value:
+                metrics.log_count === 0 ? (
+                  <span className="text-muted-foreground text-xs">
+                    No data received
+                  </span>
+                ) : (
+                  <span className="font-semibold">{metrics.log_count}</span>
+                ),
             },
             {
               label: "Traces",
-              value: (
-                <span className="font-semibold">{metrics.trace_count}</span>
-              ),
+              value:
+                metrics.trace_count === 0 ? (
+                  <span className="text-muted-foreground text-xs">
+                    No data received
+                  </span>
+                ) : (
+                  <span className="font-semibold">{metrics.trace_count}</span>
+                ),
             },
             {
               label: "Throughput",
