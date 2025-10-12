@@ -73,7 +73,7 @@ jobs:
         
     - name: Install frontend dependencies
       working-directory: ui
-      run: npm ci
+      run: npm install
       
     - name: Run frontend linting
       working-directory: ui
@@ -209,7 +209,7 @@ jobs:
     - name: Install dependencies
       run: |
         go mod download
-        cd ui && npm ci
+        cd ui && npm install
         
     - name: Build full application
       run: make build
