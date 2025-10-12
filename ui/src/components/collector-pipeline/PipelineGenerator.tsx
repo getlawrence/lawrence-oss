@@ -1,8 +1,28 @@
 import type { Node, Edge } from "@xyflow/react";
 import * as yaml from "js-yaml";
 
+import type { ComponentMetrics } from "@/api/collector-metrics";
+
+// Helper function to find metrics for a specific component
+function findComponentMetrics(
+  metrics: ComponentMetrics[],
+  componentType: string,
+  componentName: string,
+  pipelineType: string,
+): ComponentMetrics | undefined {
+  return metrics.find(
+    (m) =>
+      m.component_type === componentType &&
+      m.component_name === componentName &&
+      m.pipeline_type === pipelineType,
+  );
+}
+
 // Generate nodes and edges for the pipeline based on actual agent configuration
-export function generatePipelineNodes(effectiveConfig: string): {
+export function generatePipelineNodes(
+  effectiveConfig: string,
+  metrics: ComponentMetrics[] = [],
+): {
   nodes: Node[];
   edges: Edge[];
 } {
@@ -31,7 +51,7 @@ export function generatePipelineNodes(effectiveConfig: string): {
   let parsedConfig;
   try {
     parsedConfig = yaml.load(effectiveConfig) as any;
-  } catch (_error) {
+  } catch {
     return {
       nodes: [
         {
@@ -129,6 +149,16 @@ export function generatePipelineNodes(effectiveConfig: string): {
         ? pipelineName.toUpperCase()
         : `${pipelineType.toUpperCase()} (${pipelineName})`;
 
+    // Calculate aggregate metrics for this pipeline
+    const pipelineMetrics = metrics.filter(
+      (m) => m.pipeline_type === pipelineType,
+    );
+    const totalReceived = pipelineMetrics.reduce(
+      (sum, m) => sum + (m.received || 0),
+      0,
+    );
+    const totalErrors = pipelineMetrics.reduce((sum, m) => sum + m.errors, 0);
+
     // Create section container node (Otail style)
     const sectionNode: Node = {
       id: `section-${pipelineName}`,
@@ -143,8 +173,8 @@ export function generatePipelineNodes(effectiveConfig: string): {
         width: 850,
         height: 320,
         metrics: {
-          received: 0, // Metrics not available in unified type
-          errors: 0,
+          received: totalReceived,
+          errors: totalErrors,
         },
         // Add flow pattern indicators
         flowPattern: {
@@ -189,6 +219,14 @@ export function generatePipelineNodes(effectiveConfig: string): {
       ? Object.keys(parsedConfig.receivers)
       : [];
     receivers.forEach((receiver, index) => {
+      // Find metrics for this receiver
+      const receiverMetrics = findComponentMetrics(
+        metrics,
+        "receiver",
+        receiver,
+        pipelineType,
+      );
+
       const receiverNode: Node = {
         id: `receiver-${pipelineType}-${receiver}`,
         type: "receiver",
@@ -200,7 +238,8 @@ export function generatePipelineNodes(effectiveConfig: string): {
           label: receiver,
           pipelineType: pipelineType,
           metrics: {
-            received: 0, // Metrics not available in unified type
+            received:
+              receiverMetrics?.received || receiverMetrics?.accepted || 0,
           },
         },
       };
@@ -216,6 +255,14 @@ export function generatePipelineNodes(effectiveConfig: string): {
       centerY - ((processors.length - 1) * processorSpacing) / 2;
 
     processors.forEach((processor, index) => {
+      // Find metrics for this processor
+      const processorMetrics = findComponentMetrics(
+        metrics,
+        "processor",
+        processor,
+        pipelineType,
+      );
+
       const processorNode: Node = {
         id: `processor-${pipelineType}-${processor}`,
         type: "processor",
@@ -227,8 +274,9 @@ export function generatePipelineNodes(effectiveConfig: string): {
           label: processor,
           pipelineType: pipelineType,
           metrics: {
-            processed: 0,
-            batches: 0,
+            processed:
+              processorMetrics?.accepted || processorMetrics?.received || 0,
+            batches: 0, // batches info not available in current metrics
           },
         },
       };
@@ -248,6 +296,14 @@ export function generatePipelineNodes(effectiveConfig: string): {
       centerY - ((exporterCount - 1) * exporterSpacing) / 2;
 
     exporters.forEach((exporter, index) => {
+      // Find metrics for this exporter
+      const exporterMetrics = findComponentMetrics(
+        metrics,
+        "exporter",
+        exporter,
+        pipelineType,
+      );
+
       const exporterNode: Node = {
         id: `exporter-${pipelineType}-${exporter}`,
         type: "exporter",
@@ -259,7 +315,7 @@ export function generatePipelineNodes(effectiveConfig: string): {
           label: exporter,
           pipelineType: pipelineType,
           metrics: {
-            exported: 0,
+            exported: exporterMetrics?.sent || 0,
           },
         },
       };

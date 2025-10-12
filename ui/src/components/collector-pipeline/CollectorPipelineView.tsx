@@ -8,6 +8,7 @@ import {
 } from "@xyflow/react";
 import { RefreshCw, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
+import useSWR from "swr";
 
 import "@xyflow/react/dist/style.css";
 
@@ -19,6 +20,7 @@ import {
   SectionNode,
 } from "./PipelineNode";
 
+import { fetchAgentComponentMetrics } from "@/api/collector-metrics";
 import { getConfigs } from "@/api/configs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -49,6 +51,22 @@ export function CollectorPipelineView({
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+
+  // Fetch component metrics
+  const { data: metricsData } = useSWR(
+    `agent-component-metrics-pipeline-${agentId}`,
+    async () => {
+      try {
+        return await fetchAgentComponentMetrics(agentId, 5); // 5 minutes
+      } catch (error) {
+        console.error("Failed to fetch component metrics:", error);
+        return [];
+      }
+    },
+    {
+      refreshInterval: 5000, // Refresh every 5 seconds
+    },
+  );
 
   // Fetch agent config only if not provided via props
   const fetchConfig = async () => {
@@ -86,13 +104,13 @@ export function CollectorPipelineView({
       return;
     }
 
-    // Use the generator to create nodes from config
+    // Use the generator to create nodes from config with metrics
     const { nodes: generatedNodes, edges: generatedEdges } =
-      generatePipelineNodes(effectiveConfig);
+      generatePipelineNodes(effectiveConfig, metricsData || []);
 
     setNodes(generatedNodes);
     setEdges(generatedEdges);
-  }, [effectiveConfig]);
+  }, [effectiveConfig, metricsData]);
 
   if (loading) {
     return (

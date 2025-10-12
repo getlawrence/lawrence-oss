@@ -3,6 +3,7 @@ import { ArrowDownCircle, ArrowUpCircle, Settings } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatCount } from "@/utils";
 
 interface SectionNodeData extends Record<string, unknown> {
   label: string;
@@ -115,10 +116,10 @@ export function SectionNode({ data }: NodeProps) {
       </div>
       {nodeData.metrics && (
         <div className="text-xs text-gray-600">
-          <span>Received: {nodeData.metrics.received || 0}</span>
+          <span>Received: {formatCount(nodeData.metrics.received || 0)}</span>
           {nodeData.metrics.errors > 0 && (
             <span className="ml-4 text-red-600">
-              Errors: {nodeData.metrics.errors}
+              Errors: {formatCount(nodeData.metrics.errors)}
             </span>
           )}
         </div>
@@ -141,7 +142,9 @@ export function ReceiverNode({ data, selected }: NodeProps) {
       {nodeData.metrics?.received !== undefined && (
         <div className="flex justify-between">
           <span className="text-gray-600">Received:</span>
-          <span className="font-medium">{nodeData.metrics.received}</span>
+          <span className="font-medium">
+            {formatCount(nodeData.metrics.received)}
+          </span>
         </div>
       )}
     </BaseComponentNode>
@@ -162,13 +165,17 @@ export function ProcessorNode({ data, selected }: NodeProps) {
       {nodeData.metrics?.processed !== undefined && (
         <div className="flex justify-between">
           <span className="text-gray-600">Processed:</span>
-          <span className="font-medium">{nodeData.metrics.processed}</span>
+          <span className="font-medium">
+            {formatCount(nodeData.metrics.processed)}
+          </span>
         </div>
       )}
       {nodeData.metrics?.batches !== undefined && (
         <div className="flex justify-between">
           <span className="text-gray-600">Batches:</span>
-          <span className="font-medium">{nodeData.metrics.batches}</span>
+          <span className="font-medium">
+            {formatCount(nodeData.metrics.batches)}
+          </span>
         </div>
       )}
     </BaseComponentNode>
@@ -189,7 +196,9 @@ export function ExporterNode({ data, selected }: NodeProps) {
       {nodeData.metrics?.exported !== undefined && (
         <div className="flex justify-between">
           <span className="text-gray-600">Exported:</span>
-          <span className="font-medium">{nodeData.metrics.exported}</span>
+          <span className="font-medium">
+            {formatCount(nodeData.metrics.exported)}
+          </span>
         </div>
       )}
     </BaseComponentNode>
