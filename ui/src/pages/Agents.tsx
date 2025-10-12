@@ -4,30 +4,25 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import useSWR from "swr";
 
 import { getAgents } from "@/api/agents";
 import { AgentDetailsDrawer } from "@/components/AgentDetailsDrawer";
 import { GroupDetailsDrawer } from "@/components/GroupDetailsDrawer";
+import { PageTable } from "@/components/shared/PageTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { TableCell } from "@/components/ui/table";
+import type { Agent } from "@/types/agent";
+
+type SortOrder = "asc" | "desc" | null;
 
 export default function AgentsPage() {
   const [refreshing, setRefreshing] = useState(false);
@@ -35,6 +30,8 @@ export default function AgentsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [groupDrawerOpen, setGroupDrawerOpen] = useState(false);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+  const [showActiveOnly, setShowActiveOnly] = useState(false);
 
   const {
     data: agentsData,
@@ -89,6 +86,43 @@ export default function AgentsPage() {
     setGroupDrawerOpen(true);
   };
 
+  const handleSortToggle = () => {
+    setSortOrder((prev) => {
+      if (prev === null) return "desc";
+      if (prev === "desc") return "asc";
+      return "desc";
+    });
+  };
+
+  const getSortIcon = () => {
+    if (sortOrder === "desc") return <ArrowDown className="h-4 w-4" />;
+    if (sortOrder === "asc") return <ArrowUp className="h-4 w-4" />;
+    return <ArrowUpDown className="h-4 w-4" />;
+  };
+
+  // Filter and sort agents
+  const filteredAndSortedAgents = useMemo(() => {
+    const allAgents = agentsData?.agents
+      ? Object.values(agentsData.agents)
+      : [];
+
+    // Apply status filter
+    let filtered = showActiveOnly
+      ? allAgents.filter((agent) => agent.status === "online")
+      : allAgents;
+
+    // Apply sorting by last_seen
+    if (sortOrder !== null) {
+      filtered = [...filtered].sort((a, b) => {
+        const dateA = new Date(a.last_seen).getTime();
+        const dateB = new Date(b.last_seen).getTime();
+        return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
+      });
+    }
+
+    return filtered;
+  }, [agentsData, showActiveOnly, sortOrder]);
+
   if (agentsError) {
     return (
       <div className="container mx-auto p-6">
@@ -108,117 +142,113 @@ export default function AgentsPage() {
     );
   }
 
-  const agents = agentsData?.agents ? Object.values(agentsData.agents) : [];
+  const allAgents = agentsData?.agents ? Object.values(agentsData.agents) : [];
+  const agents = filteredAndSortedAgents;
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Agents</h1>
-          <p className="text-gray-600">
-            Manage and monitor your OpenTelemetry agents
-          </p>
-        </div>
-        <Button onClick={handleRefresh} disabled={refreshing}>
-          <RefreshCw
-            className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
-          />
-          Refresh
-        </Button>
-      </div>
-
-      {/* Agents Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Agents ({agents.length})</CardTitle>
-          <CardDescription>
-            All registered OpenTelemetry agents and their current status
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {agents.length === 0 ? (
-            <div className="text-center py-8">
-              <Server className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No Agents Found
-              </h3>
-              <p className="text-gray-600">
-                No agents are currently registered. Agents will appear here once
-                they connect.
-              </p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Version</TableHead>
-                  <TableHead>Group</TableHead>
-                  <TableHead>Last Seen</TableHead>
-                  <TableHead>Labels</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {agents.map((agent) => (
-                  <TableRow
-                    key={agent.id}
-                    onClick={() => handleAgentClick(agent.id)}
-                    className="cursor-pointer hover:bg-muted/50"
-                  >
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        {getStatusIcon(agent.status)}
-                        {getStatusBadge(agent.status)}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">{agent.name}</TableCell>
-                    <TableCell>{agent.version}</TableCell>
-                    <TableCell>
-                      {agent.group_id ? (
-                        <span
-                          onClick={(e) =>
-                            agent.group_id &&
-                            handleGroupClick(agent.group_id, e)
-                          }
-                          className="text-blue-600 hover:text-blue-800 cursor-pointer underline"
-                        >
-                          {agent.group_id}
-                        </span>
-                      ) : (
-                        "No Group"
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {new Date(agent.last_seen).toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {Object.entries(agent.labels)
-                          .slice(0, 2)
-                          .map(([key, value]) => (
-                            <Badge
-                              key={key}
-                              variant="outline"
-                              className="text-xs"
-                            >
-                              {key}={value}
-                            </Badge>
-                          ))}
-                        {Object.keys(agent.labels).length > 2 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{Object.keys(agent.labels).length - 2} more
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+    <>
+      <PageTable
+        pageTitle="Agents"
+        pageDescription="Manage and monitor your OpenTelemetry agents"
+        pageActions={[
+          {
+            label: "Refresh",
+            icon: RefreshCw,
+            onClick: handleRefresh,
+            disabled: refreshing,
+          },
+        ]}
+        cardTitle={`Agents (${agents.length})`}
+        cardDescription="All registered OpenTelemetry agents and their current status"
+        cardHeaderExtra={
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="active-only"
+              checked={showActiveOnly}
+              onCheckedChange={setShowActiveOnly}
+            />
+            <Label htmlFor="active-only" className="cursor-pointer">
+              Show active only
+            </Label>
+          </div>
+        }
+        columns={[
+          { header: "Status", key: "status" },
+          { header: "Name", key: "name" },
+          { header: "Version", key: "version" },
+          { header: "Group", key: "group" },
+          {
+            header: (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSortToggle}
+                className="h-8 px-2 -ml-2"
+              >
+                Last Seen
+                {getSortIcon()}
+              </Button>
+            ),
+            key: "last_seen",
+          },
+          { header: "Labels", key: "labels" },
+        ]}
+        data={agents}
+        getRowKey={(agent: Agent) => agent.id}
+        onRowClick={(agent: Agent) => handleAgentClick(agent.id)}
+        renderRow={(agent: Agent) => (
+          <>
+            <TableCell>
+              <div className="flex items-center space-x-2">
+                {getStatusIcon(agent.status)}
+                {getStatusBadge(agent.status)}
+              </div>
+            </TableCell>
+            <TableCell className="font-medium">{agent.name}</TableCell>
+            <TableCell>{agent.version}</TableCell>
+            <TableCell>
+              {agent.group_id ? (
+                <span
+                  onClick={(e) =>
+                    agent.group_id && handleGroupClick(agent.group_id, e)
+                  }
+                  className="text-blue-600 hover:text-blue-800 cursor-pointer underline"
+                >
+                  {agent.group_id}
+                </span>
+              ) : (
+                "No Group"
+              )}
+            </TableCell>
+            <TableCell>{new Date(agent.last_seen).toLocaleString()}</TableCell>
+            <TableCell>
+              <div className="flex flex-wrap gap-1">
+                {Object.entries(agent.labels)
+                  .slice(0, 2)
+                  .map(([key, value]) => (
+                    <Badge key={key} variant="outline" className="text-xs">
+                      {key}={value}
+                    </Badge>
+                  ))}
+                {Object.keys(agent.labels).length > 2 && (
+                  <Badge variant="outline" className="text-xs">
+                    +{Object.keys(agent.labels).length - 2} more
+                  </Badge>
+                )}
+              </div>
+            </TableCell>
+          </>
+        )}
+        emptyState={{
+          icon: Server,
+          title:
+            allAgents.length === 0 ? "No Agents Found" : "No Matching Agents",
+          description:
+            allAgents.length === 0
+              ? "No agents are currently registered. Agents will appear here once they connect."
+              : "No agents match the current filter criteria.",
+        }}
+      />
 
       <AgentDetailsDrawer
         agentId={selectedAgentId}
@@ -231,6 +261,6 @@ export default function AgentsPage() {
         open={groupDrawerOpen}
         onOpenChange={setGroupDrawerOpen}
       />
-    </div>
+    </>
   );
 }
