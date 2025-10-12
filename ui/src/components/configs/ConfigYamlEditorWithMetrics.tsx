@@ -43,7 +43,12 @@ export function ConfigYamlEditorWithMetrics({
 
   // Update decorations when metrics or parsed components change
   useEffect(() => {
-    if (!editorRef.current || !monacoRef.current || !metrics || metrics.length === 0) {
+    if (
+      !editorRef.current ||
+      !monacoRef.current ||
+      !metrics ||
+      metrics.length === 0
+    ) {
       return;
     }
 

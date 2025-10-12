@@ -148,7 +148,9 @@ export default function GroupsPage() {
                   </span>
                 ))}
                 {Object.keys(group.labels).length === 0 && (
-                  <span className="text-xs text-muted-foreground">No labels</span>
+                  <span className="text-xs text-muted-foreground">
+                    No labels
+                  </span>
                 )}
               </div>
             </TableCell>
