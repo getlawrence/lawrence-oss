@@ -76,6 +76,11 @@ export default defineConfig({
         },
       },
     },
+    server: {
+      deps: {
+        inline: ['monaco-editor', '@monaco-editor/loader', '@monaco-editor/react'],
+      },
+    },
     alias: {
       'monaco-editor': path.resolve(__dirname, './src/test/__mocks__/monaco-editor.ts'),
       '@monaco-editor/loader': path.resolve(__dirname, './src/test/__mocks__/monaco-loader.ts'),
@@ -84,6 +89,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      'monaco-editor': path.resolve(__dirname, './src/test/__mocks__/monaco-editor.ts'),
+      '@monaco-editor/loader': path.resolve(__dirname, './src/test/__mocks__/monaco-loader.ts'),
     },
   },
 });
