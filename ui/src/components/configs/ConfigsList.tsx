@@ -30,11 +30,13 @@ export function ConfigsList({
           icon: RefreshCw,
           onClick: onRefresh,
           disabled: refreshing,
+          variant: "ghost" as const,
         },
         {
           label: "Create Config",
           icon: Plus,
           onClick: onCreateNew,
+          variant: "default" as const,
         },
       ]}
       cardTitle={`Configurations (${configs.length})`}

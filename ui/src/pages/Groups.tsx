@@ -107,11 +107,13 @@ export default function GroupsPage() {
             icon: RefreshCw,
             onClick: handleRefresh,
             disabled: refreshing,
+            variant: "ghost" as const,
           },
           {
             label: "Create Group",
             icon: Plus,
             onClick: () => setCreateDialogOpen(true),
+            variant: "default" as const,
           },
         ]}
         cardTitle={`Groups (${groups.length})`}
@@ -152,9 +154,10 @@ export default function GroupsPage() {
             </TableCell>
             <TableCell>
               <Button
-                variant="destructive"
+                variant="ghost"
                 size="sm"
                 onClick={(e) => handleDeleteClick(group, e)}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/30"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>

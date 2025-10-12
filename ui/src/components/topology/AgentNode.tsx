@@ -13,9 +13,13 @@ export function AgentNode({ data }: AgentNodeProps) {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "online":
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return (
+          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+        );
       case "offline":
-        return <XCircle className="h-4 w-4 text-gray-500" />;
+        return (
+          <XCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+        );
       case "error":
         return <AlertCircle className="h-4 w-4 text-red-500" />;
       default:
