@@ -37,7 +37,7 @@ export function TopologyCanvas({
   }, [nodes, edges, setNodes, setEdges]);
 
   return (
-    <div className="flex-1 relative bg-gray-100">
+    <div className="flex-1 relative bg-gray-100 dark:bg-gray-900">
       <ReactFlow
         nodes={flowNodes}
         edges={flowEdges}

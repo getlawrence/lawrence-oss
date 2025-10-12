@@ -160,7 +160,7 @@ export default function AgentsPage() {
           <h1 className="text-2xl font-bold text-red-600 mb-4">
             Error Loading Data
           </h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             {agentsError?.message || "Failed to load agent data"}
           </p>
           <Button onClick={handleRefresh} className="mt-4">
@@ -243,7 +243,7 @@ export default function AgentsPage() {
                   onClick={(e) =>
                     agent.group_id && handleGroupClick(agent.group_id, e)
                   }
-                  className="text-blue-600 hover:text-blue-800 cursor-pointer underline"
+                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer underline"
                 >
                   {groupIdToName[agent.group_id] || agent.group_id}
                 </span>

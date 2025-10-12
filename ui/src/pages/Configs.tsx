@@ -206,7 +206,7 @@ export default function ConfigsPage({
             <h1 className="text-2xl font-bold text-red-600 mb-4">
               Error Loading Configs
             </h1>
-            <p className="text-gray-600">{configsError.message}</p>
+            <p className="text-muted-foreground">{configsError.message}</p>
             <Button onClick={handleRefresh} className="mt-4">
               <RefreshCw className="h-4 w-4 mr-2" />
               Retry
