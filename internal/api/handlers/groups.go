@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -14,13 +15,15 @@ import (
 // GroupHandlers handles group-related API endpoints
 type GroupHandlers struct {
 	agentService services.AgentService
+	commander    AgentCommander
 	logger       *zap.Logger
 }
 
 // NewGroupHandlers creates a new group handlers instance
-func NewGroupHandlers(agentService services.AgentService, logger *zap.Logger) *GroupHandlers {
+func NewGroupHandlers(agentService services.AgentService, commander AgentCommander, logger *zap.Logger) *GroupHandlers {
 	return &GroupHandlers{
 		agentService: agentService,
+		commander:    commander,
 		logger:       logger,
 	}
 }
@@ -238,5 +241,84 @@ func (h *GroupHandlers) HandleGetGroupAgents(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"agents": groupAgents,
 		"count":  len(groupAgents),
+	})
+}
+
+// RestartGroupResponse represents the response after restarting agents in a group
+type RestartGroupResponse struct {
+	Success        bool   `json:"success"`
+	Message        string `json:"message"`
+	RestartedCount int    `json:"restarted_count"`
+	FailedCount    int    `json:"failed_count"`
+}
+
+// HandleRestartGroup handles POST /api/v1/groups/:id/restart
+func (h *GroupHandlers) HandleRestartGroup(c *gin.Context) {
+	// 1. Parse group ID from URL
+	groupID := c.Param("id")
+	if groupID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Group ID is required"})
+		return
+	}
+
+	// 2. Verify group exists
+	group, err := h.agentService.GetGroup(c.Request.Context(), groupID)
+	if err != nil {
+		h.logger.Error("Failed to get group", zap.String("group_id", groupID), zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch group"})
+		return
+	}
+
+	if group == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Group not found"})
+		return
+	}
+
+	// 3. Send restart commands to all agents in the group
+	restartedAgents, errors := h.commander.RestartAgentsInGroup(groupID)
+
+	// 4. Build response
+	restartedCount := len(restartedAgents)
+	failedCount := len(errors)
+	totalAttempted := restartedCount + failedCount
+
+	h.logger.Info("Group restart command completed",
+		zap.String("group_id", groupID),
+		zap.Int("restarted", restartedCount),
+		zap.Int("failed", failedCount))
+
+	// Determine success and message
+	var success bool
+	var message string
+
+	if failedCount == 0 {
+		if restartedCount == 0 {
+			success = false
+			message = "No agents found in group"
+		} else {
+			success = true
+			message = fmt.Sprintf("Successfully restarted all %d agent(s)", restartedCount)
+		}
+	} else if restartedCount > 0 {
+		success = true
+		message = fmt.Sprintf("Partially successful: restarted %d/%d agent(s)", restartedCount, totalAttempted)
+	} else {
+		success = false
+		message = fmt.Sprintf("Failed to restart all %d agent(s)", failedCount)
+	}
+
+	// Return appropriate status code
+	statusCode := http.StatusOK
+	if !success {
+		if restartedCount == 0 && failedCount > 0 {
+			statusCode = http.StatusBadRequest
+		}
+	}
+
+	c.JSON(statusCode, RestartGroupResponse{
+		Success:        success,
+		Message:        message,
+		RestartedCount: restartedCount,
+		FailedCount:    failedCount,
 	})
 }

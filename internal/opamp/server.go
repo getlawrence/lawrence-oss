@@ -264,6 +264,52 @@ func (s *Server) ListAgents() map[uuid.UUID]*Agent {
 	return s.agents.GetAllAgentsReadonlyClone()
 }
 
+// RestartAgent sends a restart command to the specified agent
+func (s *Server) RestartAgent(agentId uuid.UUID) error {
+	agent := s.agents.FindAgent(agentId)
+	if agent == nil {
+		return fmt.Errorf("agent not found")
+	}
+
+	// Check if agent has capability to accept restart command
+	if !agent.hasCapability(protobufs.AgentCapabilities_AgentCapabilities_AcceptsRestartCommand) {
+		return fmt.Errorf("agent does not support restart command")
+	}
+
+	agent.SendRestartCommand()
+	s.logger.Info("Restart command sent to agent", zap.String("agentId", agentId.String()))
+	return nil
+}
+
+// RestartAgentsInGroup sends restart commands to all agents in a group
+// Returns the list of agent IDs that were successfully restarted and any errors encountered
+func (s *Server) RestartAgentsInGroup(groupId string) ([]uuid.UUID, []error) {
+	var restartedAgents []uuid.UUID
+	var errors []error
+
+	// Get all agents
+	allAgents := s.agents.GetAllAgentsReadonlyClone()
+
+	// Find agents in this group
+	for agentId, agent := range allAgents {
+		if agent.GroupID != nil && *agent.GroupID == groupId {
+			// Try to restart this agent
+			if err := s.RestartAgent(agentId); err != nil {
+				errors = append(errors, fmt.Errorf("agent %s: %w", agentId.String(), err))
+			} else {
+				restartedAgents = append(restartedAgents, agentId)
+			}
+		}
+	}
+
+	s.logger.Info("Group restart command completed",
+		zap.String("groupId", groupId),
+		zap.Int("restarted", len(restartedAgents)),
+		zap.Int("failed", len(errors)))
+
+	return restartedAgents, errors
+}
+
 // processAgentGrouping handles group resolution for agents
 // In OSS version, this is simplified - no backend API calls
 func (s *Server) processAgentGrouping(ctx context.Context, agent *Agent, msg *protobufs.AgentToServer) {
@@ -582,6 +628,9 @@ func (s *Server) extractAgentCapabilities(caps uint64) []string {
 	}
 	if caps&uint64(protobufs.AgentCapabilities_AgentCapabilities_ReportsRemoteConfig) != 0 {
 		capabilities = append(capabilities, "reports_remote_config")
+	}
+	if caps&uint64(protobufs.AgentCapabilities_AgentCapabilities_AcceptsRestartCommand) != 0 {
+		capabilities = append(capabilities, "accepts_restart_command")
 	}
 
 	return capabilities

@@ -11,23 +11,25 @@ import (
 	"github.com/getlawrence/lawrence-oss/internal/services"
 )
 
-// ConfigSender defines the interface for sending configurations to agents
-type ConfigSender interface {
+// AgentCommander defines the interface for sending commands to agents
+type AgentCommander interface {
 	SendConfigToAgent(agentId uuid.UUID, configContent string) error
+	RestartAgent(agentId uuid.UUID) error
+	RestartAgentsInGroup(groupId string) ([]uuid.UUID, []error)
 }
 
 // AgentHandlers handles agent-related API endpoints
 type AgentHandlers struct {
 	agentService services.AgentService
-	configSender ConfigSender
+	commander    AgentCommander
 	logger       *zap.Logger
 }
 
 // NewAgentHandlers creates a new agent handlers instance
-func NewAgentHandlers(agentService services.AgentService, configSender ConfigSender, logger *zap.Logger) *AgentHandlers {
+func NewAgentHandlers(agentService services.AgentService, commander AgentCommander, logger *zap.Logger) *AgentHandlers {
 	return &AgentHandlers{
 		agentService: agentService,
-		configSender: configSender,
+		commander:    commander,
 		logger:       logger,
 	}
 }
@@ -232,7 +234,7 @@ func (h *AgentHandlers) HandleSendConfigToAgent(c *gin.Context) {
 	}
 
 	// 4. Send config to agent via OpAMP
-	if err := h.configSender.SendConfigToAgent(agentUUID, req.Content); err != nil {
+	if err := h.commander.SendConfigToAgent(agentUUID, req.Content); err != nil {
 		h.logger.Error("Failed to send config to agent",
 			zap.String("agent_id", agentID),
 			zap.String("config_id", config.ID),
@@ -256,5 +258,60 @@ func (h *AgentHandlers) HandleSendConfigToAgent(c *gin.Context) {
 		Success:  true,
 		Message:  "Configuration sent to agent successfully",
 		ConfigID: config.ID,
+	})
+}
+
+// RestartAgentResponse represents the response after restarting an agent
+type RestartAgentResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+}
+
+// HandleRestartAgent handles POST /api/v1/agents/:id/restart
+func (h *AgentHandlers) HandleRestartAgent(c *gin.Context) {
+	// 1. Parse agent ID from URL
+	agentID := c.Param("id")
+	if agentID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Agent ID is required"})
+		return
+	}
+
+	// Parse UUID
+	agentUUID, err := uuid.Parse(agentID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid agent ID format"})
+		return
+	}
+
+	// 2. Send restart command to agent via OpAMP
+	if err := h.commander.RestartAgent(agentUUID); err != nil {
+		h.logger.Error("Failed to restart agent",
+			zap.String("agent_id", agentID),
+			zap.Error(err))
+
+		// Map errors to appropriate HTTP status codes
+		statusCode := http.StatusInternalServerError
+		message := err.Error()
+
+		if err.Error() == "agent not found" {
+			statusCode = http.StatusNotFound
+		} else if err.Error() == "agent does not support restart command" {
+			statusCode = http.StatusBadRequest
+		}
+
+		c.JSON(statusCode, RestartAgentResponse{
+			Success: false,
+			Message: message,
+		})
+		return
+	}
+
+	// 3. Return success response
+	h.logger.Info("Restart command sent to agent successfully",
+		zap.String("agent_id", agentID))
+
+	c.JSON(http.StatusOK, RestartAgentResponse{
+		Success: true,
+		Message: "Restart command sent to agent successfully",
 	})
 }
