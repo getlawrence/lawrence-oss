@@ -13,7 +13,12 @@ export function findYamlPosition(
   yamlContent: string,
   path: string[],
   componentName?: string,
-): { line: number; column: number; endLine?: number; endColumn?: number } | null {
+): {
+  line: number;
+  column: number;
+  endLine?: number;
+  endColumn?: number;
+} | null {
   const lines = yamlContent.split("\n");
   let currentIndent = 0;
   let pathIndex = 0;
@@ -50,7 +55,11 @@ export function findYamlPosition(
               const nextIndent = nextLine.length - nextLine.trimStart().length;
 
               // Stop if we've gone back to a lower indent level
-              if (nextIndent <= currentIndent && nextTrimmed && !nextTrimmed.startsWith("#")) {
+              if (
+                nextIndent <= currentIndent &&
+                nextTrimmed &&
+                !nextTrimmed.startsWith("#")
+              ) {
                 break;
               }
 

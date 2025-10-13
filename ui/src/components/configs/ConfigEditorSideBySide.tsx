@@ -28,13 +28,18 @@ export function ConfigEditorSideBySide({
   const { parseResult, isParsing } = useYamlParser(value, { debounceMs: 300 });
   const { theme } = useTheme();
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-  const { validationResult, isValidating } = useYamlValidation(value, editorRef);
+  const { validationResult, isValidating } = useYamlValidation(
+    value,
+    editorRef,
+  );
 
   const handleEditorDidMount: OnMount = (editor) => {
     editorRef.current = editor;
 
     // Configure hover provider to show validation errors
-    const monaco = (window as unknown as { monaco?: typeof import("monaco-editor") }).monaco;
+    const monaco = (
+      window as unknown as { monaco?: typeof import("monaco-editor") }
+    ).monaco;
     if (monaco) {
       monaco.languages.registerHoverProvider("yaml", {
         provideHover: (model, position) => {
@@ -70,7 +75,10 @@ export function ConfigEditorSideBySide({
     <div className="flex flex-col h-full">
       {/* Status Bar - Top */}
       {!parseResult.valid && parseResult.error && (
-        <Alert variant="destructive" className="rounded-none border-x-0 border-t-0">
+        <Alert
+          variant="destructive"
+          className="rounded-none border-x-0 border-t-0"
+        >
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             <strong>YAML Parse Error:</strong> {parseResult.error}
@@ -97,8 +105,9 @@ export function ConfigEditorSideBySide({
                 .length > 0 && (
                 <>
                   {
-                    validationResult.errors.filter((e) => e.severity === "error")
-                      .length
+                    validationResult.errors.filter(
+                      (e) => e.severity === "error",
+                    ).length
                   }{" "}
                   error(s)
                 </>
@@ -127,10 +136,7 @@ export function ConfigEditorSideBySide({
 
       {/* Main Editor Area */}
       {showPipeline ? (
-        <ResizablePanelGroup
-          direction="horizontal"
-          className="flex-1 min-h-0"
-        >
+        <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0">
           {/* Left Panel - YAML Editor */}
           <ResizablePanel defaultSize={50} minSize={30}>
             <div className="h-full flex flex-col border-r">
@@ -200,8 +206,12 @@ export function ConfigEditorSideBySide({
                   )}
                   {parseResult.valid &&
                     !validationResult.valid &&
-                    validationResult.errors.some((e) => e.severity === "warning") &&
-                    !validationResult.errors.some((e) => e.severity === "error") && (
+                    validationResult.errors.some(
+                      (e) => e.severity === "warning",
+                    ) &&
+                    !validationResult.errors.some(
+                      (e) => e.severity === "error",
+                    ) && (
                       <Badge
                         variant="outline"
                         className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-400 dark:border-yellow-800"
@@ -210,9 +220,11 @@ export function ConfigEditorSideBySide({
                         Warnings
                       </Badge>
                     )}
-                  {((!parseResult.valid) ||
+                  {(!parseResult.valid ||
                     (parseResult.valid &&
-                      validationResult.errors.some((e) => e.severity === "error"))) && (
+                      validationResult.errors.some(
+                        (e) => e.severity === "error",
+                      ))) && (
                     <Badge
                       variant="outline"
                       className="text-xs bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800"
