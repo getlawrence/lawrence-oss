@@ -105,7 +105,7 @@ export function generatePipelineNodes(
   }
 
   // Create pipeline nodes based on actual configuration
-  Object.entries(pipelines).forEach(([pipelineName]) => {
+  Object.entries(pipelines).forEach(([pipelineName, pipelineConfig]: [string, any]) => {
     const pipelineType = pipelineName.toLowerCase();
 
     // Determine pipeline display name
@@ -115,6 +115,11 @@ export function generatePipelineNodes(
       pipelineName === "logs"
         ? pipelineName.toUpperCase()
         : `${pipelineType.toUpperCase()} (${pipelineName})`;
+
+    // Get the actual components used in THIS pipeline from the service.pipelines section
+    const pipelineReceivers = pipelineConfig?.receivers || [];
+    const pipelineProcessors = pipelineConfig?.processors || [];
+    const pipelineExporters = pipelineConfig?.exporters || [];
 
     // Calculate aggregate metrics for this pipeline
     const pipelineMetrics = metrics.filter(
@@ -150,15 +155,8 @@ export function generatePipelineNodes(
     const sectionHeight = 320;
     const centerY = yOffset + sectionHeight / 2;
 
-    // Get processors first to avoid hoisting issues
-    const processors = parsedConfig.processors
-      ? Object.keys(parsedConfig.processors)
-      : [];
-
     // Fan-in: Receivers positioned to converge toward center
-    const receiverCount = parsedConfig.receivers
-      ? Object.keys(parsedConfig.receivers).length
-      : 0;
+    const receiverCount = pipelineReceivers.length;
     const receiverSpacing = Math.min(
       80,
       (sectionHeight - 100) / Math.max(1, receiverCount - 1),
@@ -166,10 +164,7 @@ export function generatePipelineNodes(
     const receiverStartY =
       centerY - ((receiverCount - 1) * receiverSpacing) / 2;
 
-    const receivers = parsedConfig.receivers
-      ? Object.keys(parsedConfig.receivers)
-      : [];
-    receivers.forEach((receiver, index) => {
+    pipelineReceivers.forEach((receiver: string, index: number) => {
       // Find metrics for this receiver
       const receiverMetrics = findComponentMetrics(
         metrics,
@@ -200,12 +195,12 @@ export function generatePipelineNodes(
     // Chain: Processors positioned vertically in the center
     const processorSpacing = Math.min(
       100,
-      (sectionHeight - 100) / Math.max(1, processors.length - 1),
+      (sectionHeight - 100) / Math.max(1, pipelineProcessors.length - 1),
     );
     const processorStartY =
-      centerY - ((processors.length - 1) * processorSpacing) / 2;
+      centerY - ((pipelineProcessors.length - 1) * processorSpacing) / 2;
 
-    processors.forEach((processor, index) => {
+    pipelineProcessors.forEach((processor: string, index: number) => {
       // Find metrics for this processor
       const processorMetrics = findComponentMetrics(
         metrics,
@@ -235,10 +230,7 @@ export function generatePipelineNodes(
     });
 
     // Fan-out: Exporters positioned to diverge from center
-    const exporters = parsedConfig.exporters
-      ? Object.keys(parsedConfig.exporters)
-      : [];
-    const exporterCount = exporters.length;
+    const exporterCount = pipelineExporters.length;
     const exporterSpacing = Math.min(
       80,
       (sectionHeight - 100) / Math.max(1, exporterCount - 1),
@@ -246,7 +238,7 @@ export function generatePipelineNodes(
     const exporterStartY =
       centerY - ((exporterCount - 1) * exporterSpacing) / 2;
 
-    exporters.forEach((exporter, index) => {
+    pipelineExporters.forEach((exporter: string, index: number) => {
       // Find metrics for this exporter
       const exporterMetrics = findComponentMetrics(
         metrics,
@@ -278,13 +270,13 @@ export function generatePipelineNodes(
     // Chain: Processors → Processors (in sequence)
     // Fan-out: Last processor → Exporters (or Receivers → Exporters if no processors)
 
-    if (processors.length > 0) {
+    if (pipelineProcessors.length > 0) {
       // Fan-in: Connect all receivers to first processor (converging pattern)
-      receivers.forEach((receiver) => {
+      pipelineReceivers.forEach((receiver: string) => {
         edges.push({
-          id: `edge-${pipelineType}-${receiver}-to-${processors[0]}`,
+          id: `edge-${pipelineType}-${receiver}-to-${pipelineProcessors[0]}`,
           source: `receiver-${pipelineType}-${receiver}`,
-          target: `processor-${pipelineType}-${processors[0]}`,
+          target: `processor-${pipelineType}-${pipelineProcessors[0]}`,
           type: "smoothstep",
           animated: true,
           style: {
@@ -298,9 +290,9 @@ export function generatePipelineNodes(
       });
 
       // Chain: Connect processors in sequence (vertical chain)
-      for (let i = 0; i < processors.length - 1; i++) {
-        const currentProcessor = processors.at(i);
-        const nextProcessor = processors.at(i + 1);
+      for (let i = 0; i < pipelineProcessors.length - 1; i++) {
+        const currentProcessor = pipelineProcessors[i];
+        const nextProcessor = pipelineProcessors[i + 1];
         if (currentProcessor && nextProcessor) {
           edges.push({
             id: `edge-${pipelineType}-${currentProcessor}-to-${nextProcessor}`,
@@ -318,8 +310,8 @@ export function generatePipelineNodes(
       }
 
       // Fan-out: Connect last processor to all exporters (diverging pattern)
-      const lastProcessor = processors[processors.length - 1];
-      exporters.forEach((exporter) => {
+      const lastProcessor = pipelineProcessors[pipelineProcessors.length - 1];
+      pipelineExporters.forEach((exporter: string) => {
         edges.push({
           id: `edge-${pipelineType}-${lastProcessor}-to-${exporter}`,
           source: `processor-${pipelineType}-${lastProcessor}`,
@@ -337,8 +329,8 @@ export function generatePipelineNodes(
       });
     } else {
       // No processors: Direct fan-in to fan-out (receivers → exporters)
-      receivers.forEach((receiver) => {
-        exporters.forEach((exporter) => {
+      pipelineReceivers.forEach((receiver: string) => {
+        pipelineExporters.forEach((exporter: string) => {
           edges.push({
             id: `edge-${pipelineType}-${receiver}-to-${exporter}`,
             source: `receiver-${pipelineType}-${receiver}`,

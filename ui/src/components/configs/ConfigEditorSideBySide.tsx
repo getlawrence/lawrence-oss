@@ -3,6 +3,7 @@ import { AlertCircle, Workflow, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 import { CollectorPipelineView } from "@/components/collector-pipeline/CollectorPipelineView";
+import { useTheme } from "@/components/ThemeProvider";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -10,7 +11,6 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { useTheme } from "@/components/ThemeProvider";
 import { useYamlParser } from "@/hooks/useYamlParser";
 
 interface ConfigEditorSideBySideProps {
