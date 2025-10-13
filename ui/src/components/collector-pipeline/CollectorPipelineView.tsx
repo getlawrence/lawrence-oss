@@ -75,7 +75,10 @@ export function CollectorPipelineView({
       ? `agent-config-pipeline-${agentId}`
       : null,
     async () => {
-      const configsResponse = await getConfigs({ agent_id: agentId!, limit: 1 });
+      const configsResponse = await getConfigs({
+        agent_id: agentId!,
+        limit: 1,
+      });
       return configsResponse;
     },
   );
@@ -88,7 +91,8 @@ export function CollectorPipelineView({
       : null);
 
   const loading = !previewMode && !propEffectiveConfig && configLoading;
-  const error = !previewMode && configError ? "Failed to fetch agent configuration" : null;
+  const error =
+    !previewMode && configError ? "Failed to fetch agent configuration" : null;
 
   // Generate nodes and edges for React Flow
   useEffect(() => {

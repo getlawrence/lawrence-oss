@@ -224,7 +224,10 @@ export default function ConfigsPage({
 
       {/* Main Editor - Takes remaining height */}
       <div className="flex-1 min-h-0">
-        <ConfigEditorSideBySide value={editorContent} onChange={setEditorContent} />
+        <ConfigEditorSideBySide
+          value={editorContent}
+          onChange={setEditorContent}
+        />
       </div>
 
       {/* Target Drawer */}
