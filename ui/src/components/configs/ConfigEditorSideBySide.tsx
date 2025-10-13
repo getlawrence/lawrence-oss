@@ -1,6 +1,7 @@
-import Editor from "@monaco-editor/react";
-import { AlertCircle, Workflow, Loader2 } from "lucide-react";
-import { useState } from "react";
+import Editor, { type OnMount } from "@monaco-editor/react";
+import { AlertCircle, Workflow, Loader2, AlertTriangle } from "lucide-react";
+import type { editor } from "monaco-editor";
+import { useState, useRef } from "react";
 
 import { CollectorPipelineView } from "@/components/collector-pipeline/CollectorPipelineView";
 import { useTheme } from "@/components/ThemeProvider";
@@ -12,6 +13,7 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { useYamlParser } from "@/hooks/useYamlParser";
+import { useYamlValidation } from "@/hooks/useYamlValidation";
 
 interface ConfigEditorSideBySideProps {
   value: string;
@@ -25,6 +27,44 @@ export function ConfigEditorSideBySide({
   const [showPipeline] = useState(true);
   const { parseResult, isParsing } = useYamlParser(value, { debounceMs: 300 });
   const { theme } = useTheme();
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const { validationResult, isValidating } = useYamlValidation(value, editorRef);
+
+  const handleEditorDidMount: OnMount = (editor) => {
+    editorRef.current = editor;
+
+    // Configure hover provider to show validation errors
+    const monaco = (window as unknown as { monaco?: typeof import("monaco-editor") }).monaco;
+    if (monaco) {
+      monaco.languages.registerHoverProvider("yaml", {
+        provideHover: (model, position) => {
+          const markers = monaco.editor.getModelMarkers({
+            resource: model.uri,
+          });
+
+          const hoveredMarkers = markers.filter(
+            (marker) =>
+              marker.startLineNumber <= position.lineNumber &&
+              marker.endLineNumber >= position.lineNumber &&
+              marker.startColumn <= position.column &&
+              marker.endColumn >= position.column,
+          );
+
+          if (hoveredMarkers.length > 0) {
+            const contents = hoveredMarkers.map((marker) => ({
+              value: `**${marker.severity === 8 ? "Error" : "Warning"}**: ${marker.message}`,
+            }));
+
+            return {
+              contents,
+            };
+          }
+
+          return null;
+        },
+      });
+    }
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -34,6 +74,53 @@ export function ConfigEditorSideBySide({
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             <strong>YAML Parse Error:</strong> {parseResult.error}
+          </AlertDescription>
+        </Alert>
+      )}
+      {parseResult.valid && validationResult.errors.length > 0 && (
+        <Alert
+          variant={
+            validationResult.errors.some((e) => e.severity === "error")
+              ? "destructive"
+              : "default"
+          }
+          className="rounded-none border-x-0 border-t-0"
+        >
+          {validationResult.errors.some((e) => e.severity === "error") ? (
+            <AlertCircle className="h-4 w-4" />
+          ) : (
+            <AlertTriangle className="h-4 w-4" />
+          )}
+          <AlertDescription>
+            <strong>
+              {validationResult.errors.filter((e) => e.severity === "error")
+                .length > 0 && (
+                <>
+                  {
+                    validationResult.errors.filter((e) => e.severity === "error")
+                      .length
+                  }{" "}
+                  error(s)
+                </>
+              )}
+              {validationResult.errors.filter((e) => e.severity === "error")
+                .length > 0 &&
+                validationResult.errors.filter((e) => e.severity === "warning")
+                  .length > 0 &&
+                ", "}
+              {validationResult.errors.filter((e) => e.severity === "warning")
+                .length > 0 && (
+                <>
+                  {
+                    validationResult.errors.filter(
+                      (e) => e.severity === "warning",
+                    ).length
+                  }{" "}
+                  warning(s)
+                </>
+              )}
+            </strong>{" "}
+            - Hover over highlighted text for details
           </AlertDescription>
         </Alert>
       )}
@@ -53,10 +140,10 @@ export function ConfigEditorSideBySide({
                   <span className="text-sm font-medium">Config</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {isParsing && (
+                  {(isParsing || isValidating) && (
                     <Badge variant="outline" className="gap-1 text-xs">
                       <Loader2 className="h-3 w-3 animate-spin" />
-                      Updating...
+                      {isValidating ? "Validating..." : "Updating..."}
                     </Badge>
                   )}
                 </div>
@@ -69,6 +156,7 @@ export function ConfigEditorSideBySide({
                   defaultLanguage="yaml"
                   value={value}
                   onChange={(value) => onChange(value || "")}
+                  onMount={handleEditorDidMount}
                   theme={theme === "dark" ? "vs-dark" : "vs-light"}
                   options={{
                     minimap: { enabled: false },
@@ -102,7 +190,7 @@ export function ConfigEditorSideBySide({
                   <span className="text-sm font-medium">Pipeline</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {parseResult.valid && (
+                  {parseResult.valid && validationResult.valid && (
                     <Badge
                       variant="outline"
                       className="text-xs bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-800"
@@ -110,7 +198,21 @@ export function ConfigEditorSideBySide({
                       Valid
                     </Badge>
                   )}
-                  {!parseResult.valid && (
+                  {parseResult.valid &&
+                    !validationResult.valid &&
+                    validationResult.errors.some((e) => e.severity === "warning") &&
+                    !validationResult.errors.some((e) => e.severity === "error") && (
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-400 dark:border-yellow-800"
+                      >
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        Warnings
+                      </Badge>
+                    )}
+                  {((!parseResult.valid) ||
+                    (parseResult.valid &&
+                      validationResult.errors.some((e) => e.severity === "error"))) && (
                     <Badge
                       variant="outline"
                       className="text-xs bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800"
