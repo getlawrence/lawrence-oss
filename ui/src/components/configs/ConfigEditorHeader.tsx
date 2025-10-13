@@ -1,59 +1,73 @@
-import { ArrowLeft, History, CheckCircle, Save, RefreshCw } from "lucide-react";
+import {
+  ArrowLeft,
+  Save,
+  RefreshCw,
+  Target,
+  MoreVertical,
+  History,
+} from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ConfigEditorHeaderProps {
-  mode: "create" | "edit";
-  isValidating: boolean;
   isSaving: boolean;
   canSave: boolean;
+  selectedGroupName?: string;
   onBack: () => void;
   onShowVersions: () => void;
-  onValidate: () => void;
+  onShowTarget: () => void;
   onSave: () => void;
 }
 
 export function ConfigEditorHeader({
-  mode,
-  isValidating,
   isSaving,
   canSave,
+  selectedGroupName,
   onBack,
   onShowVersions,
-  onValidate,
+  onShowTarget,
   onSave,
 }: ConfigEditorHeaderProps) {
   return (
-    <div className="flex justify-between items-center">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to List
+    <div className="flex justify-between items-center w-full">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
-          <h1 className="text-3xl font-bold">
-            {mode === "create" ? "Create Configuration" : "Edit Configuration"}
-          </h1>
-          <p className="text-gray-600">
-            {mode === "create"
-              ? "Create a new OpenTelemetry collector configuration"
-              : "Edit OpenTelemetry collector configuration"}
-          </p>
-        </div>
+        {selectedGroupName && (
+          <Badge variant="outline" className="text-sm">
+            <Target className="h-3 w-3 mr-1" />
+            {selectedGroupName}
+          </Badge>
+        )}
       </div>
-      <div className="flex gap-2">
-        <Button variant="outline" onClick={onShowVersions}>
-          <History className="h-4 w-4 mr-2" />
-          Version History
-        </Button>
-        <Button onClick={onValidate} disabled={isValidating}>
-          {isValidating ? (
-            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <CheckCircle className="h-4 w-4 mr-2" />
-          )}
-          Validate
-        </Button>
+      <div className="flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={onShowTarget}>
+              <Target className="h-4 w-4 mr-2" />
+              Target Group
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onShowVersions}>
+              <History className="h-4 w-4 mr-2" />
+              Version History
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Button onClick={onSave} disabled={isSaving || !canSave}>
           {isSaving ? (
             <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
