@@ -208,22 +208,18 @@ export default function ConfigsPage({
 
   // Editor View (Create or Edit)
   return (
-    <div className="flex flex-col h-screen">
-      {/* Top Bar with Actions */}
-      <div className="flex-none border-b bg-background">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <ConfigEditorHeader
-              isSaving={isSaving}
-              canSave={!!selectedGroupId}
-              selectedGroupName={selectedGroup?.name}
-              onBack={handleBackToList}
-              onShowTarget={() => setShowTarget(true)}
-              onShowVersions={() => setShowVersions(true)}
-              onSave={handleSave}
-            />
-          </div>
-        </div>
+    <div className="h-full w-full flex flex-col -m-4">
+      {/* Compact Header - inline with sidebar separator */}
+      <div className="h-16 border-b bg-background px-4 flex items-center justify-between flex-shrink-0">
+        <ConfigEditorHeader
+          isSaving={isSaving}
+          canSave={!!selectedGroupId}
+          selectedGroupName={selectedGroup?.name}
+          onBack={handleBackToList}
+          onShowTarget={() => setShowTarget(true)}
+          onShowVersions={() => setShowVersions(true)}
+          onSave={handleSave}
+        />
       </div>
 
       {/* Main Editor - Takes remaining height */}
