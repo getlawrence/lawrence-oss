@@ -32,25 +32,29 @@ const nodeTypes = {
 };
 
 interface CollectorPipelineViewProps {
-  agentId: string;
+  agentId?: string;
   agentName?: string;
   effectiveConfig?: string; // Pass effective config from agent object
+  previewMode?: boolean; // If true, don't fetch config from API
 }
 
 export function CollectorPipelineView({
   agentId,
   agentName: _agentName,
   effectiveConfig: propEffectiveConfig,
+  previewMode = false,
 }: CollectorPipelineViewProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
-  // Fetch component metrics
+  // Fetch component metrics (only if not in preview mode and agentId is provided)
   const { data: metricsData } = useSWR(
-    `agent-component-metrics-pipeline-${agentId}`,
+    !previewMode && agentId
+      ? `agent-component-metrics-pipeline-${agentId}`
+      : null,
     async () => {
       try {
-        return await fetchAgentComponentMetrics(agentId, 5); // 5 minutes
+        return await fetchAgentComponentMetrics(agentId!, 5); // 5 minutes
       } catch (error) {
         console.error("Failed to fetch component metrics:", error);
         return [];
@@ -61,15 +65,17 @@ export function CollectorPipelineView({
     },
   );
 
-  // Fetch agent config only if not provided via props
+  // Fetch agent config only if not provided via props and not in preview mode
   const {
     data: configsData,
     error: configError,
     isLoading: configLoading,
   } = useSWR(
-    propEffectiveConfig ? null : `agent-config-pipeline-${agentId}`,
+    !previewMode && !propEffectiveConfig && agentId
+      ? `agent-config-pipeline-${agentId}`
+      : null,
     async () => {
-      const configsResponse = await getConfigs({ agent_id: agentId, limit: 1 });
+      const configsResponse = await getConfigs({ agent_id: agentId!, limit: 1 });
       return configsResponse;
     },
   );
@@ -81,8 +87,8 @@ export function CollectorPipelineView({
       ? configsData.configs[0].content
       : null);
 
-  const loading = !propEffectiveConfig && configLoading;
-  const error = configError ? "Failed to fetch agent configuration" : null;
+  const loading = !previewMode && !propEffectiveConfig && configLoading;
+  const error = !previewMode && configError ? "Failed to fetch agent configuration" : null;
 
   // Generate nodes and edges for React Flow
   useEffect(() => {

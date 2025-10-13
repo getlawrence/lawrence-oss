@@ -51,7 +51,9 @@ export function generatePipelineNodes(
   let parsedConfig;
   try {
     parsedConfig = yaml.load(effectiveConfig) as any;
-  } catch {
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Error parsing configuration";
     return {
       nodes: [
         {
@@ -59,7 +61,7 @@ export function generatePipelineNodes(
           type: "default",
           position: { x: 300, y: 200 },
           data: {
-            label: "Error parsing configuration",
+            label: `YAML Parse Error: ${errorMessage}`,
           },
         },
       ],

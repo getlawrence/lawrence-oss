@@ -8,18 +8,15 @@ import {
   getConfig,
   createConfig,
   updateConfig,
-  validateConfig,
   getConfigVersions,
   type Config,
-  type ValidateConfigResponse,
 } from "@/api/configs";
 import { getGroups } from "@/api/groups";
 import {
   ConfigsList,
   ConfigEditorHeader,
-  ConfigTarget,
-  ConfigValidation,
-  ConfigYamlEditor,
+  ConfigTargetDrawer,
+  ConfigEditorSideBySide,
   ConfigVersionHistory,
 } from "@/components/configs";
 import { Button } from "@/components/ui/button";
@@ -85,12 +82,9 @@ export default function ConfigsPage({
 
   const [refreshing, setRefreshing] = useState(false);
   const [editorContent, setEditorContent] = useState(DEFAULT_CONFIG);
-  const [validation, setValidation] = useState<ValidateConfigResponse | null>(
-    null,
-  );
   const [isSaving, setIsSaving] = useState(false);
-  const [isValidating, setIsValidating] = useState(false);
   const [showVersions, setShowVersions] = useState(false);
+  const [showTarget, setShowTarget] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
 
   const {
@@ -129,22 +123,6 @@ export default function ConfigsPage({
     setRefreshing(true);
     await mutateConfigs();
     setRefreshing(false);
-  };
-
-  const handleValidate = async () => {
-    setIsValidating(true);
-    try {
-      const result = await validateConfig({ content: editorContent });
-      setValidation(result);
-    } catch (error) {
-      console.error("Validation failed:", error);
-      setValidation({
-        valid: false,
-        errors: ["Failed to validate configuration"],
-      });
-    } finally {
-      setIsValidating(false);
-    }
   };
 
   const handleSave = async () => {
@@ -196,6 +174,7 @@ export default function ConfigsPage({
   const configs = configsData?.configs || [];
   const groups = groupsData?.groups || [];
   const versions = versionsData?.versions || [];
+  const selectedGroup = groups.find((g) => g.id === selectedGroupId);
 
   // List View
   if (mode === "list") {
@@ -229,19 +208,33 @@ export default function ConfigsPage({
 
   // Editor View (Create or Edit)
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <ConfigEditorHeader
-        mode={mode as "create" | "edit"}
-        isValidating={isValidating}
-        isSaving={isSaving}
-        canSave={!!selectedGroupId}
-        onBack={handleBackToList}
-        onShowVersions={() => setShowVersions(true)}
-        onValidate={handleValidate}
-        onSave={handleSave}
-      />
+    <div className="flex flex-col h-screen">
+      {/* Top Bar with Actions */}
+      <div className="flex-none border-b bg-background">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <ConfigEditorHeader
+              isSaving={isSaving}
+              canSave={!!selectedGroupId}
+              selectedGroupName={selectedGroup?.name}
+              onBack={handleBackToList}
+              onShowTarget={() => setShowTarget(true)}
+              onShowVersions={() => setShowVersions(true)}
+              onSave={handleSave}
+            />
+          </div>
+        </div>
+      </div>
 
-      <ConfigTarget
+      {/* Main Editor - Takes remaining height */}
+      <div className="flex-1 min-h-0">
+        <ConfigEditorSideBySide value={editorContent} onChange={setEditorContent} />
+      </div>
+
+      {/* Target Drawer */}
+      <ConfigTargetDrawer
+        open={showTarget}
+        onOpenChange={setShowTarget}
         mode={mode as "create" | "edit"}
         selectedGroupId={selectedGroupId}
         groups={groups}
@@ -249,10 +242,7 @@ export default function ConfigsPage({
         onGroupChange={setSelectedGroupId}
       />
 
-      {validation && <ConfigValidation validation={validation} />}
-
-      <ConfigYamlEditor value={editorContent} onChange={setEditorContent} />
-
+      {/* Version History Modal */}
       <ConfigVersionHistory
         open={showVersions}
         versions={versions}
