@@ -1,5 +1,8 @@
 import { apiGet } from "./base";
 
+import type { Agent } from "@/types/agent";
+import type { Group } from "@/types/groups";
+
 export interface TopologyNode {
   id: string;
   type: "agent" | "group" | "service";
@@ -44,15 +47,19 @@ export interface TopologyResponse {
   updated_at: string;
 }
 
+export interface PipelineConfig {
+  [key: string]: unknown;
+}
+
 export interface AgentTopologyResponse {
-  agent: unknown;
+  agent: Agent;
   metrics: NodeMetrics;
-  pipeline: unknown;
+  pipeline: PipelineConfig;
 }
 
 export interface GroupTopologyResponse {
-  group: unknown;
-  agents: unknown[];
+  group: Group;
+  agents: Agent[];
   agent_count: number;
   metric_count: number;
 }

@@ -177,7 +177,6 @@ export default function ConfigsPage({
   const configs = configsData?.configs || [];
   const groups = groupsData?.groups || [];
   const versions = versionsData?.versions || [];
-  const selectedGroup = groups.find((g) => g.id === selectedGroupId);
 
   // List View
   if (mode === "list") {

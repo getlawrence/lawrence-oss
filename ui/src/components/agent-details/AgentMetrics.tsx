@@ -95,15 +95,16 @@ export function AgentMetrics({ agentId }: AgentMetricsProps) {
       if (metric.metric_name.includes("receiver")) {
         componentType = "receiver";
         componentName =
-          metric.metric_attributes?.receiver || "unknown_receiver";
+          (metric.metric_attributes?.receiver as string) || "unknown_receiver";
       } else if (metric.metric_name.includes("processor")) {
         componentType = "processor";
         componentName =
-          metric.metric_attributes?.processor || "unknown_processor";
+          (metric.metric_attributes?.processor as string) ||
+          "unknown_processor";
       } else if (metric.metric_name.includes("exporter")) {
         componentType = "exporter";
         componentName =
-          metric.metric_attributes?.exporter || "unknown_exporter";
+          (metric.metric_attributes?.exporter as string) || "unknown_exporter";
       }
 
       if (componentType && componentName) {
