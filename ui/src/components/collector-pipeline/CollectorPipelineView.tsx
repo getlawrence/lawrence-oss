@@ -35,7 +35,7 @@ interface CollectorPipelineViewProps {
   agentId?: string;
   agentName?: string;
   effectiveConfig?: string; // Pass effective config from agent object
-  previewMode?: boolean; // If true, don't fetch config from API
+  previewMode?: boolean; // If true, don't fetch config from API and don't show metrics
 }
 
 export function CollectorPipelineView({
@@ -103,13 +103,17 @@ export function CollectorPipelineView({
       return;
     }
 
-    // Use the generator to create nodes from config with metrics
+    // Use the generator to create nodes from config
+    // In preview mode, don't pass metrics to hide them from the visualization
     const { nodes: generatedNodes, edges: generatedEdges } =
-      generatePipelineNodes(effectiveConfig, metricsData || []);
+      generatePipelineNodes(
+        effectiveConfig,
+        previewMode ? [] : metricsData || [],
+      );
 
     setNodes(generatedNodes);
     setEdges(generatedEdges);
-  }, [effectiveConfig, metricsData, setNodes, setEdges]);
+  }, [effectiveConfig, metricsData, previewMode, setNodes, setEdges]);
 
   if (loading) {
     return (

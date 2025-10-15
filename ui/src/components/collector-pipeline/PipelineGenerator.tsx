@@ -166,10 +166,13 @@ export function generatePipelineNodes(
           label: displayName,
           width: sectionWidth,
           height: sectionHeight,
-          metrics: {
-            received: totalReceived,
-            errors: totalErrors,
-          },
+          // Only include metrics if there are any
+          ...(pipelineMetrics.length > 0 && {
+            metrics: {
+              received: totalReceived,
+              errors: totalErrors,
+            },
+          }),
         },
         selectable: false,
         draggable: false,
@@ -204,10 +207,12 @@ export function generatePipelineNodes(
           data: {
             label: receiver,
             pipelineType: pipelineType,
-            metrics: {
-              received:
-                receiverMetrics?.received || receiverMetrics?.accepted || 0,
-            },
+            // Only include metrics if they exist
+            ...(receiverMetrics && {
+              metrics: {
+                received: receiverMetrics.received || receiverMetrics.accepted || 0,
+              },
+            }),
           },
         };
         nodes.push(receiverNode);
@@ -235,11 +240,13 @@ export function generatePipelineNodes(
           data: {
             label: processor,
             pipelineType: pipelineType,
-            metrics: {
-              processed:
-                processorMetrics?.accepted || processorMetrics?.received || 0,
-              batches: 0, // batches info not available in current metrics
-            },
+            // Only include metrics if they exist
+            ...(processorMetrics && {
+              metrics: {
+                processed: processorMetrics.accepted || processorMetrics.received || 0,
+                batches: 0, // batches info not available in current metrics
+              },
+            }),
           },
         };
         nodes.push(processorNode);
@@ -275,9 +282,12 @@ export function generatePipelineNodes(
           data: {
             label: exporter,
             pipelineType: pipelineType,
-            metrics: {
-              exported: exporterMetrics?.sent || 0,
-            },
+            // Only include metrics if they exist
+            ...(exporterMetrics && {
+              metrics: {
+                exported: exporterMetrics.sent || 0,
+              },
+            }),
           },
         };
         nodes.push(exporterNode);
