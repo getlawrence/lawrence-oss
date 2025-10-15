@@ -69,7 +69,14 @@ export function ConfigsList({
                 />
               </div>
             ) : config.group_id ? (
-              <span className="text-green-600">Group: {config.group_id}</span>
+              <div className="flex items-center gap-1">
+                <span className="text-green-600 text-sm">Group:</span>
+              <TruncatedId
+              id={config.group_id}
+              maxLength={8}
+              className="text-green-600"
+              />
+              </div>
             ) : (
               <span className="text-gray-500">Global</span>
             )}

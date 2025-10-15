@@ -15,13 +15,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TableCell } from "@/components/ui/table";
 
 export default function GroupsPage() {
   const [refreshing, setRefreshing] = useState(false);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -46,7 +54,7 @@ export default function GroupsPage() {
   const handleCreateGroup = async () => {
     try {
       await createGroup(createForm);
-      setCreateDialogOpen(false);
+      setCreateDrawerOpen(false);
       setCreateForm({ name: "", labels: {} });
       await mutateGroups();
     } catch (error) {
@@ -112,7 +120,7 @@ export default function GroupsPage() {
           {
             label: "Create Group",
             icon: Plus,
-            onClick: () => setCreateDialogOpen(true),
+            onClick: () => setCreateDrawerOpen(true),
             variant: "default" as const,
           },
         ]}
@@ -172,21 +180,21 @@ export default function GroupsPage() {
           description: "Create your first group to organize your agents.",
           action: {
             label: "Create Group",
-            onClick: () => setCreateDialogOpen(true),
+            onClick: () => setCreateDrawerOpen(true),
           },
         }}
       />
 
-      {/* Create Group Dialog */}
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Group</DialogTitle>
-            <DialogDescription>
+      {/* Create Group Drawer */}
+      <Sheet open={createDrawerOpen} onOpenChange={setCreateDrawerOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>Create New Group</SheetTitle>
+            <SheetDescription>
               Create a new group to organize your agents.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
+            </SheetDescription>
+          </SheetHeader>
+          <div className="space-y-4 mt-6">
             <div>
               <Label htmlFor="name">Group Name</Label>
               <Input
@@ -199,19 +207,19 @@ export default function GroupsPage() {
               />
             </div>
           </div>
-          <DialogFooter>
+          <SheetFooter className="mt-6">
             <Button
               variant="outline"
-              onClick={() => setCreateDialogOpen(false)}
+              onClick={() => setCreateDrawerOpen(false)}
             >
               Cancel
             </Button>
             <Button onClick={handleCreateGroup} disabled={!createForm.name}>
               Create Group
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
