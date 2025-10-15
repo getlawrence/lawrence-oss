@@ -15,7 +15,6 @@ import { getGroups } from "@/api/groups";
 import {
   ConfigsList,
   ConfigEditorHeader,
-  ConfigTargetDrawer,
   ConfigEditorSideBySide,
   ConfigVersionHistory,
 } from "@/components/configs";
@@ -85,7 +84,6 @@ export default function ConfigsPage({
   const [configName, setConfigName] = useState("New Config");
   const [isSaving, setIsSaving] = useState(false);
   const [showVersions, setShowVersions] = useState(false);
-  const [showTarget, setShowTarget] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
 
   const {
@@ -220,12 +218,13 @@ export default function ConfigsPage({
           isSaving={isSaving}
           canSave={!!selectedGroupId}
           configName={configName}
-          selectedGroupName={selectedGroup?.name}
+          selectedGroupId={selectedGroupId}
+          groups={groups}
           onBack={handleBackToList}
-          onShowTarget={() => setShowTarget(true)}
           onShowVersions={() => setShowVersions(true)}
           onSave={handleSave}
           onConfigNameChange={setConfigName}
+          onGroupChange={setSelectedGroupId}
         />
       </div>
 
@@ -236,17 +235,6 @@ export default function ConfigsPage({
           onChange={setEditorContent}
         />
       </div>
-
-      {/* Target Drawer */}
-      <ConfigTargetDrawer
-        open={showTarget}
-        onOpenChange={setShowTarget}
-        mode={mode as "create" | "edit"}
-        selectedGroupId={selectedGroupId}
-        groups={groups}
-        currentVersion={currentConfigData?.version}
-        onGroupChange={setSelectedGroupId}
-      />
 
       {/* Version History Modal */}
       <ConfigVersionHistory
