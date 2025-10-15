@@ -8,6 +8,7 @@ import (
 
 	"github.com/getlawrence/lawrence-oss/internal/metrics"
 	"github.com/getlawrence/lawrence-oss/internal/otlp/parser"
+	"github.com/getlawrence/lawrence-oss/internal/otlp/processor"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	_ "google.golang.org/grpc/encoding/gzip" // Register gzip compressor
@@ -28,7 +29,7 @@ type GRPCServer struct {
 }
 
 // NewGRPCServer creates a new gRPC server instance
-func NewGRPCServer(port int, writer TelemetryWriter, metricsInstance *metrics.OTLPMetrics, logger *zap.Logger) (*GRPCServer, error) {
+func NewGRPCServer(port int, writer TelemetryWriter, enricher *processor.Enricher, metricsInstance *metrics.OTLPMetrics, logger *zap.Logger) (*GRPCServer, error) {
 	// Create parser
 	otlpParser := parser.NewOTLPParser(logger)
 
@@ -45,9 +46,9 @@ func NewGRPCServer(port int, writer TelemetryWriter, metricsInstance *metrics.OT
 	)
 
 	// Register OTLP services
-	traceService := NewTraceService(writer, otlpParser, metricsInstance, logger)
-	metricsService := NewMetricsService(writer, otlpParser, metricsInstance, logger)
-	logsService := NewLogsService(writer, otlpParser, metricsInstance, logger)
+	traceService := NewTraceService(writer, otlpParser, enricher, metricsInstance, logger)
+	metricsService := NewMetricsService(writer, otlpParser, enricher, metricsInstance, logger)
+	logsService := NewLogsService(writer, otlpParser, enricher, metricsInstance, logger)
 
 	coltracepb.RegisterTraceServiceServer(server, traceService)
 	colmetricspb.RegisterMetricsServiceServer(server, metricsService)

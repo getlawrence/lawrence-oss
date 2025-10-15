@@ -18,6 +18,7 @@ import (
 	"github.com/getlawrence/lawrence-oss/internal/config"
 	"github.com/getlawrence/lawrence-oss/internal/metrics"
 	"github.com/getlawrence/lawrence-oss/internal/opamp"
+	"github.com/getlawrence/lawrence-oss/internal/otlp/processor"
 	"github.com/getlawrence/lawrence-oss/internal/otlp/receiver"
 	"github.com/getlawrence/lawrence-oss/internal/services"
 	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore"
@@ -123,7 +124,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 		logger.Fatal("Failed to create telemetry reader", zap.Error(err))
 	}
 
-	// Create writer adapter for OTLP receivers (handles both sync and async writes)
+	// Create telemetry writer for OTLP receivers
 	telemetryWriter, err := telemetryStoreFactory.CreateTelemetryWriter()
 	if err != nil {
 		logger.Fatal("Failed to create telemetry writer", zap.Error(err))
@@ -176,6 +177,9 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	// Create telemetry query service
 	telemetryService := services.NewTelemetryQueryService(telemetryReader, agentService, logger)
 
+	// Create processor enricher that resolves group_id from agent_id
+	enricher := processor.NewEnricher(agentService, logger)
+
 	// Start OpAMP server
 	if err := opampServer.Start(config.Server.OpAMPPort); err != nil {
 		logger.Fatal("Failed to start OpAMP server", zap.Error(err))
@@ -187,7 +191,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	}()
 
 	// Initialize OTLP receivers
-	grpcServer, err := receiver.NewGRPCServer(4317, telemetryWriter, otlpMetrics, logger)
+	grpcServer, err := receiver.NewGRPCServer(4317, telemetryWriter, enricher, otlpMetrics, logger)
 	if err != nil {
 		logger.Fatal("Failed to create gRPC server", zap.Error(err))
 	}
@@ -200,7 +204,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 		_ = grpcServer.Stop(ctx)
 	}()
 
-	httpServer, err := receiver.NewHTTPServer(4318, telemetryWriter, otlpMetrics, logger)
+	httpServer, err := receiver.NewHTTPServer(4318, telemetryWriter, enricher, otlpMetrics, logger)
 	if err != nil {
 		logger.Fatal("Failed to create HTTP server", zap.Error(err))
 	}

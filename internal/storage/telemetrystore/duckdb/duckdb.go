@@ -350,6 +350,11 @@ func (s *Storage) QueryMetrics(ctx context.Context, query types.MetricQuery) ([]
 		args = append(args, query.AgentID.String())
 	}
 
+	if query.GroupID != nil {
+		sqlQuery += ` AND group_id = ?`
+		args = append(args, *query.GroupID)
+	}
+
 	if query.MetricName != nil {
 		sqlQuery += ` AND metric_name = ?`
 		args = append(args, *query.MetricName)
@@ -415,6 +420,11 @@ func (s *Storage) QueryLogs(ctx context.Context, query types.LogQuery) ([]types.
 	if query.AgentID != nil {
 		sqlQuery += ` AND agent_id = ?`
 		args = append(args, query.AgentID.String())
+	}
+
+	if query.GroupID != nil {
+		sqlQuery += ` AND group_id = ?`
+		args = append(args, *query.GroupID)
 	}
 
 	if query.Severity != nil {
@@ -488,6 +498,11 @@ func (s *Storage) QueryTraces(ctx context.Context, query types.TraceQuery) ([]ty
 	if query.AgentID != nil {
 		sqlQuery += ` AND agent_id = ?`
 		args = append(args, query.AgentID.String())
+	}
+
+	if query.GroupID != nil {
+		sqlQuery += ` AND group_id = ?`
+		args = append(args, *query.GroupID)
 	}
 
 	if query.TraceID != nil {
