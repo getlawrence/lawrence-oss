@@ -73,67 +73,6 @@ export function ConfigEditorSideBySide({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Status Bar - Top */}
-      {!parseResult.valid && parseResult.error && (
-        <Alert
-          variant="destructive"
-          className="rounded-none border-x-0 border-t-0"
-        >
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            <strong>YAML Parse Error:</strong> {parseResult.error}
-          </AlertDescription>
-        </Alert>
-      )}
-      {parseResult.valid && validationResult.errors.length > 0 && (
-        <Alert
-          variant={
-            validationResult.errors.some((e) => e.severity === "error")
-              ? "destructive"
-              : "default"
-          }
-          className="rounded-none border-x-0 border-t-0"
-        >
-          {validationResult.errors.some((e) => e.severity === "error") ? (
-            <AlertCircle className="h-4 w-4" />
-          ) : (
-            <AlertTriangle className="h-4 w-4" />
-          )}
-          <AlertDescription>
-            <strong>
-              {validationResult.errors.filter((e) => e.severity === "error")
-                .length > 0 && (
-                <>
-                  {
-                    validationResult.errors.filter(
-                      (e) => e.severity === "error",
-                    ).length
-                  }{" "}
-                  error(s)
-                </>
-              )}
-              {validationResult.errors.filter((e) => e.severity === "error")
-                .length > 0 &&
-                validationResult.errors.filter((e) => e.severity === "warning")
-                  .length > 0 &&
-                ", "}
-              {validationResult.errors.filter((e) => e.severity === "warning")
-                .length > 0 && (
-                <>
-                  {
-                    validationResult.errors.filter(
-                      (e) => e.severity === "warning",
-                    ).length
-                  }{" "}
-                  warning(s)
-                </>
-              )}
-            </strong>{" "}
-            - Hover over highlighted text for details
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* Main Editor Area */}
       {showPipeline ? (
         <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0">
@@ -150,6 +89,41 @@ export function ConfigEditorSideBySide({
                     <Badge variant="outline" className="gap-1 text-xs">
                       <Loader2 className="h-3 w-3 animate-spin" />
                       {isValidating ? "Validating..." : "Updating..."}
+                    </Badge>
+                  )}
+                  {!isParsing && !isValidating && !parseResult.valid && parseResult.error && (
+                    <Badge variant="outline" className="gap-1 text-xs bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800">
+                      <AlertCircle className="h-3 w-3" />
+                      Parse Error
+                    </Badge>
+                  )}
+                  {!isParsing && !isValidating && parseResult.valid && validationResult.errors.length > 0 && (
+                    <Badge
+                      variant="outline"
+                      className={
+                        validationResult.errors.some((e) => e.severity === "error")
+                          ? "gap-1 text-xs bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800"
+                          : "gap-1 text-xs bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-400 dark:border-yellow-800"
+                      }
+                    >
+                      {validationResult.errors.some((e) => e.severity === "error") ? (
+                        <AlertCircle className="h-3 w-3" />
+                      ) : (
+                        <AlertTriangle className="h-3 w-3" />
+                      )}
+                      {validationResult.errors.filter((e) => e.severity === "error").length > 0 && (
+                        <>
+                          {validationResult.errors.filter((e) => e.severity === "error").length} error{validationResult.errors.filter((e) => e.severity === "error").length !== 1 ? "s" : ""}
+                        </>
+                      )}
+                      {validationResult.errors.filter((e) => e.severity === "error").length > 0 &&
+                        validationResult.errors.filter((e) => e.severity === "warning").length > 0 &&
+                        ", "}
+                      {validationResult.errors.filter((e) => e.severity === "warning").length > 0 && (
+                        <>
+                          {validationResult.errors.filter((e) => e.severity === "warning").length} warning{validationResult.errors.filter((e) => e.severity === "warning").length !== 1 ? "s" : ""}
+                        </>
+                      )}
                     </Badge>
                   )}
                 </div>

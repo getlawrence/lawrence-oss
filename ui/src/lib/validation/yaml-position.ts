@@ -48,23 +48,40 @@ export function findYamlPosition(
         // If this is the last element in path, this is our target
         if (pathIndex === path.length) {
           if (componentName) {
-            // Search for the component name in the following lines (in an array)
+            // Check if the value is on the same line (inline array: receivers: [otlp, data])
+            const inlineMatch = line.match(/:\s*\[([^\]]+)\]/);
+            if (inlineMatch) {
+              const arrayContent = inlineMatch[1];
+              const componentRegex = new RegExp(`\\b${componentName}\\b`);
+              if (componentRegex.test(arrayContent)) {
+                const column = line.indexOf(componentName) + 1;
+                return {
+                  line: i + 1,
+                  column,
+                  endLine: i + 1,
+                  endColumn: column + componentName.length,
+                };
+              }
+            }
+
+            // Search for the component name in the following lines (multi-line array)
             for (let j = i + 1; j < lines.length; j++) {
               const nextLine = lines[j];
               const nextTrimmed = nextLine.trim();
               const nextIndent = nextLine.length - nextLine.trimStart().length;
 
-              // Stop if we've gone back to a lower indent level
-              if (
-                nextIndent <= currentIndent &&
-                nextTrimmed &&
-                !nextTrimmed.startsWith("#")
-              ) {
+              // Skip empty lines and comments
+              if (!nextTrimmed || nextTrimmed.startsWith("#")) {
+                continue;
+              }
+
+              // Stop if we've gone back to the same or lower indent level (end of this section)
+              if (nextIndent <= currentIndent) {
                 break;
               }
 
               // Check for array item containing our component
-              if (nextTrimmed.startsWith("-") || nextTrimmed.startsWith("[")) {
+              if (nextTrimmed.startsWith("-")) {
                 const componentRegex = new RegExp(`\\b${componentName}\\b`);
                 if (componentRegex.test(nextTrimmed)) {
                   const column = nextLine.indexOf(componentName) + 1;
