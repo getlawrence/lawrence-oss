@@ -49,7 +49,6 @@ export function ConfigsList({
         { header: "Version", key: "version" },
         { header: "Hash", key: "hash" },
         { header: "Created", key: "created" },
-        { header: "Content Preview", key: "content" },
         { header: "Actions", key: "actions" },
       ]}
       data={configs}
@@ -104,12 +103,6 @@ export function ConfigsList({
           </TableCell>
           <TableCell>
             {new Date(config.created_at).toLocaleDateString()}
-          </TableCell>
-          <TableCell className="max-w-xs">
-            <div className="truncate text-sm text-gray-600">
-              {config.content.slice(0, 100)}
-              {config.content.length > 100 && "..."}
-            </div>
           </TableCell>
           <TableCell>
             <Button
