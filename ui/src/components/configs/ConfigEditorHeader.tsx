@@ -6,6 +6,8 @@ import {
   History,
 } from "lucide-react";
 
+import { EditableConfigTitle } from "./EditableConfigTitle";
+
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,7 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { EditableConfigTitle } from "./EditableConfigTitle";
 
 interface Group {
   id: string;

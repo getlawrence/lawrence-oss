@@ -10,7 +10,7 @@ export interface TopologyNode {
   labels: Record<string, string>;
   metrics?: NodeMetrics;
   last_seen?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface TopologyEdge {
@@ -45,14 +45,14 @@ export interface TopologyResponse {
 }
 
 export interface AgentTopologyResponse {
-  agent: any;
+  agent: unknown;
   metrics: NodeMetrics;
-  pipeline: any;
+  pipeline: unknown;
 }
 
 export interface GroupTopologyResponse {
-  group: any;
-  agents: any[];
+  group: unknown;
+  agents: unknown[];
   agent_count: number;
   metric_count: number;
 }

@@ -1,8 +1,9 @@
-import { describe, it, expect } from "vitest";
 import yaml from "js-yaml";
+import { describe, it, expect } from "vitest";
+
+import type { Validator, ValidationError } from "./types";
 
 import { validateYamlConfig } from "./index";
-import type { Validator, ValidationError } from "./types";
 
 describe("validateYamlConfig", () => {
   describe("default validators", () => {

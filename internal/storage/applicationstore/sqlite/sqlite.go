@@ -127,8 +127,7 @@ func (s *Storage) migrate() error {
 
 // isColumnExistsError checks if the error is due to a column already existing
 func isColumnExistsError(err error) bool {
-	return err != nil && (
-		err.Error() == "duplicate column name: name" ||
+	return err != nil && (err.Error() == "duplicate column name: name" ||
 		err.Error() == "column name already exists")
 }
 

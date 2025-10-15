@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
 import yaml from "js-yaml";
+import { describe, it, expect } from "vitest";
 
 import { OTelPipelineValidator } from "./otel-pipeline-validator";
 
