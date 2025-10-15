@@ -135,7 +135,7 @@ export function generatePipelineNodes(
       // Calculate dynamic section width based on number of processors
       const processorCount = pipelineProcessors.length;
       const processorSpacingX = 220; // Horizontal spacing between processors (increased from 150)
-      const processorStartX = 300; // First processor x position
+      const processorStartX = 350; // First processor x position
       const baseWidth = 850;
       const additionalWidth = processorCount > 1 ? (processorCount - 1) * processorSpacingX : 0;
       const sectionWidth = Math.max(baseWidth, baseWidth + additionalWidth);
@@ -181,8 +181,9 @@ export function generatePipelineNodes(
 
       // Fan-in: Receivers positioned to converge toward center
       // (receiverCount and receiverSpacing already defined above for section height)
+      // Offset by -30 to center the node (accounting for node height)
       const receiverStartY =
-        centerY - ((receiverCount - 1) * receiverSpacing) / 2;
+        centerY - ((receiverCount - 1) * receiverSpacing) / 2 - 30;
 
       pipelineReceivers.forEach((receiver: string, index: number) => {
         // Find metrics for this receiver
@@ -246,8 +247,9 @@ export function generatePipelineNodes(
 
       // Fan-out: Exporters positioned to diverge from center
       // (exporterCount and exporterSpacing already defined above for section height)
+      // Offset by -30 to center the node (accounting for node height)
       const exporterStartY =
-        centerY - ((exporterCount - 1) * exporterSpacing) / 2;
+        centerY - ((exporterCount - 1) * exporterSpacing) / 2 - 30;
 
       // Position exporters after the last processor (or at default position if no processors)
       const exporterX = processorCount > 0
