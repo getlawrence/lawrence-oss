@@ -238,7 +238,7 @@ export function TelemetryLogsView({
                           {Object.entries(log.log_attributes).map(
                             ([key, value]) => (
                               <span key={key} className="mr-2">
-                                {key}={value}
+                                {key}={String(value)}
                               </span>
                             ),
                           )}

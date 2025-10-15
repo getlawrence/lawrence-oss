@@ -6,6 +6,7 @@ import (
 
 	"github.com/getlawrence/lawrence-oss/internal/metrics"
 	"github.com/getlawrence/lawrence-oss/internal/otlp/parser"
+	"github.com/getlawrence/lawrence-oss/internal/otlp/processor"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 
@@ -19,57 +20,63 @@ import (
 // TraceService implements the OTLP Trace Service gRPC interface
 type TraceService struct {
 	coltracepb.UnimplementedTraceServiceServer
-	writer  TelemetryWriter
-	parser  *parser.OTLPParser
-	logger  *zap.Logger
-	metrics *metrics.OTLPMetrics
+	writer   TelemetryWriter
+	parser   *parser.OTLPParser
+	enricher *processor.Enricher
+	logger   *zap.Logger
+	metrics  *metrics.OTLPMetrics
 }
 
 // MetricsService implements the OTLP Metrics Service gRPC interface
 type MetricsService struct {
 	colmetricspb.UnimplementedMetricsServiceServer
-	writer  TelemetryWriter
-	parser  *parser.OTLPParser
-	logger  *zap.Logger
-	metrics *metrics.OTLPMetrics
+	writer   TelemetryWriter
+	parser   *parser.OTLPParser
+	enricher *processor.Enricher
+	logger   *zap.Logger
+	metrics  *metrics.OTLPMetrics
 }
 
 // LogsService implements the OTLP Logs Service gRPC interface
 type LogsService struct {
 	collogspb.UnimplementedLogsServiceServer
-	writer  TelemetryWriter
-	parser  *parser.OTLPParser
-	logger  *zap.Logger
-	metrics *metrics.OTLPMetrics
+	writer   TelemetryWriter
+	parser   *parser.OTLPParser
+	enricher *processor.Enricher
+	logger   *zap.Logger
+	metrics  *metrics.OTLPMetrics
 }
 
 // NewTraceService creates a new TraceService instance
-func NewTraceService(writer TelemetryWriter, parser *parser.OTLPParser, metricsInstance *metrics.OTLPMetrics, logger *zap.Logger) *TraceService {
+func NewTraceService(writer TelemetryWriter, parser *parser.OTLPParser, enricher *processor.Enricher, metricsInstance *metrics.OTLPMetrics, logger *zap.Logger) *TraceService {
 	return &TraceService{
-		writer:  writer,
-		parser:  parser,
-		logger:  logger,
-		metrics: metricsInstance,
+		writer:   writer,
+		parser:   parser,
+		enricher: enricher,
+		logger:   logger,
+		metrics:  metricsInstance,
 	}
 }
 
 // NewMetricsService creates a new MetricsService instance
-func NewMetricsService(writer TelemetryWriter, parser *parser.OTLPParser, metricsInstance *metrics.OTLPMetrics, logger *zap.Logger) *MetricsService {
+func NewMetricsService(writer TelemetryWriter, parser *parser.OTLPParser, enricher *processor.Enricher, metricsInstance *metrics.OTLPMetrics, logger *zap.Logger) *MetricsService {
 	return &MetricsService{
-		writer:  writer,
-		parser:  parser,
-		logger:  logger,
-		metrics: metricsInstance,
+		writer:   writer,
+		parser:   parser,
+		enricher: enricher,
+		logger:   logger,
+		metrics:  metricsInstance,
 	}
 }
 
 // NewLogsService creates a new LogsService instance
-func NewLogsService(writer TelemetryWriter, parser *parser.OTLPParser, metricsInstance *metrics.OTLPMetrics, logger *zap.Logger) *LogsService {
+func NewLogsService(writer TelemetryWriter, parser *parser.OTLPParser, enricher *processor.Enricher, metricsInstance *metrics.OTLPMetrics, logger *zap.Logger) *LogsService {
 	return &LogsService{
-		writer:  writer,
-		parser:  parser,
-		logger:  logger,
-		metrics: metricsInstance,
+		writer:   writer,
+		parser:   parser,
+		enricher: enricher,
+		logger:   logger,
+		metrics:  metricsInstance,
 	}
 }
 
@@ -126,14 +133,12 @@ func (s *TraceService) Export(ctx context.Context, req *coltracepb.ExportTraceSe
 		s.metrics.TracesReceived.Inc(int64(len(traces)))
 	}
 
-	// Create OTLP traces data for async writing
-	otlpTracesData := &parser.OTLPTracesData{
-		Traces: traces,
-	}
+	// Enrich traces with group information
+	s.enricher.EnrichTraces(ctx, traces)
 
 	// Write to storage asynchronously
 	writeStart := time.Now()
-	if err := s.writer.WriteTraces(ctx, otlpTracesData.Traces); err != nil {
+	if err := s.writer.WriteTraces(ctx, traces); err != nil {
 		s.logger.Error("Failed to queue traces for async writing", zap.Error(err))
 		if s.metrics != nil {
 			s.metrics.StorageWriteErrors.Inc(1)
@@ -198,15 +203,11 @@ func (s *MetricsService) Export(ctx context.Context, req *colmetricspb.ExportMet
 		}, nil
 	}
 
-	// Create OTLP metrics data for async writing
-	otlpMetricsData := &parser.OTLPMetricsData{
-		Sums:       sums,
-		Gauges:     gauges,
-		Histograms: histograms,
-	}
+	// Enrich metrics with group information
+	s.enricher.EnrichMetrics(ctx, sums, gauges, histograms)
 
 	// Write to storage
-	if err := s.writer.WriteMetrics(ctx, otlpMetricsData.Sums, otlpMetricsData.Gauges, otlpMetricsData.Histograms); err != nil {
+	if err := s.writer.WriteMetrics(ctx, sums, gauges, histograms); err != nil {
 		s.logger.Error("Failed to queue metrics for async writing", zap.Error(err))
 		return &colmetricspb.ExportMetricsServiceResponse{
 			PartialSuccess: &colmetricspb.ExportMetricsPartialSuccess{
@@ -257,13 +258,11 @@ func (s *LogsService) Export(ctx context.Context, req *collogspb.ExportLogsServi
 		}, nil
 	}
 
-	// Create OTLP logs data for async writing
-	otlpLogsData := &parser.OTLPLogsData{
-		Logs: logs,
-	}
+	// Enrich logs with group information
+	s.enricher.EnrichLogs(ctx, logs)
 
 	// Write to storage
-	if err := s.writer.WriteLogs(ctx, otlpLogsData.Logs); err != nil {
+	if err := s.writer.WriteLogs(ctx, logs); err != nil {
 		s.logger.Error("Failed to write logs", zap.Error(err))
 		return &collogspb.ExportLogsServiceResponse{
 			PartialSuccess: &collogspb.ExportLogsPartialSuccess{

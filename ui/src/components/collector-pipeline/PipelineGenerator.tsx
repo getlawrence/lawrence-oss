@@ -132,6 +132,41 @@ export function generatePipelineNodes(
       );
       const totalErrors = pipelineMetrics.reduce((sum, m) => sum + m.errors, 0);
 
+      // Calculate dynamic section width based on number of processors
+      const processorCount = pipelineProcessors.length;
+      const processorSpacingX = 220; // Horizontal spacing between processors (increased from 150)
+      const processorStartX = 350; // First processor x position
+      const baseWidth = 850;
+      const additionalWidth =
+        processorCount > 1 ? (processorCount - 1) * processorSpacingX : 0;
+      const sectionWidth = Math.max(baseWidth, baseWidth + additionalWidth);
+
+      // Calculate dynamic section height based on number of receivers/exporters
+      const receiverCount = pipelineReceivers.length;
+      const exporterCount = pipelineExporters.length;
+      const receiverSpacing = 120; // Vertical spacing between receivers
+      const exporterSpacing = 120; // Vertical spacing between exporters
+      const baseHeight = 320;
+      const nodeHeight = 100; // Approximate height of a single node
+
+      // Calculate required height for receivers and exporters
+      const receiverHeight =
+        receiverCount > 0
+          ? nodeHeight + (receiverCount - 1) * receiverSpacing
+          : 0;
+      const exporterHeight =
+        exporterCount > 0
+          ? nodeHeight + (exporterCount - 1) * exporterSpacing
+          : 0;
+      const maxVerticalHeight = Math.max(
+        receiverHeight,
+        exporterHeight,
+        nodeHeight,
+      );
+
+      // Add padding (80px top + 80px bottom)
+      const sectionHeight = Math.max(baseHeight, maxVerticalHeight + 160);
+
       // Create section container node (styled)
       const sectionNode: Node = {
         id: `section-${pipelineName}`,
@@ -140,12 +175,15 @@ export function generatePipelineNodes(
         data: {
           type: pipelineType as "traces" | "metrics" | "logs",
           label: displayName,
-          width: 850,
-          height: 320,
-          metrics: {
-            received: totalReceived,
-            errors: totalErrors,
-          },
+          width: sectionWidth,
+          height: sectionHeight,
+          // Only include metrics if there are any
+          ...(pipelineMetrics.length > 0 && {
+            metrics: {
+              received: totalReceived,
+              errors: totalErrors,
+            },
+          }),
         },
         selectable: false,
         draggable: false,
@@ -153,17 +191,13 @@ export function generatePipelineNodes(
       nodes.push(sectionNode);
 
       // Calculate positions for proper pipeline flow: Fan-in → Chain → Fan-out
-      const sectionHeight = 320;
       const centerY = yOffset + sectionHeight / 2;
 
       // Fan-in: Receivers positioned to converge toward center
-      const receiverCount = pipelineReceivers.length;
-      const receiverSpacing = Math.min(
-        80,
-        (sectionHeight - 100) / Math.max(1, receiverCount - 1),
-      );
+      // (receiverCount and receiverSpacing already defined above for section height)
+      // Offset by -30 to center the node (accounting for node height)
       const receiverStartY =
-        centerY - ((receiverCount - 1) * receiverSpacing) / 2;
+        centerY - ((receiverCount - 1) * receiverSpacing) / 2 - 30;
 
       pipelineReceivers.forEach((receiver: string, index: number) => {
         // Find metrics for this receiver
@@ -184,22 +218,20 @@ export function generatePipelineNodes(
           data: {
             label: receiver,
             pipelineType: pipelineType,
-            metrics: {
-              received:
-                receiverMetrics?.received || receiverMetrics?.accepted || 0,
-            },
+            // Only include metrics if they exist
+            ...(receiverMetrics && {
+              metrics: {
+                received:
+                  receiverMetrics.received || receiverMetrics.accepted || 0,
+              },
+            }),
           },
         };
         nodes.push(receiverNode);
       });
 
-      // Chain: Processors positioned vertically in the center
-      const processorSpacing = Math.min(
-        100,
-        (sectionHeight - 100) / Math.max(1, pipelineProcessors.length - 1),
-      );
-      const processorStartY =
-        centerY - ((pipelineProcessors.length - 1) * processorSpacing) / 2;
+      // Chain: Processors positioned horizontally in sequence
+      // (processorCount, processorSpacingX, processorStartX already defined above for section width)
 
       pipelineProcessors.forEach((processor: string, index: number) => {
         // Find metrics for this processor
@@ -214,30 +246,36 @@ export function generatePipelineNodes(
           id: `processor-${pipelineType}-${processor}`,
           type: "processor",
           position: {
-            x: 350,
-            y: processorStartY + index * processorSpacing,
+            x: processorStartX + index * processorSpacingX,
+            y: centerY - 30, // Center vertically (adjust based on node height)
           },
           data: {
             label: processor,
             pipelineType: pipelineType,
-            metrics: {
-              processed:
-                processorMetrics?.accepted || processorMetrics?.received || 0,
-              batches: 0, // batches info not available in current metrics
-            },
+            // Only include metrics if they exist
+            ...(processorMetrics && {
+              metrics: {
+                processed:
+                  processorMetrics.accepted || processorMetrics.received || 0,
+                batches: 0, // batches info not available in current metrics
+              },
+            }),
           },
         };
         nodes.push(processorNode);
       });
 
       // Fan-out: Exporters positioned to diverge from center
-      const exporterCount = pipelineExporters.length;
-      const exporterSpacing = Math.min(
-        80,
-        (sectionHeight - 100) / Math.max(1, exporterCount - 1),
-      );
+      // (exporterCount and exporterSpacing already defined above for section height)
+      // Offset by -30 to center the node (accounting for node height)
       const exporterStartY =
-        centerY - ((exporterCount - 1) * exporterSpacing) / 2;
+        centerY - ((exporterCount - 1) * exporterSpacing) / 2 - 30;
+
+      // Position exporters after the last processor (or at default position if no processors)
+      const exporterX =
+        processorCount > 0
+          ? processorStartX + (processorCount - 1) * processorSpacingX + 250
+          : 600;
 
       pipelineExporters.forEach((exporter: string, index: number) => {
         // Find metrics for this exporter
@@ -252,15 +290,18 @@ export function generatePipelineNodes(
           id: `exporter-${pipelineType}-${exporter}`,
           type: "exporter",
           position: {
-            x: 600,
+            x: exporterX,
             y: exporterStartY + index * exporterSpacing,
           },
           data: {
             label: exporter,
             pipelineType: pipelineType,
-            metrics: {
-              exported: exporterMetrics?.sent || 0,
-            },
+            // Only include metrics if they exist
+            ...(exporterMetrics && {
+              metrics: {
+                exported: exporterMetrics.sent || 0,
+              },
+            }),
           },
         };
         nodes.push(exporterNode);
@@ -278,19 +319,17 @@ export function generatePipelineNodes(
             id: `edge-${pipelineType}-${receiver}-to-${pipelineProcessors[0]}`,
             source: `receiver-${pipelineType}-${receiver}`,
             target: `processor-${pipelineType}-${pipelineProcessors[0]}`,
-            type: "smoothstep",
+            type: "default", // Using bezier curves
             animated: true,
             style: {
               stroke: "#ff9800",
               strokeWidth: 3,
               zIndex: 1000,
-              // Add slight curve to show fan-in pattern
-              strokeDasharray: "0",
             },
           });
         });
 
-        // Chain: Connect processors in sequence (vertical chain)
+        // Chain: Connect processors in sequence (horizontal chain)
         for (let i = 0; i < pipelineProcessors.length - 1; i++) {
           const currentProcessor = pipelineProcessors[i];
           const nextProcessor = pipelineProcessors[i + 1];
@@ -299,7 +338,7 @@ export function generatePipelineNodes(
               id: `edge-${pipelineType}-${currentProcessor}-to-${nextProcessor}`,
               source: `processor-${pipelineType}-${currentProcessor}`,
               target: `processor-${pipelineType}-${nextProcessor}`,
-              type: "smoothstep",
+              type: "default", // Using bezier curves
               animated: true,
               style: {
                 stroke: "#ff9800",
@@ -317,14 +356,12 @@ export function generatePipelineNodes(
             id: `edge-${pipelineType}-${lastProcessor}-to-${exporter}`,
             source: `processor-${pipelineType}-${lastProcessor}`,
             target: `exporter-${pipelineType}-${exporter}`,
-            type: "smoothstep",
+            type: "default", // Using bezier curves
             animated: true,
             style: {
               stroke: "#ff9800",
               strokeWidth: 3,
               zIndex: 1000,
-              // Add slight curve to show fan-out pattern
-              strokeDasharray: "0",
             },
           });
         });
@@ -336,7 +373,7 @@ export function generatePipelineNodes(
               id: `edge-${pipelineType}-${receiver}-to-${exporter}`,
               source: `receiver-${pipelineType}-${receiver}`,
               target: `exporter-${pipelineType}-${exporter}`,
-              type: "smoothstep",
+              type: "default", // Using bezier curves
               animated: true,
               style: {
                 stroke: "#ff9800",
@@ -348,8 +385,8 @@ export function generatePipelineNodes(
         });
       }
 
-      // Move yOffset for next pipeline (based on section height + gap)
-      yOffset += 320 + 40; // Match new height + reduced gap
+      // Move yOffset for next pipeline (based on dynamic section height + gap)
+      yOffset += sectionHeight + 40; // Dynamic height based on content + gap
     },
   );
 

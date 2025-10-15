@@ -44,6 +44,34 @@ func (h *GroupHandlers) HandleGetGroups(c *gin.Context) {
 		return
 	}
 
+	// Get all agents to count them per group
+	allAgents, err := h.agentService.ListAgents(c.Request.Context())
+	if err != nil {
+		h.logger.Error("Failed to get agents", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch agents"})
+		return
+	}
+
+	// Count agents per group
+	agentCountByGroup := make(map[string]int)
+	for _, agent := range allAgents {
+		if agent.GroupID != nil {
+			agentCountByGroup[*agent.GroupID]++
+		}
+	}
+
+	// Enrich groups with agent count and config name
+	for _, group := range groups {
+		group.AgentCount = agentCountByGroup[group.ID]
+
+		// Get latest config for the group
+		config, err := h.agentService.GetLatestConfigForGroup(c.Request.Context(), group.ID)
+		if err == nil && config != nil {
+			// Extract a simple name from the config (first line or ID)
+			group.ConfigName = config.ID
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"groups": groups,
 		"count":  len(groups),

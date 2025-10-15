@@ -43,18 +43,25 @@ export function ConfigsList({
       cardTitle={`Configurations (${configs.length})`}
       cardDescription="All agent and group configurations"
       columns={[
+        { header: "Name", key: "name" },
         { header: "ID", key: "id" },
         { header: "Agent/Group", key: "target" },
         { header: "Version", key: "version" },
         { header: "Hash", key: "hash" },
         { header: "Created", key: "created" },
-        { header: "Content Preview", key: "content" },
         { header: "Actions", key: "actions" },
       ]}
       data={configs}
       getRowKey={(config) => config.id}
       renderRow={(config) => (
         <>
+          <TableCell>
+            <span className="font-medium">
+              {config.name && config.name.trim() !== ""
+                ? config.name
+                : "Unnamed Config"}
+            </span>
+          </TableCell>
           <TableCell>
             <TruncatedId id={config.id} maxLength={8} />
           </TableCell>
@@ -69,7 +76,14 @@ export function ConfigsList({
                 />
               </div>
             ) : config.group_id ? (
-              <span className="text-green-600">Group: {config.group_id}</span>
+              <div className="flex items-center gap-1">
+                <span className="text-green-600 text-sm">Group:</span>
+                <TruncatedId
+                  id={config.group_id}
+                  maxLength={8}
+                  className="text-green-600"
+                />
+              </div>
             ) : (
               <span className="text-gray-500">Global</span>
             )}
@@ -91,12 +105,6 @@ export function ConfigsList({
           </TableCell>
           <TableCell>
             {new Date(config.created_at).toLocaleDateString()}
-          </TableCell>
-          <TableCell className="max-w-xs">
-            <div className="truncate text-sm text-gray-600">
-              {config.content.slice(0, 100)}
-              {config.content.length > 100 && "..."}
-            </div>
           </TableCell>
           <TableCell>
             <Button

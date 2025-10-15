@@ -64,16 +64,19 @@ const (
 
 // Group represents a group of agents
 type Group struct {
-	ID        string            `json:"id"`
-	Name      string            `json:"name"`
-	Labels    map[string]string `json:"labels"`
-	CreatedAt time.Time         `json:"created_at"`
-	UpdatedAt time.Time         `json:"updated_at"`
+	ID         string            `json:"id"`
+	Name       string            `json:"name"`
+	Labels     map[string]string `json:"labels"`
+	AgentCount int               `json:"agent_count"`
+	ConfigName string            `json:"config_name,omitempty"`
+	CreatedAt  time.Time         `json:"created_at"`
+	UpdatedAt  time.Time         `json:"updated_at"`
 }
 
 // Config represents an agent configuration
 type Config struct {
 	ID         string     `json:"id"`
+	Name       string     `json:"name"`
 	AgentID    *uuid.UUID `json:"agent_id,omitempty"`
 	GroupID    *string    `json:"group_id,omitempty"`
 	ConfigHash string     `json:"config_hash"`

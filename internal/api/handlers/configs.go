@@ -33,6 +33,7 @@ func NewConfigHandlers(agentService services.AgentService, logger *zap.Logger) *
 
 // CreateConfigRequest represents the request for creating a config
 type CreateConfigRequest struct {
+	Name       string     `json:"name,omitempty"`
 	AgentID    *uuid.UUID `json:"agent_id,omitempty"`
 	GroupID    *string    `json:"group_id,omitempty"`
 	ConfigHash string     `json:"config_hash" binding:"required"`
@@ -42,6 +43,7 @@ type CreateConfigRequest struct {
 
 // UpdateConfigRequest represents the request for updating a config
 type UpdateConfigRequest struct {
+	Name    string `json:"name,omitempty"`
 	Content string `json:"content" binding:"required"`
 	Version int    `json:"version" binding:"required"`
 }
@@ -117,6 +119,7 @@ func (h *ConfigHandlers) HandleCreateConfig(c *gin.Context) {
 	// Create config
 	config := &services.Config{
 		ID:         configID,
+		Name:       req.Name,
 		AgentID:    req.AgentID,
 		GroupID:    req.GroupID,
 		ConfigHash: req.ConfigHash,
@@ -197,8 +200,15 @@ func (h *ConfigHandlers) HandleUpdateConfig(c *gin.Context) {
 	newConfigID := uuid.New().String()
 	configHash := hashConfig(req.Content)
 
+	// Use the new name if provided, otherwise keep the existing name
+	name := req.Name
+	if name == "" {
+		name = existingConfig.Name
+	}
+
 	newConfig := &services.Config{
 		ID:         newConfigID,
+		Name:       name,
 		AgentID:    existingConfig.AgentID,
 		GroupID:    existingConfig.GroupID,
 		ConfigHash: configHash,

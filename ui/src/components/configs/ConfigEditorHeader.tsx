@@ -2,39 +2,56 @@ import {
   ArrowLeft,
   Save,
   RefreshCw,
-  Target,
   MoreVertical,
   History,
 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
+import { EditableConfigTitle } from "./EditableConfigTitle";
+
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface Group {
+  id: string;
+  name: string;
+}
 
 interface ConfigEditorHeaderProps {
   isSaving: boolean;
   canSave: boolean;
-  selectedGroupName?: string;
+  configName: string;
+  selectedGroupId: string;
+  groups: Group[];
   onBack: () => void;
   onShowVersions: () => void;
-  onShowTarget: () => void;
   onSave: () => void;
+  onConfigNameChange: (name: string) => void;
+  onGroupChange: (groupId: string) => void;
 }
 
 export function ConfigEditorHeader({
   isSaving,
   canSave,
-  selectedGroupName,
+  configName,
+  selectedGroupId,
+  groups,
   onBack,
   onShowVersions,
-  onShowTarget,
   onSave,
+  onConfigNameChange,
+  onGroupChange,
 }: ConfigEditorHeaderProps) {
   return (
     <div className="flex justify-between items-center w-full">
@@ -42,12 +59,21 @@ export function ConfigEditorHeader({
         <Button variant="ghost" size="icon" onClick={onBack}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        {selectedGroupName && (
-          <Badge variant="outline" className="text-sm">
-            <Target className="h-3 w-3 mr-1" />
-            {selectedGroupName}
-          </Badge>
-        )}
+        <EditableConfigTitle value={configName} onChange={onConfigNameChange} />
+        <div className="w-[200px]">
+          <Select value={selectedGroupId} onValueChange={onGroupChange}>
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="Select target group" />
+            </SelectTrigger>
+            <SelectContent>
+              {groups.map((group) => (
+                <SelectItem key={group.id} value={group.id}>
+                  {group.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       <div className="flex items-center gap-2">
         <DropdownMenu>
@@ -57,11 +83,6 @@ export function ConfigEditorHeader({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onShowTarget}>
-              <Target className="h-4 w-4 mr-2" />
-              Target Group
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onShowVersions}>
               <History className="h-4 w-4 mr-2" />
               Version History

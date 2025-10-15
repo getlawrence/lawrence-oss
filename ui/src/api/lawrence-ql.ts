@@ -13,8 +13,8 @@ export interface QueryResult {
   type: "metrics" | "logs" | "traces";
   timestamp: string;
   labels: Record<string, string>;
-  value: any;
-  data?: Record<string, any>;
+  value: unknown;
+  data?: Record<string, unknown>;
 }
 
 export interface QueryMeta {

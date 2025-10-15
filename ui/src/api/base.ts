@@ -45,11 +45,11 @@ export const simpleRequest = async <T = unknown>(
           errorMessage += `: ${errorData.details}`;
         }
       }
-    } catch (e) {
+    } catch {
       // If we can't parse the error response, use the default message
     }
-    const error = new Error(errorMessage);
-    (error as any).status = response.status;
+    const error = new Error(errorMessage) as Error & { status: number };
+    error.status = response.status;
     throw error;
   }
 

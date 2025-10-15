@@ -7,6 +7,8 @@ export interface Group {
   id: string;
   name: string;
   labels: Record<string, string>;
+  agent_count: number;
+  config_name?: string;
   created_at: string;
   updated_at: string;
 }

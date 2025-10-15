@@ -203,6 +203,7 @@ func (s *AgentServiceImpl) DeleteGroup(ctx context.Context, id string) error {
 func (s *AgentServiceImpl) CreateConfig(ctx context.Context, config *Config) error {
 	storageConfig := &applicationstore.Config{
 		ID:         config.ID,
+		Name:       config.Name,
 		AgentID:    config.AgentID,
 		GroupID:    config.GroupID,
 		ConfigHash: config.ConfigHash,
@@ -226,6 +227,7 @@ func (s *AgentServiceImpl) GetConfig(ctx context.Context, id string) (*Config, e
 
 	return &Config{
 		ID:         config.ID,
+		Name:       config.Name,
 		AgentID:    config.AgentID,
 		GroupID:    config.GroupID,
 		ConfigHash: config.ConfigHash,
@@ -248,6 +250,7 @@ func (s *AgentServiceImpl) GetLatestConfigForAgent(ctx context.Context, agentID 
 
 	return &Config{
 		ID:         config.ID,
+		Name:       config.Name,
 		AgentID:    config.AgentID,
 		GroupID:    config.GroupID,
 		ConfigHash: config.ConfigHash,
@@ -270,6 +273,7 @@ func (s *AgentServiceImpl) GetLatestConfigForGroup(ctx context.Context, groupID 
 
 	return &Config{
 		ID:         config.ID,
+		Name:       config.Name,
 		AgentID:    config.AgentID,
 		GroupID:    config.GroupID,
 		ConfigHash: config.ConfigHash,
@@ -296,6 +300,7 @@ func (s *AgentServiceImpl) ListConfigs(ctx context.Context, filter ConfigFilter)
 	for i, config := range configs {
 		result[i] = &Config{
 			ID:         config.ID,
+			Name:       config.Name,
 			AgentID:    config.AgentID,
 			GroupID:    config.GroupID,
 			ConfigHash: config.ConfigHash,

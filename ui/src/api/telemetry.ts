@@ -51,7 +51,7 @@ export interface MetricData {
   service_name: string;
   metric_name: string;
   value: number;
-  metric_attributes: Record<string, any>;
+  metric_attributes: Record<string, unknown>;
 }
 
 export interface LogData {
@@ -64,7 +64,7 @@ export interface LogData {
   body: string;
   trace_id?: string;
   span_id?: string;
-  log_attributes: Record<string, any>;
+  log_attributes: Record<string, unknown>;
 }
 
 export interface TraceData {
@@ -78,7 +78,7 @@ export interface TraceData {
   span_name: string;
   duration: number;
   status_code: string;
-  span_attributes: Record<string, any>;
+  span_attributes: Record<string, unknown>;
 }
 
 export interface MetricsQueryResponse {

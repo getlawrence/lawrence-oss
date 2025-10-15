@@ -15,7 +15,7 @@ export const ExporterNode = ({ data }: ExporterNodeProps) => {
 
   return (
     <Card
-      className="min-w-48 p-0 shadow-md hover:shadow-lg transition-all duration-200 border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-white dark:from-purple-950/30 dark:to-background"
+      className="min-w-48 p-0 gap-0 shadow-md hover:shadow-lg transition-all duration-200 border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-white dark:from-purple-950/30 dark:to-background"
       style={nodeStyle}
     >
       <div className="px-1 py-0.5 bg-purple-100/50 dark:bg-purple-900/20 flex items-center justify-between border-b border-purple-200 dark:border-purple-800">
@@ -29,23 +29,29 @@ export const ExporterNode = ({ data }: ExporterNodeProps) => {
           </Badge>
         </div>
       </div>
-      <CardContent className="p-2 pt-3">
-        <div className="flex items-center gap-2">
-          <div className="p-1 rounded-full bg-purple-100 dark:bg-purple-900/40">
+      <CardContent
+        className={
+          data.metrics?.exported !== undefined || data.config?.endpoint
+            ? "p-2 pt-3"
+            : "p-2"
+        }
+      >
+        <div className="flex items-center gap-1.5">
+          <div className="p-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center">
             <ArrowUp
-              size={14}
+              size={12}
               className="text-purple-600 dark:text-purple-400"
             />
           </div>
-          <div className="font-medium text-sm">{data.label}</div>
+          <div className="font-medium text-sm leading-none">{data.label}</div>
         </div>
         {data.config?.endpoint && (
-          <div className="text-xs text-muted-foreground mt-2 pl-7 truncate max-w-40">
+          <div className="text-xs text-muted-foreground mt-2 pl-6 truncate max-w-40">
             {data.config.endpoint}
           </div>
         )}
         {data.metrics?.exported !== undefined && (
-          <div className="text-xs text-purple-600 dark:text-purple-400 mt-2 pl-7">
+          <div className="text-xs text-purple-600 dark:text-purple-400 mt-2 pl-6">
             Exported: {data.metrics.exported.toLocaleString()}
           </div>
         )}

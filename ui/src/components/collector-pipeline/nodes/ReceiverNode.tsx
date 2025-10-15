@@ -15,7 +15,7 @@ export const ReceiverNode = ({ data }: ReceiverNodeProps) => {
 
   return (
     <Card
-      className="min-w-48 p-0 shadow-md hover:shadow-lg transition-all duration-200 border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/30 dark:to-background"
+      className="min-w-48 p-0 gap-0 shadow-md hover:shadow-lg transition-all duration-200 border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/30 dark:to-background"
       style={nodeStyle}
     >
       <div className="px-1 py-0.5 bg-blue-100/50 dark:bg-blue-900/20 flex items-center justify-between border-b border-blue-200 dark:border-blue-800">
@@ -29,20 +29,26 @@ export const ReceiverNode = ({ data }: ReceiverNodeProps) => {
           </Badge>
         </div>
       </div>
-      <CardContent className="p-2 pt-3">
-        <div className="flex items-center gap-2">
-          <div className="p-1 rounded-full bg-blue-100 dark:bg-blue-900/40">
-            <ArrowDown size={14} className="text-blue-600 dark:text-blue-400" />
+      <CardContent
+        className={
+          data.metrics?.received !== undefined || data.config?.endpoint
+            ? "p-2 pt-3"
+            : "p-2"
+        }
+      >
+        <div className="flex items-center gap-1.5">
+          <div className="p-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
+            <ArrowDown size={12} className="text-blue-600 dark:text-blue-400" />
           </div>
-          <div className="font-medium text-sm">{data.label}</div>
+          <div className="font-medium text-sm leading-none">{data.label}</div>
         </div>
         {data.config?.endpoint && (
-          <div className="text-xs text-muted-foreground mt-2 pl-7 truncate max-w-40">
+          <div className="text-xs text-muted-foreground mt-2 pl-6 truncate max-w-40">
             {data.config.endpoint}
           </div>
         )}
         {data.metrics?.received !== undefined && (
-          <div className="text-xs text-blue-600 dark:text-blue-400 mt-2 pl-7">
+          <div className="text-xs text-blue-600 dark:text-blue-400 mt-2 pl-6">
             Received: {data.metrics.received.toLocaleString()}
           </div>
         )}

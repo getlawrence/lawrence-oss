@@ -37,8 +37,20 @@ export function validateYamlConfig(
     }
   }
 
+  // Deduplicate errors based on message, line, and column
+  const uniqueErrors: ValidationError[] = [];
+  const seen = new Set<string>();
+
+  for (const error of allErrors) {
+    const key = `${error.message}|${error.line}|${error.column}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      uniqueErrors.push(error);
+    }
+  }
+
   return {
-    valid: allErrors.filter((e) => e.severity === "error").length === 0,
-    errors: allErrors,
+    valid: uniqueErrors.filter((e) => e.severity === "error").length === 0,
+    errors: uniqueErrors,
   };
 }

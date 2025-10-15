@@ -1,5 +1,8 @@
 import { apiGet } from "./base";
 
+import type { Agent } from "@/types/agent";
+import type { Group } from "@/types/groups";
+
 export interface TopologyNode {
   id: string;
   type: "agent" | "group" | "service";
@@ -10,7 +13,7 @@ export interface TopologyNode {
   labels: Record<string, string>;
   metrics?: NodeMetrics;
   last_seen?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface TopologyEdge {
@@ -44,15 +47,19 @@ export interface TopologyResponse {
   updated_at: string;
 }
 
+export interface PipelineConfig {
+  [key: string]: unknown;
+}
+
 export interface AgentTopologyResponse {
-  agent: any;
+  agent: Agent;
   metrics: NodeMetrics;
-  pipeline: any;
+  pipeline: PipelineConfig;
 }
 
 export interface GroupTopologyResponse {
-  group: any;
-  agents: any[];
+  group: Group;
+  agents: Agent[];
   agent_count: number;
   metric_count: number;
 }

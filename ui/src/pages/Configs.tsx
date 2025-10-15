@@ -15,7 +15,6 @@ import { getGroups } from "@/api/groups";
 import {
   ConfigsList,
   ConfigEditorHeader,
-  ConfigTargetDrawer,
   ConfigEditorSideBySide,
   ConfigVersionHistory,
 } from "@/components/configs";
@@ -82,9 +81,9 @@ export default function ConfigsPage({
 
   const [refreshing, setRefreshing] = useState(false);
   const [editorContent, setEditorContent] = useState(DEFAULT_CONFIG);
+  const [configName, setConfigName] = useState("New Config");
   const [isSaving, setIsSaving] = useState(false);
   const [showVersions, setShowVersions] = useState(false);
-  const [showTarget, setShowTarget] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
 
   const {
@@ -112,9 +111,11 @@ export default function ConfigsPage({
   useEffect(() => {
     if (mode === "edit" && currentConfigData) {
       setEditorContent(currentConfigData.content);
+      setConfigName(currentConfigData.name || "New Config");
       setSelectedGroupId(currentConfigData.group_id || "");
     } else if (mode === "create") {
       setEditorContent(DEFAULT_CONFIG);
+      setConfigName("New Config");
       setSelectedGroupId("");
     }
   }, [mode, currentConfigData]);
@@ -131,12 +132,14 @@ export default function ConfigsPage({
       if (mode === "edit" && currentConfigData) {
         // Update existing config (creates new version)
         await updateConfig(currentConfigData.id, {
+          name: configName,
           content: editorContent,
           version: currentConfigData.version + 1,
         });
       } else {
         // Create new config
         await createConfig({
+          name: configName,
           group_id: selectedGroupId || undefined,
           config_hash: `hash_${Date.now()}`,
           content: editorContent,
@@ -174,7 +177,6 @@ export default function ConfigsPage({
   const configs = configsData?.configs || [];
   const groups = groupsData?.groups || [];
   const versions = versionsData?.versions || [];
-  const selectedGroup = groups.find((g) => g.id === selectedGroupId);
 
   // List View
   if (mode === "list") {
@@ -214,11 +216,14 @@ export default function ConfigsPage({
         <ConfigEditorHeader
           isSaving={isSaving}
           canSave={!!selectedGroupId}
-          selectedGroupName={selectedGroup?.name}
+          configName={configName}
+          selectedGroupId={selectedGroupId}
+          groups={groups}
           onBack={handleBackToList}
-          onShowTarget={() => setShowTarget(true)}
           onShowVersions={() => setShowVersions(true)}
           onSave={handleSave}
+          onConfigNameChange={setConfigName}
+          onGroupChange={setSelectedGroupId}
         />
       </div>
 
@@ -229,17 +234,6 @@ export default function ConfigsPage({
           onChange={setEditorContent}
         />
       </div>
-
-      {/* Target Drawer */}
-      <ConfigTargetDrawer
-        open={showTarget}
-        onOpenChange={setShowTarget}
-        mode={mode as "create" | "edit"}
-        selectedGroupId={selectedGroupId}
-        groups={groups}
-        currentVersion={currentConfigData?.version}
-        onGroupChange={setSelectedGroupId}
-      />
 
       {/* Version History Modal */}
       <ConfigVersionHistory
