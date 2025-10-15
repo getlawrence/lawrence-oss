@@ -90,41 +90,82 @@ export function ConfigEditorSideBySide({
                       {isValidating ? "Validating..." : "Updating..."}
                     </Badge>
                   )}
-                  {!isParsing && !isValidating && !parseResult.valid && parseResult.error && (
-                    <Badge variant="outline" className="gap-1 text-xs bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800">
-                      <AlertCircle className="h-3 w-3" />
-                      Parse Error
-                    </Badge>
-                  )}
-                  {!isParsing && !isValidating && parseResult.valid && validationResult.errors.length > 0 && (
-                    <Badge
-                      variant="outline"
-                      className={
-                        validationResult.errors.some((e) => e.severity === "error")
-                          ? "gap-1 text-xs bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800"
-                          : "gap-1 text-xs bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-400 dark:border-yellow-800"
-                      }
-                    >
-                      {validationResult.errors.some((e) => e.severity === "error") ? (
+                  {!isParsing &&
+                    !isValidating &&
+                    !parseResult.valid &&
+                    parseResult.error && (
+                      <Badge
+                        variant="outline"
+                        className="gap-1 text-xs bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800"
+                      >
                         <AlertCircle className="h-3 w-3" />
-                      ) : (
-                        <AlertTriangle className="h-3 w-3" />
-                      )}
-                      {validationResult.errors.filter((e) => e.severity === "error").length > 0 && (
-                        <>
-                          {validationResult.errors.filter((e) => e.severity === "error").length} error{validationResult.errors.filter((e) => e.severity === "error").length !== 1 ? "s" : ""}
-                        </>
-                      )}
-                      {validationResult.errors.filter((e) => e.severity === "error").length > 0 &&
-                        validationResult.errors.filter((e) => e.severity === "warning").length > 0 &&
-                        ", "}
-                      {validationResult.errors.filter((e) => e.severity === "warning").length > 0 && (
-                        <>
-                          {validationResult.errors.filter((e) => e.severity === "warning").length} warning{validationResult.errors.filter((e) => e.severity === "warning").length !== 1 ? "s" : ""}
-                        </>
-                      )}
-                    </Badge>
-                  )}
+                        Parse Error
+                      </Badge>
+                    )}
+                  {!isParsing &&
+                    !isValidating &&
+                    parseResult.valid &&
+                    validationResult.errors.length > 0 && (
+                      <Badge
+                        variant="outline"
+                        className={
+                          validationResult.errors.some(
+                            (e) => e.severity === "error",
+                          )
+                            ? "gap-1 text-xs bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800"
+                            : "gap-1 text-xs bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-400 dark:border-yellow-800"
+                        }
+                      >
+                        {validationResult.errors.some(
+                          (e) => e.severity === "error",
+                        ) ? (
+                          <AlertCircle className="h-3 w-3" />
+                        ) : (
+                          <AlertTriangle className="h-3 w-3" />
+                        )}
+                        {validationResult.errors.filter(
+                          (e) => e.severity === "error",
+                        ).length > 0 && (
+                          <>
+                            {
+                              validationResult.errors.filter(
+                                (e) => e.severity === "error",
+                              ).length
+                            }{" "}
+                            error
+                            {validationResult.errors.filter(
+                              (e) => e.severity === "error",
+                            ).length !== 1
+                              ? "s"
+                              : ""}
+                          </>
+                        )}
+                        {validationResult.errors.filter(
+                          (e) => e.severity === "error",
+                        ).length > 0 &&
+                          validationResult.errors.filter(
+                            (e) => e.severity === "warning",
+                          ).length > 0 &&
+                          ", "}
+                        {validationResult.errors.filter(
+                          (e) => e.severity === "warning",
+                        ).length > 0 && (
+                          <>
+                            {
+                              validationResult.errors.filter(
+                                (e) => e.severity === "warning",
+                              ).length
+                            }{" "}
+                            warning
+                            {validationResult.errors.filter(
+                              (e) => e.severity === "warning",
+                            ).length !== 1
+                              ? "s"
+                              : ""}
+                          </>
+                        )}
+                      </Badge>
+                    )}
                 </div>
               </div>
 

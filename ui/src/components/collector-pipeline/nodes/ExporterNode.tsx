@@ -29,7 +29,13 @@ export const ExporterNode = ({ data }: ExporterNodeProps) => {
           </Badge>
         </div>
       </div>
-      <CardContent className={data.metrics?.exported !== undefined || data.config?.endpoint ? "p-2 pt-3" : "p-2"}>
+      <CardContent
+        className={
+          data.metrics?.exported !== undefined || data.config?.endpoint
+            ? "p-2 pt-3"
+            : "p-2"
+        }
+      >
         <div className="flex items-center gap-1.5">
           <div className="p-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center">
             <ArrowUp

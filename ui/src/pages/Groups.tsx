@@ -153,9 +153,7 @@ export default function GroupsPage() {
                   {group.config_name}
                 </span>
               ) : (
-                <span className="text-xs text-muted-foreground">
-                  No config
-                </span>
+                <span className="text-xs text-muted-foreground">No config</span>
               )}
             </TableCell>
             <TableCell>

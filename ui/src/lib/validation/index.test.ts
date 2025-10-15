@@ -38,7 +38,9 @@ service:
 
       expect(result.valid).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
-      expect(result.errors.some((e) => e.message.includes("undefined_receiver"))).toBe(true);
+      expect(
+        result.errors.some((e) => e.message.includes("undefined_receiver")),
+      ).toBe(true);
     });
 
     it("should mark config as valid when only warnings exist", () => {
@@ -126,7 +128,9 @@ service:
   otlp:`;
 
       const parsed = yaml.load(yamlContent);
-      const result = validateYamlConfig(yamlContent, parsed, [duplicatingValidator]);
+      const result = validateYamlConfig(yamlContent, parsed, [
+        duplicatingValidator,
+      ]);
 
       // Should only have 1 error after deduplication
       expect(result.errors).toHaveLength(1);
@@ -164,7 +168,9 @@ service:
   otlp:`;
 
       const parsed = yaml.load(yamlContent);
-      const result = validateYamlConfig(yamlContent, parsed, [multiErrorValidator]);
+      const result = validateYamlConfig(yamlContent, parsed, [
+        multiErrorValidator,
+      ]);
 
       // Should have all 3 errors since they're at different positions
       expect(result.errors).toHaveLength(3);
@@ -199,7 +205,10 @@ service:
   otlp:`;
 
       const parsed = yaml.load(yamlContent);
-      const result = validateYamlConfig(yamlContent, parsed, [validator1, validator2]);
+      const result = validateYamlConfig(yamlContent, parsed, [
+        validator1,
+        validator2,
+      ]);
 
       // Should only have 1 error after deduplication
       expect(result.errors).toHaveLength(1);
@@ -305,7 +314,9 @@ service:
   otlp:`;
 
       const parsed = yaml.load(yamlContent);
-      const result = validateYamlConfig(yamlContent, parsed, [warningValidator]);
+      const result = validateYamlConfig(yamlContent, parsed, [
+        warningValidator,
+      ]);
 
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(1);

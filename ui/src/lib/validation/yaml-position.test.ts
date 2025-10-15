@@ -1,9 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import {
-  createValidationError,
-  findYamlPosition,
-} from "./yaml-position";
+import { createValidationError, findYamlPosition } from "./yaml-position";
 
 describe("findYamlPosition", () => {
   describe("basic path finding", () => {
@@ -486,11 +483,10 @@ describe("createValidationError", () => {
     const yaml = `service:
   pipelines:`;
 
-    const error = createValidationError(
-      "This is an error",
-      yaml,
-      ["service", "pipelines"],
-    );
+    const error = createValidationError("This is an error", yaml, [
+      "service",
+      "pipelines",
+    ]);
 
     expect(error.severity).toBe("error");
   });

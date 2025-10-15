@@ -57,7 +57,9 @@ export function ConfigsList({
         <>
           <TableCell>
             <span className="font-medium">
-              {config.name && config.name.trim() !== "" ? config.name : "Unnamed Config"}
+              {config.name && config.name.trim() !== ""
+                ? config.name
+                : "Unnamed Config"}
             </span>
           </TableCell>
           <TableCell>
@@ -76,11 +78,11 @@ export function ConfigsList({
             ) : config.group_id ? (
               <div className="flex items-center gap-1">
                 <span className="text-green-600 text-sm">Group:</span>
-              <TruncatedId
-              id={config.group_id}
-              maxLength={8}
-              className="text-green-600"
-              />
+                <TruncatedId
+                  id={config.group_id}
+                  maxLength={8}
+                  className="text-green-600"
+                />
               </div>
             ) : (
               <span className="text-gray-500">Global</span>

@@ -29,7 +29,9 @@ export const ProcessorNode = ({ data }: ProcessorNodeProps) => {
           </Badge>
         </div>
       </div>
-      <CardContent className={data.metrics?.processed !== undefined ? "p-2 pt-3" : "p-2"}>
+      <CardContent
+        className={data.metrics?.processed !== undefined ? "p-2 pt-3" : "p-2"}
+      >
         <div className="flex items-center gap-1.5">
           <div className="p-0.5 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
             <Bolt size={12} className="text-green-600 dark:text-green-400" />

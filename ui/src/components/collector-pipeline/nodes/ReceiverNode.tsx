@@ -29,7 +29,13 @@ export const ReceiverNode = ({ data }: ReceiverNodeProps) => {
           </Badge>
         </div>
       </div>
-      <CardContent className={data.metrics?.received !== undefined || data.config?.endpoint ? "p-2 pt-3" : "p-2"}>
+      <CardContent
+        className={
+          data.metrics?.received !== undefined || data.config?.endpoint
+            ? "p-2 pt-3"
+            : "p-2"
+        }
+      >
         <div className="flex items-center gap-1.5">
           <div className="p-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
             <ArrowDown size={12} className="text-blue-600 dark:text-blue-400" />

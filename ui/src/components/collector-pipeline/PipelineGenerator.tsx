@@ -137,7 +137,8 @@ export function generatePipelineNodes(
       const processorSpacingX = 220; // Horizontal spacing between processors (increased from 150)
       const processorStartX = 350; // First processor x position
       const baseWidth = 850;
-      const additionalWidth = processorCount > 1 ? (processorCount - 1) * processorSpacingX : 0;
+      const additionalWidth =
+        processorCount > 1 ? (processorCount - 1) * processorSpacingX : 0;
       const sectionWidth = Math.max(baseWidth, baseWidth + additionalWidth);
 
       // Calculate dynamic section height based on number of receivers/exporters
@@ -149,9 +150,19 @@ export function generatePipelineNodes(
       const nodeHeight = 100; // Approximate height of a single node
 
       // Calculate required height for receivers and exporters
-      const receiverHeight = receiverCount > 0 ? nodeHeight + (receiverCount - 1) * receiverSpacing : 0;
-      const exporterHeight = exporterCount > 0 ? nodeHeight + (exporterCount - 1) * exporterSpacing : 0;
-      const maxVerticalHeight = Math.max(receiverHeight, exporterHeight, nodeHeight);
+      const receiverHeight =
+        receiverCount > 0
+          ? nodeHeight + (receiverCount - 1) * receiverSpacing
+          : 0;
+      const exporterHeight =
+        exporterCount > 0
+          ? nodeHeight + (exporterCount - 1) * exporterSpacing
+          : 0;
+      const maxVerticalHeight = Math.max(
+        receiverHeight,
+        exporterHeight,
+        nodeHeight,
+      );
 
       // Add padding (80px top + 80px bottom)
       const sectionHeight = Math.max(baseHeight, maxVerticalHeight + 160);
@@ -210,7 +221,8 @@ export function generatePipelineNodes(
             // Only include metrics if they exist
             ...(receiverMetrics && {
               metrics: {
-                received: receiverMetrics.received || receiverMetrics.accepted || 0,
+                received:
+                  receiverMetrics.received || receiverMetrics.accepted || 0,
               },
             }),
           },
@@ -243,7 +255,8 @@ export function generatePipelineNodes(
             // Only include metrics if they exist
             ...(processorMetrics && {
               metrics: {
-                processed: processorMetrics.accepted || processorMetrics.received || 0,
+                processed:
+                  processorMetrics.accepted || processorMetrics.received || 0,
                 batches: 0, // batches info not available in current metrics
               },
             }),
@@ -259,9 +272,10 @@ export function generatePipelineNodes(
         centerY - ((exporterCount - 1) * exporterSpacing) / 2 - 30;
 
       // Position exporters after the last processor (or at default position if no processors)
-      const exporterX = processorCount > 0
-        ? processorStartX + (processorCount - 1) * processorSpacingX + 250
-        : 600;
+      const exporterX =
+        processorCount > 0
+          ? processorStartX + (processorCount - 1) * processorSpacingX + 250
+          : 600;
 
       pipelineExporters.forEach((exporter: string, index: number) => {
         // Find metrics for this exporter
