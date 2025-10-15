@@ -21,7 +21,7 @@ type LogData struct {
 	ScopeVersion       string
 	ScopeAttributes    map[string]string
 	LogAttributes      map[string]string
-	AgentID            string // OSS: Agent ID instead of OrganizationID
+	AgentID            string
 	GroupID            string
 	GroupName          string
 }
@@ -46,7 +46,7 @@ type TraceData struct {
 	StatusMessage      string
 	Events             []EventData
 	Links              []LinkData
-	AgentID            string // OSS: Agent ID instead of OrganizationID
+	AgentID            string
 	GroupID            string
 	GroupName          string
 }
@@ -86,7 +86,7 @@ type MetricSumData struct {
 	Flags                  uint32
 	AggregationTemporality int32
 	IsMonotonic            bool
-	AgentID                string // OSS: Agent ID instead of OrganizationID
+	AgentID                string
 	GroupID                string
 	GroupName              string
 }
@@ -111,7 +111,7 @@ type MetricGaugeData struct {
 	Flags                  uint32
 	AggregationTemporality int32
 	IsMonotonic            bool
-	AgentID                string // OSS: Agent ID instead of OrganizationID
+	AgentID                string
 	GroupID                string
 	GroupName              string
 }
@@ -141,7 +141,7 @@ type MetricHistogramData struct {
 	Max                    float64
 	AggregationTemporality int32
 	DataType               string
-	AgentID                string // OSS: Agent ID instead of OrganizationID
+	AgentID                string
 	GroupID                string
 	GroupName              string
 }
