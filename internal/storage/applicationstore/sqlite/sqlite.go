@@ -84,6 +84,7 @@ func (s *Storage) migrate() error {
 
 		CREATE TABLE IF NOT EXISTS configs (
 			id TEXT PRIMARY KEY,
+			name TEXT,
 			agent_id TEXT,
 			group_id TEXT,
 			config_hash TEXT NOT NULL,
@@ -105,8 +106,30 @@ func (s *Storage) migrate() error {
 		return fmt.Errorf("failed to create tables: %w", err)
 	}
 
+	// Run migrations for schema changes
+	migrations := []string{
+		// Add name column to configs table if it doesn't exist
+		`ALTER TABLE configs ADD COLUMN name TEXT`,
+	}
+
+	for _, migration := range migrations {
+		if _, err := s.db.Exec(migration); err != nil {
+			// Ignore errors for columns that already exist
+			if !isColumnExistsError(err) {
+				s.logger.Debug("Migration skipped or failed", zap.Error(err))
+			}
+		}
+	}
+
 	s.logger.Debug("Database migrations completed")
 	return nil
+}
+
+// isColumnExistsError checks if the error is due to a column already existing
+func isColumnExistsError(err error) bool {
+	return err != nil && (
+		err.Error() == "duplicate column name: name" ||
+		err.Error() == "column name already exists")
 }
 
 // Agent management
@@ -403,12 +426,13 @@ func (s *Storage) DeleteGroup(ctx context.Context, id string) error {
 // Config management
 func (s *Storage) CreateConfig(ctx context.Context, config *types.Config) error {
 	query := `
-		INSERT INTO configs (id, agent_id, group_id, config_hash, content, version, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO configs (id, name, agent_id, group_id, config_hash, content, version, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	_, err := s.db.ExecContext(ctx, query,
 		config.ID,
+		config.Name,
 		config.AgentID,
 		config.GroupID,
 		config.ConfigHash,
@@ -426,13 +450,15 @@ func (s *Storage) CreateConfig(ctx context.Context, config *types.Config) error 
 }
 
 func (s *Storage) GetConfig(ctx context.Context, id string) (*types.Config, error) {
-	query := `SELECT id, agent_id, group_id, config_hash, content, version, created_at FROM configs WHERE id = ?`
+	query := `SELECT id, name, agent_id, group_id, config_hash, content, version, created_at FROM configs WHERE id = ?`
 
 	var config types.Config
 	var agentIDStr, groupIDStr sql.NullString
+	var nameStr sql.NullString
 
 	err := s.db.QueryRowContext(ctx, query, id).Scan(
 		&config.ID,
+		&nameStr,
 		&agentIDStr,
 		&groupIDStr,
 		&config.ConfigHash,
@@ -448,6 +474,9 @@ func (s *Storage) GetConfig(ctx context.Context, id string) (*types.Config, erro
 		return nil, fmt.Errorf("failed to get config: %w", err)
 	}
 
+	if nameStr.Valid {
+		config.Name = nameStr.String
+	}
 	if agentIDStr.Valid {
 		agentID, _ := uuid.Parse(agentIDStr.String)
 		config.AgentID = &agentID
@@ -461,7 +490,7 @@ func (s *Storage) GetConfig(ctx context.Context, id string) (*types.Config, erro
 
 func (s *Storage) GetLatestConfigForAgent(ctx context.Context, agentID uuid.UUID) (*types.Config, error) {
 	query := `
-		SELECT id, agent_id, group_id, config_hash, content, version, created_at
+		SELECT id, name, agent_id, group_id, config_hash, content, version, created_at
 		FROM configs
 		WHERE agent_id = ?
 		ORDER BY version DESC, created_at DESC
@@ -470,9 +499,11 @@ func (s *Storage) GetLatestConfigForAgent(ctx context.Context, agentID uuid.UUID
 
 	var config types.Config
 	var agentIDStr, groupIDStr sql.NullString
+	var nameStr sql.NullString
 
 	err := s.db.QueryRowContext(ctx, query, agentID.String()).Scan(
 		&config.ID,
+		&nameStr,
 		&agentIDStr,
 		&groupIDStr,
 		&config.ConfigHash,
@@ -488,6 +519,9 @@ func (s *Storage) GetLatestConfigForAgent(ctx context.Context, agentID uuid.UUID
 		return nil, fmt.Errorf("failed to get latest config for agent: %w", err)
 	}
 
+	if nameStr.Valid {
+		config.Name = nameStr.String
+	}
 	if agentIDStr.Valid {
 		agentID, _ := uuid.Parse(agentIDStr.String)
 		config.AgentID = &agentID
@@ -501,7 +535,7 @@ func (s *Storage) GetLatestConfigForAgent(ctx context.Context, agentID uuid.UUID
 
 func (s *Storage) GetLatestConfigForGroup(ctx context.Context, groupID string) (*types.Config, error) {
 	query := `
-		SELECT id, agent_id, group_id, config_hash, content, version, created_at
+		SELECT id, name, agent_id, group_id, config_hash, content, version, created_at
 		FROM configs
 		WHERE group_id = ?
 		ORDER BY version DESC, created_at DESC
@@ -510,9 +544,11 @@ func (s *Storage) GetLatestConfigForGroup(ctx context.Context, groupID string) (
 
 	var config types.Config
 	var agentIDStr, groupIDStr sql.NullString
+	var nameStr sql.NullString
 
 	err := s.db.QueryRowContext(ctx, query, groupID).Scan(
 		&config.ID,
+		&nameStr,
 		&agentIDStr,
 		&groupIDStr,
 		&config.ConfigHash,
@@ -528,6 +564,9 @@ func (s *Storage) GetLatestConfigForGroup(ctx context.Context, groupID string) (
 		return nil, fmt.Errorf("failed to get latest config for group: %w", err)
 	}
 
+	if nameStr.Valid {
+		config.Name = nameStr.String
+	}
 	if agentIDStr.Valid {
 		agentID, _ := uuid.Parse(agentIDStr.String)
 		config.AgentID = &agentID
@@ -540,7 +579,7 @@ func (s *Storage) GetLatestConfigForGroup(ctx context.Context, groupID string) (
 }
 
 func (s *Storage) ListConfigs(ctx context.Context, filter types.ConfigFilter) ([]*types.Config, error) {
-	query := `SELECT id, agent_id, group_id, config_hash, content, version, created_at FROM configs WHERE 1=1`
+	query := `SELECT id, name, agent_id, group_id, config_hash, content, version, created_at FROM configs WHERE 1=1`
 	args := []interface{}{}
 
 	if filter.AgentID != nil {
@@ -570,9 +609,11 @@ func (s *Storage) ListConfigs(ctx context.Context, filter types.ConfigFilter) ([
 	for rows.Next() {
 		var config types.Config
 		var agentIDStr, groupIDStr sql.NullString
+		var nameStr sql.NullString
 
 		err := rows.Scan(
 			&config.ID,
+			&nameStr,
 			&agentIDStr,
 			&groupIDStr,
 			&config.ConfigHash,
@@ -584,6 +625,9 @@ func (s *Storage) ListConfigs(ctx context.Context, filter types.ConfigFilter) ([
 			return nil, fmt.Errorf("failed to scan config: %w", err)
 		}
 
+		if nameStr.Valid {
+			config.Name = nameStr.String
+		}
 		if agentIDStr.Valid {
 			agentID, _ := uuid.Parse(agentIDStr.String)
 			config.AgentID = &agentID

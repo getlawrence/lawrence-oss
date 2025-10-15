@@ -16,25 +16,30 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { EditableConfigTitle } from "./EditableConfigTitle";
 
 interface ConfigEditorHeaderProps {
   isSaving: boolean;
   canSave: boolean;
+  configName: string;
   selectedGroupName?: string;
   onBack: () => void;
   onShowVersions: () => void;
   onShowTarget: () => void;
   onSave: () => void;
+  onConfigNameChange: (name: string) => void;
 }
 
 export function ConfigEditorHeader({
   isSaving,
   canSave,
+  configName,
   selectedGroupName,
   onBack,
   onShowVersions,
   onShowTarget,
   onSave,
+  onConfigNameChange,
 }: ConfigEditorHeaderProps) {
   return (
     <div className="flex justify-between items-center w-full">
@@ -42,6 +47,7 @@ export function ConfigEditorHeader({
         <Button variant="ghost" size="icon" onClick={onBack}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
+        <EditableConfigTitle value={configName} onChange={onConfigNameChange} />
         {selectedGroupName && (
           <Badge variant="outline" className="text-sm">
             <Target className="h-3 w-3 mr-1" />

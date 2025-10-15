@@ -2,6 +2,7 @@ import { apiGet, apiPost, apiPut } from "./base";
 
 export interface Config {
   id: string;
+  name: string;
   agent_id?: string;
   group_id?: string;
   config_hash: string;
@@ -11,6 +12,7 @@ export interface Config {
 }
 
 export interface CreateConfigRequest {
+  name?: string;
   agent_id?: string;
   group_id?: string;
   config_hash: string;
@@ -19,6 +21,7 @@ export interface CreateConfigRequest {
 }
 
 export interface UpdateConfigRequest {
+  name?: string;
   content: string;
   version: number;
 }

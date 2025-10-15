@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import yaml from "js-yaml";
 
-import { validateYamlConfig, defaultValidators } from "./index";
+import { validateYamlConfig } from "./index";
 import type { Validator, ValidationError } from "./types";
 
 describe("validateYamlConfig", () => {
@@ -63,7 +63,7 @@ service:
     it("should run custom validators", () => {
       const customValidator: Validator = {
         name: "test-validator",
-        validate: (yamlContent, parsedData) => {
+        validate: (_yamlContent, parsedData) => {
           const errors: ValidationError[] = [];
           if (parsedData && typeof parsedData === "object") {
             const config = parsedData as { test?: string };

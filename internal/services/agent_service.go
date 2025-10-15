@@ -76,6 +76,7 @@ type Group struct {
 // Config represents an agent configuration
 type Config struct {
 	ID         string     `json:"id"`
+	Name       string     `json:"name"`
 	AgentID    *uuid.UUID `json:"agent_id,omitempty"`
 	GroupID    *string    `json:"group_id,omitempty"`
 	ConfigHash string     `json:"config_hash"`

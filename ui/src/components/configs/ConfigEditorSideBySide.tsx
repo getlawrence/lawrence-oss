@@ -5,7 +5,6 @@ import { useState, useRef } from "react";
 
 import { CollectorPipelineView } from "@/components/collector-pipeline/CollectorPipelineView";
 import { useTheme } from "@/components/ThemeProvider";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
   ResizableHandle,

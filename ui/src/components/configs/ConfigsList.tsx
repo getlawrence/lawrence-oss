@@ -43,6 +43,7 @@ export function ConfigsList({
       cardTitle={`Configurations (${configs.length})`}
       cardDescription="All agent and group configurations"
       columns={[
+        { header: "Name", key: "name" },
         { header: "ID", key: "id" },
         { header: "Agent/Group", key: "target" },
         { header: "Version", key: "version" },
@@ -55,6 +56,11 @@ export function ConfigsList({
       getRowKey={(config) => config.id}
       renderRow={(config) => (
         <>
+          <TableCell>
+            <span className="font-medium">
+              {config.name && config.name.trim() !== "" ? config.name : "Unnamed Config"}
+            </span>
+          </TableCell>
           <TableCell>
             <TruncatedId id={config.id} maxLength={8} />
           </TableCell>
