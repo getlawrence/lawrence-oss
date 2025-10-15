@@ -17,6 +17,7 @@ import (
 	"github.com/getlawrence/lawrence-oss/internal/api"
 	"github.com/getlawrence/lawrence-oss/internal/metrics"
 	"github.com/getlawrence/lawrence-oss/internal/opamp"
+	"github.com/getlawrence/lawrence-oss/internal/otlp/processor"
 	"github.com/getlawrence/lawrence-oss/internal/otlp/receiver"
 	"github.com/getlawrence/lawrence-oss/internal/services"
 	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore"
@@ -199,14 +200,17 @@ func (ts *TestServer) initServers() {
 	// API Server
 	ts.apiServer = api.NewServer(ts.agentService, ts.telemetryService, configSender, ts.logger)
 
-	// OTLP Receivers - use telemetry writer directly
-	grpcServer, err := receiver.NewGRPCServer(ts.OTLPGRPCPort, ts.telemetryWriter, ts.otlpMetrics, ts.logger)
+	// Create processor enricher for telemetry
+	enricher := processor.NewEnricher(ts.agentService, ts.logger)
+
+	// OTLP Receivers - use telemetry writer with enricher
+	grpcServer, err := receiver.NewGRPCServer(ts.OTLPGRPCPort, ts.telemetryWriter, enricher, ts.otlpMetrics, ts.logger)
 	if err != nil {
 		ts.t.Fatalf("Failed to create gRPC server: %v", err)
 	}
 	ts.grpcServer = grpcServer
 
-	httpServer, err := receiver.NewHTTPServer(ts.OTLPHTTPPort, ts.telemetryWriter, ts.otlpMetrics, ts.logger)
+	httpServer, err := receiver.NewHTTPServer(ts.OTLPHTTPPort, ts.telemetryWriter, enricher, ts.otlpMetrics, ts.logger)
 	if err != nil {
 		ts.t.Fatalf("Failed to create HTTP server: %v", err)
 	}
