@@ -1,4 +1,4 @@
-import { Plus, RefreshCw, Trash2, Users } from "lucide-react";
+import { Plus, RefreshCw, Server, Trash2, Users } from "lucide-react";
 import { useState } from "react";
 import useSWR from "swr";
 
@@ -128,6 +128,8 @@ export default function GroupsPage() {
         cardDescription="All agent groups and their details"
         columns={[
           { header: "Name", key: "name" },
+          { header: "Agents", key: "agents" },
+          { header: "Config", key: "config" },
           { header: "Created", key: "created" },
           { header: "Updated", key: "updated" },
           { header: "Labels", key: "labels" },
@@ -139,6 +141,23 @@ export default function GroupsPage() {
         renderRow={(group: Group) => (
           <>
             <TableCell className="font-medium">{group.name}</TableCell>
+            <TableCell>
+              <div className="flex items-center gap-2">
+                <Server className="h-4 w-4 text-muted-foreground" />
+                <span>{group.agent_count}</span>
+              </div>
+            </TableCell>
+            <TableCell>
+              {group.config_name ? (
+                <span className="text-sm font-mono text-muted-foreground">
+                  {group.config_name}
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  No config
+                </span>
+              )}
+            </TableCell>
             <TableCell>
               {new Date(group.created_at).toLocaleDateString()}
             </TableCell>
