@@ -8,8 +8,7 @@ import (
 	"time"
 
 	"github.com/getlawrence/lawrence-oss/internal/metrics"
-	"github.com/getlawrence/lawrence-oss/internal/otlp/parser"
-	"github.com/getlawrence/lawrence-oss/internal/otlp/processor"
+	"github.com/getlawrence/lawrence-oss/internal/worker"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
@@ -21,31 +20,24 @@ import (
 
 // HTTPServer represents the HTTP OTLP receiver server
 type HTTPServer struct {
-	server   *http.Server
-	logger   *zap.Logger
-	writer   TelemetryWriter
-	parser   *parser.OTLPParser
-	enricher *processor.Enricher
-	metrics  *metrics.OTLPMetrics
-	port     int
+	server     *http.Server
+	logger     *zap.Logger
+	metrics    *metrics.OTLPMetrics
+	port       int
+	workerPool *worker.Pool
 }
 
 // NewHTTPServer creates a new HTTP server instance
-func NewHTTPServer(port int, writer TelemetryWriter, enricher *processor.Enricher, metricsInstance *metrics.OTLPMetrics, logger *zap.Logger) (*HTTPServer, error) {
+func NewHTTPServer(port int, metricsInstance *metrics.OTLPMetrics, workerPool *worker.Pool, logger *zap.Logger) (*HTTPServer, error) {
 	// Set Gin to release mode for better performance
 	gin.SetMode(gin.ReleaseMode)
 
-	// Create parser
-	otlpParser := parser.NewOTLPParser(logger)
-
 	// Create HTTP server
 	s := &HTTPServer{
-		logger:   logger,
-		writer:   writer,
-		parser:   otlpParser,
-		enricher: enricher,
-		metrics:  metricsInstance,
-		port:     port,
+		logger:     logger,
+		metrics:    metricsInstance,
+		port:       port,
+		workerPool: workerPool,
 	}
 
 	// Create Gin router
@@ -129,30 +121,23 @@ func (s *HTTPServer) handleOTLPTraces(c *gin.Context) {
 		return
 	}
 
-	// Parse traces (agent ID will be extracted from service.instance.id)
-	traces, err := s.parser.ParseTraces(body)
-	if err != nil {
-		s.logger.Error("Failed to parse trace data", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse trace data"})
-		return
+	// Submit raw bytes to worker pool for async processing
+	item := worker.WorkItem{
+		Type:      worker.WorkItemTypeTraces,
+		RawData:   body,
+		Timestamp: time.Now(),
 	}
 
-	ctx := c.Request.Context()
-
-	// Enrich traces with group information
-	s.enricher.EnrichTraces(ctx, traces)
-
-	// Write to storage
-	if err := s.writer.WriteTraces(ctx, traces); err != nil {
-		s.logger.Error("Failed to write traces", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to write traces"})
+	if err := s.workerPool.Submit(item); err != nil {
+		s.logger.Error("Failed to queue traces", zap.Error(err))
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Queue full, try again"})
 		return
 	}
 
 	duration := time.Since(start)
-	s.logger.Debug("Successfully processed traces request",
+	s.logger.Debug("Successfully queued traces request",
 		zap.Int("body_size", len(body)),
-		zap.Int("traces_count", len(traces)),
+		zap.Int("queue_depth", s.workerPool.QueueDepth()),
 		zap.Duration("duration", duration))
 
 	c.Status(http.StatusAccepted)
@@ -178,32 +163,23 @@ func (s *HTTPServer) handleOTLPMetrics(c *gin.Context) {
 		return
 	}
 
-	// Parse metrics (agent ID will be extracted from service.instance.id)
-	sums, gauges, histograms, err := s.parser.ParseMetrics(body)
-	if err != nil {
-		s.logger.Error("Failed to parse metrics data", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse metrics data"})
-		return
+	// Submit raw bytes to worker pool for async processing
+	item := worker.WorkItem{
+		Type:      worker.WorkItemTypeMetrics,
+		RawData:   body,
+		Timestamp: time.Now(),
 	}
 
-	ctx := c.Request.Context()
-
-	// Enrich metrics with group information
-	s.enricher.EnrichMetrics(ctx, sums, gauges, histograms)
-
-	// Write to storage
-	if err := s.writer.WriteMetrics(ctx, sums, gauges, histograms); err != nil {
-		s.logger.Error("Failed to write metrics", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to write metrics"})
+	if err := s.workerPool.Submit(item); err != nil {
+		s.logger.Error("Failed to queue metrics", zap.Error(err))
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Queue full, try again"})
 		return
 	}
 
 	duration := time.Since(start)
-	s.logger.Debug("Successfully processed metrics request",
+	s.logger.Debug("Successfully queued metrics request",
 		zap.Int("body_size", len(body)),
-		zap.Int("sum_count", len(sums)),
-		zap.Int("gauge_count", len(gauges)),
-		zap.Int("histogram_count", len(histograms)),
+		zap.Int("queue_depth", s.workerPool.QueueDepth()),
 		zap.Duration("duration", duration))
 
 	c.Status(http.StatusAccepted)
@@ -229,30 +205,23 @@ func (s *HTTPServer) handleOTLPLogs(c *gin.Context) {
 		return
 	}
 
-	// Parse logs (agent ID will be extracted from service.instance.id)
-	logs, err := s.parser.ParseLogs(body)
-	if err != nil {
-		s.logger.Error("Failed to parse logs data", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse logs data"})
-		return
+	// Submit raw bytes to worker pool for async processing
+	item := worker.WorkItem{
+		Type:      worker.WorkItemTypeLogs,
+		RawData:   body,
+		Timestamp: time.Now(),
 	}
 
-	ctx := c.Request.Context()
-
-	// Enrich logs with group information
-	s.enricher.EnrichLogs(ctx, logs)
-
-	// Write to storage
-	if err := s.writer.WriteLogs(ctx, logs); err != nil {
-		s.logger.Error("Failed to write logs", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to write logs"})
+	if err := s.workerPool.Submit(item); err != nil {
+		s.logger.Error("Failed to queue logs", zap.Error(err))
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Queue full, try again"})
 		return
 	}
 
 	duration := time.Since(start)
-	s.logger.Debug("Successfully processed logs request",
+	s.logger.Debug("Successfully queued logs request",
 		zap.Int("body_size", len(body)),
-		zap.Int("logs_count", len(logs)),
+		zap.Int("queue_depth", s.workerPool.QueueDepth()),
 		zap.Duration("duration", duration))
 
 	c.Status(http.StatusAccepted)

@@ -212,10 +212,28 @@ func corsMiddleware() gin.HandlerFunc {
 	}
 }
 
-// loggingMiddleware adds request logging
+// loggingMiddleware adds request logging with reduced verbosity
 func loggingMiddleware(logger *zap.Logger) gin.HandlerFunc {
 	return gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
-		logger.Info("HTTP Request",
+		// Skip logging for health checks and other frequent, low-value requests
+		if param.Path == "/health" || param.Path == "/ready" {
+			return ""
+		}
+
+		// Log errors at INFO level
+		if param.StatusCode >= 400 {
+			logger.Info("HTTP Request Error",
+				zap.String("method", param.Method),
+				zap.String("path", param.Path),
+				zap.Int("status", param.StatusCode),
+				zap.Duration("latency", param.Latency),
+				zap.String("client_ip", param.ClientIP),
+			)
+			return ""
+		}
+
+		// Log all other requests at DEBUG level to reduce noise
+		logger.Debug("HTTP Request",
 			zap.String("method", param.Method),
 			zap.String("path", param.Path),
 			zap.Int("status", param.StatusCode),
