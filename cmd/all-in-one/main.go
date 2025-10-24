@@ -18,12 +18,12 @@ import (
 	"github.com/getlawrence/lawrence-oss/internal/config"
 	"github.com/getlawrence/lawrence-oss/internal/metrics"
 	"github.com/getlawrence/lawrence-oss/internal/opamp"
-	"github.com/getlawrence/lawrence-oss/internal/otlp/processor"
 	"github.com/getlawrence/lawrence-oss/internal/otlp/receiver"
 	"github.com/getlawrence/lawrence-oss/internal/services"
 	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore"
 	"github.com/getlawrence/lawrence-oss/internal/storage/telemetrystore"
 	"github.com/getlawrence/lawrence-oss/internal/utils"
+	"github.com/getlawrence/lawrence-oss/internal/worker"
 )
 
 const (
@@ -80,9 +80,6 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 		zap.String("version", version),
 		zap.String("config", configPath))
 
-	// Initialize storage factories
-	logger.Info("Initializing storage layer")
-
 	// Create application store using meta factory
 	appStoreFactory, err := applicationstore.NewFactoryFromAppConfig(config)
 	if err != nil {
@@ -137,15 +134,11 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 		}
 	}()
 
-	// Initialize metrics
-	logger.Info("Initializing metrics")
 	registry := prometheus.NewRegistry()
 	metricsFactory := metrics.NewPrometheusFactory("lawrence", registry)
 	opampMetrics := metrics.NewOpAMPMetrics(metricsFactory)
 	otlpMetrics := metrics.NewOTLPMetrics(metricsFactory)
 
-	// Initialize OpAMP components
-	logger.Info("Initializing OpAMP server")
 	agents := opamp.NewAgents(logger)
 
 	// Determine which OTLP endpoints to offer to agents
@@ -158,9 +151,6 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	if agentHTTPEndpoint == "" {
 		agentHTTPEndpoint = config.OTLP.HTTPEndpoint
 	}
-
-	// Initialize service layer
-	logger.Info("Initializing service layer")
 
 	// Create agent service (without config sender initially to break circular dependency)
 	agentService := services.NewAgentService(appStore, logger)
@@ -177,8 +167,14 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	// Create telemetry query service
 	telemetryService := services.NewTelemetryQueryService(telemetryReader, agentService, logger)
 
-	// Create processor enricher that resolves group_id from agent_id
-	enricher := processor.NewEnricher(agentService, logger)
+	// Initialize worker pool for async telemetry processing (with agentService for enrichment)
+	workerPool := worker.NewPool(1000, telemetryWriter, agentService, logger)
+	workerPool.Start()
+	defer func() {
+		if err := workerPool.Stop(30 * time.Second); err != nil {
+			logger.Error("Failed to stop worker pool", zap.Error(err))
+		}
+	}()
 
 	// Start OpAMP server
 	if err := opampServer.Start(config.Server.OpAMPPort); err != nil {
@@ -190,8 +186,8 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 		_ = opampServer.Stop(ctx)
 	}()
 
-	// Initialize OTLP receivers
-	grpcServer, err := receiver.NewGRPCServer(4317, telemetryWriter, enricher, otlpMetrics, logger)
+	// Initialize OTLP receivers (parsing and enrichment happen in worker pool)
+	grpcServer, err := receiver.NewGRPCServer(4317, otlpMetrics, workerPool, logger)
 	if err != nil {
 		logger.Fatal("Failed to create gRPC server", zap.Error(err))
 	}
@@ -204,7 +200,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 		_ = grpcServer.Stop(ctx)
 	}()
 
-	httpServer, err := receiver.NewHTTPServer(4318, telemetryWriter, enricher, otlpMetrics, logger)
+	httpServer, err := receiver.NewHTTPServer(4318, otlpMetrics, workerPool, logger)
 	if err != nil {
 		logger.Fatal("Failed to create HTTP server", zap.Error(err))
 	}
@@ -218,7 +214,6 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	}()
 
 	// Initialize HTTP API server
-	logger.Info("Initializing HTTP API server")
 	apiServer := api.NewServer(agentService, telemetryService, configSender, logger)
 
 	// Start API server in a goroutine

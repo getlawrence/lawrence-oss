@@ -17,7 +17,6 @@ import (
 	"github.com/getlawrence/lawrence-oss/internal/api"
 	"github.com/getlawrence/lawrence-oss/internal/metrics"
 	"github.com/getlawrence/lawrence-oss/internal/opamp"
-	"github.com/getlawrence/lawrence-oss/internal/otlp/processor"
 	"github.com/getlawrence/lawrence-oss/internal/otlp/receiver"
 	"github.com/getlawrence/lawrence-oss/internal/services"
 	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore"
@@ -25,6 +24,7 @@ import (
 	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore/sqlite"
 	"github.com/getlawrence/lawrence-oss/internal/storage/telemetrystore"
 	"github.com/getlawrence/lawrence-oss/internal/storage/telemetrystore/duckdb"
+	"github.com/getlawrence/lawrence-oss/internal/worker"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 )
@@ -52,6 +52,9 @@ type TestServer struct {
 	opampServer *opamp.Server
 	grpcServer  *receiver.GRPCServer
 	httpServer  *receiver.HTTPServer
+
+	// Worker pool
+	workerPool *worker.Pool
 
 	// Metrics
 	opampMetrics *metrics.OpAMPMetrics
@@ -200,17 +203,18 @@ func (ts *TestServer) initServers() {
 	// API Server
 	ts.apiServer = api.NewServer(ts.agentService, ts.telemetryService, configSender, ts.logger)
 
-	// Create processor enricher for telemetry
-	enricher := processor.NewEnricher(ts.agentService, ts.logger)
+	// Create worker pool for async telemetry processing
+	ts.workerPool = worker.NewPool(1000, ts.telemetryWriter, ts.agentService, ts.logger)
+	ts.workerPool.Start()
 
-	// OTLP Receivers - use telemetry writer with enricher
-	grpcServer, err := receiver.NewGRPCServer(ts.OTLPGRPCPort, ts.telemetryWriter, enricher, ts.otlpMetrics, ts.logger)
+	// OTLP Receivers - use worker pool for async processing
+	grpcServer, err := receiver.NewGRPCServer(ts.OTLPGRPCPort, ts.otlpMetrics, ts.workerPool, ts.logger)
 	if err != nil {
 		ts.t.Fatalf("Failed to create gRPC server: %v", err)
 	}
 	ts.grpcServer = grpcServer
 
-	httpServer, err := receiver.NewHTTPServer(ts.OTLPHTTPPort, ts.telemetryWriter, enricher, ts.otlpMetrics, ts.logger)
+	httpServer, err := receiver.NewHTTPServer(ts.OTLPHTTPPort, ts.otlpMetrics, ts.workerPool, ts.logger)
 	if err != nil {
 		ts.t.Fatalf("Failed to create HTTP server: %v", err)
 	}
@@ -263,6 +267,11 @@ func (ts *TestServer) Stop() {
 
 	if ts.httpServer != nil {
 		_ = ts.httpServer.Stop(ctx)
+	}
+
+	// Stop worker pool
+	if ts.workerPool != nil {
+		_ = ts.workerPool.Stop(5 * time.Second)
 	}
 
 	// Close storage factories
