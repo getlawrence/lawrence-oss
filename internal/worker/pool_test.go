@@ -105,7 +105,7 @@ func TestPoolSubmitTimeout(t *testing.T) {
 
 	pool := NewPool(5, 1, 100*time.Millisecond, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(30 * time.Second)
+	defer func() { _ = pool.Stop(30 * time.Second) }()
 
 	traceData, err := GenerateValidTraceData()
 	require.NoError(t, err)
@@ -169,7 +169,7 @@ func TestPoolProcessesTraces(t *testing.T) {
 
 	pool := NewPool(10, 1, 1*time.Second, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(2 * time.Second)
+	defer func() { _ = pool.Stop(2 * time.Second) }()
 
 	// Submit a trace item
 	item := WorkItem{
@@ -193,7 +193,7 @@ func TestPoolProcessesMetrics(t *testing.T) {
 
 	pool := NewPool(10, 1, 1*time.Second, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(2 * time.Second)
+	defer func() { _ = pool.Stop(2 * time.Second) }()
 
 	// Submit a metrics item
 	item := WorkItem{
@@ -217,7 +217,7 @@ func TestPoolProcessesLogs(t *testing.T) {
 
 	pool := NewPool(10, 1, 1*time.Second, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(2 * time.Second)
+	defer func() { _ = pool.Stop(2 * time.Second) }()
 
 	// Submit a logs item
 	item := WorkItem{
@@ -252,7 +252,7 @@ func TestPoolMultipleWorkers(t *testing.T) {
 
 	pool := NewPool(100, 5, 1*time.Second, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(5 * time.Second)
+	defer func() { _ = pool.Stop(5 * time.Second) }()
 
 	// Submit multiple items
 	itemCount := 20
@@ -313,7 +313,7 @@ func TestPoolErrorHandling(t *testing.T) {
 
 	pool := NewPool(10, 1, 1*time.Second, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(2 * time.Second)
+	defer func() { _ = pool.Stop(2 * time.Second) }()
 
 	// Submit an item with invalid data
 	item := WorkItem{
@@ -337,7 +337,7 @@ func TestPoolUnderLoad(t *testing.T) {
 
 	pool := NewPool(1000, 10, 5*time.Second, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(10 * time.Second)
+	defer func() { _ = pool.Stop(10 * time.Second) }()
 
 	// Submit a burst of mixed item types
 	totalItems := 100
@@ -380,7 +380,7 @@ func BenchmarkPoolSubmission(b *testing.B) {
 
 	pool := NewPool(10000, 4, 5*time.Second, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(5 * time.Second)
+	defer func() { _ = pool.Stop(5 * time.Second) }()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -414,7 +414,7 @@ func BenchmarkPoolThroughput(b *testing.B) {
 		}
 	})
 
-	pool.Stop(5 * time.Second)
+	_ = pool.Stop(5 * time.Second)
 }
 
 // TestPoolHighThroughput tests processing 10K+ items with multiple workers
@@ -427,7 +427,7 @@ func TestPoolHighThroughput(t *testing.T) {
 
 	pool := NewPool(10000, 10, 10*time.Second, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(30 * time.Second)
+	defer func() { _ = pool.Stop(30 * time.Second) }()
 
 	traceData, err := GenerateValidTraceData()
 	require.NoError(t, err)
@@ -467,7 +467,7 @@ func TestPoolMemoryUsage(t *testing.T) {
 
 	pool := NewPool(5000, 5, 10*time.Second, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(30 * time.Second)
+	defer func() { _ = pool.Stop(30 * time.Second) }()
 
 	traceData, err := GenerateValidTraceData()
 	require.NoError(t, err)
@@ -511,7 +511,7 @@ func TestPoolQueueSaturation(t *testing.T) {
 	queueSize := 100
 	pool := NewPool(queueSize, 1, 100*time.Millisecond, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(30 * time.Second)
+	defer func() { _ = pool.Stop(30 * time.Second) }()
 
 	traceData, err := GenerateValidTraceData()
 	require.NoError(t, err)
@@ -548,7 +548,7 @@ func TestPoolConcurrentSubmission(t *testing.T) {
 
 	pool := NewPool(10000, 20, 10*time.Second, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(60 * time.Second)
+	defer func() { _ = pool.Stop(60 * time.Second) }()
 
 	traceData, err := GenerateValidTraceData()
 	require.NoError(t, err)
@@ -609,7 +609,7 @@ func TestPoolBackpressure(t *testing.T) {
 
 	pool := NewPool(10, 1, 50*time.Millisecond, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(30 * time.Second)
+	defer func() { _ = pool.Stop(30 * time.Second) }()
 
 	traceData, err := GenerateValidTraceData()
 	require.NoError(t, err)
@@ -653,7 +653,7 @@ func TestPoolScaling(t *testing.T) {
 
 			pool := NewPool(1000, workerCount, 10*time.Second, writer, agentService, logger)
 			pool.Start()
-			defer pool.Stop(30 * time.Second)
+			defer func() { _ = pool.Stop(30 * time.Second) }()
 
 			itemCount := 500
 			startTime := time.Now()
@@ -694,7 +694,7 @@ func TestPoolWriterFailures(t *testing.T) {
 
 	pool := NewPool(1000, 5, 10*time.Second, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(30 * time.Second)
+	defer func() { _ = pool.Stop(30 * time.Second) }()
 
 	traceData, err := GenerateValidTraceData()
 	require.NoError(t, err)
@@ -727,7 +727,7 @@ func TestPoolParserFailures(t *testing.T) {
 
 	pool := NewPool(1000, 5, 10*time.Second, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(30 * time.Second)
+	defer func() { _ = pool.Stop(30 * time.Second) }()
 
 	traceData, err := GenerateValidTraceData()
 	require.NoError(t, err)
@@ -766,7 +766,7 @@ func TestPoolRecoveryAfterErrors(t *testing.T) {
 
 	pool := NewPool(1000, 5, 10*time.Second, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(30 * time.Second)
+	defer func() { _ = pool.Stop(30 * time.Second) }()
 
 	traceData, err := GenerateValidTraceData()
 	require.NoError(t, err)
@@ -778,7 +778,7 @@ func TestPoolRecoveryAfterErrors(t *testing.T) {
 			RawData:   traceData,
 			Timestamp: time.Now(),
 		}
-		pool.Submit(item)
+		_ = pool.Submit(item)
 	}
 
 	time.Sleep(3 * time.Second)
@@ -799,7 +799,7 @@ func TestPoolSlowWriter(t *testing.T) {
 
 	pool := NewPool(50, 1, 1*time.Second, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(60 * time.Second)
+	defer func() { _ = pool.Stop(60 * time.Second) }()
 
 	traceData, err := GenerateValidTraceData()
 	require.NoError(t, err)
@@ -811,7 +811,7 @@ func TestPoolSlowWriter(t *testing.T) {
 			RawData:   traceData,
 			Timestamp: time.Now(),
 		}
-		pool.Submit(item)
+		_ = pool.Submit(item)
 	}
 
 	// Give time for processing
@@ -838,7 +838,7 @@ func TestPoolTracesEndToEnd(t *testing.T) {
 
 	pool := NewPool(1000, 5, 10*time.Second, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(30 * time.Second)
+	defer func() { _ = pool.Stop(30 * time.Second) }()
 
 	traceData, err := GenerateValidTraceData()
 	require.NoError(t, err)
@@ -882,7 +882,7 @@ func TestPoolMetricsEndToEnd(t *testing.T) {
 
 	pool := NewPool(1000, 5, 10*time.Second, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(30 * time.Second)
+	defer func() { _ = pool.Stop(30 * time.Second) }()
 
 	metricsData, err := GenerateValidMetricsData()
 	require.NoError(t, err)
@@ -919,7 +919,7 @@ func TestPoolLogsEndToEnd(t *testing.T) {
 
 	pool := NewPool(1000, 5, 10*time.Second, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(30 * time.Second)
+	defer func() { _ = pool.Stop(30 * time.Second) }()
 
 	logsData, err := GenerateValidLogsData()
 	require.NoError(t, err)
@@ -963,7 +963,7 @@ func TestPoolMixedDataTypes(t *testing.T) {
 
 	pool := NewPool(1000, 5, 10*time.Second, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(30 * time.Second)
+	defer func() { _ = pool.Stop(30 * time.Second) }()
 
 	traceData, err := GenerateValidTraceData()
 	require.NoError(t, err)
@@ -979,13 +979,13 @@ func TestPoolMixedDataTypes(t *testing.T) {
 		switch i % 3 {
 		case 0:
 			item := WorkItem{Type: WorkItemTypeTraces, RawData: traceData, Timestamp: time.Now()}
-			pool.Submit(item)
+			_ = pool.Submit(item)
 		case 1:
 			item := WorkItem{Type: WorkItemTypeMetrics, RawData: metricsData, Timestamp: time.Now()}
-			pool.Submit(item)
+			_ = pool.Submit(item)
 		case 2:
 			item := WorkItem{Type: WorkItemTypeLogs, RawData: logsData, Timestamp: time.Now()}
-			pool.Submit(item)
+			_ = pool.Submit(item)
 		}
 	}
 
@@ -1017,7 +1017,7 @@ func TestPoolGracefulShutdownUnderLoad(t *testing.T) {
 			RawData:   traceData,
 			Timestamp: time.Now(),
 		}
-		pool.Submit(item)
+		_ = pool.Submit(item)
 	}
 
 	// Stop immediately with items in queue
@@ -1051,7 +1051,7 @@ func TestPoolShutdownTimeout(t *testing.T) {
 			RawData:   traceData,
 			Timestamp: time.Now(),
 		}
-		pool.Submit(item)
+		_ = pool.Submit(item)
 	}
 
 	// Try to stop with a short timeout
@@ -1106,7 +1106,7 @@ func TestPoolSubmitAfterShutdown(t *testing.T) {
 
 	// Submit should fail due to closed shutdown channel
 	// This tests the behavior when trying to submit to a stopped pool
-	err = pool.Submit(item)
+	_ = pool.Submit(item)
 	// The behavior might vary, but it shouldn't panic
 	// (Note: This may or may not fail depending on implementation)
 }
@@ -1124,7 +1124,7 @@ func TestPoolSubmitTimeoutRealistic(t *testing.T) {
 	// Small queue with short timeout
 	pool := NewPool(5, 1, 50*time.Millisecond, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(30 * time.Second)
+	defer func() { _ = pool.Stop(30 * time.Second) }()
 
 	traceData, err := GenerateValidTraceData()
 	require.NoError(t, err)
@@ -1163,7 +1163,7 @@ func BenchmarkPoolMixedWorkload(b *testing.B) {
 
 	pool := NewPool(10000, 8, 5*time.Second, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(5 * time.Second)
+	defer func() { _ = pool.Stop(5 * time.Second) }()
 
 	traceData, _ := GenerateValidTraceData()
 	metricsData, _ := GenerateValidMetricsData()
@@ -1198,7 +1198,7 @@ func BenchmarkPoolDifferentWorkerCounts(b *testing.B) {
 
 			pool := NewPool(10000, workerCount, 5*time.Second, writer, agentService, logger)
 			pool.Start()
-			defer pool.Stop(5 * time.Second)
+			defer func() { _ = pool.Stop(5 * time.Second) }()
 
 			traceData, _ := GenerateValidTraceData()
 
@@ -1222,7 +1222,7 @@ func BenchmarkPoolLargePayloads(b *testing.B) {
 
 	pool := NewPool(10000, 10, 5*time.Second, writer, agentService, logger)
 	pool.Start()
-	defer pool.Stop(5 * time.Second)
+	defer func() { _ = pool.Stop(5 * time.Second) }()
 
 	// Generate large payload (1000 spans)
 	largeData, _ := GenerateLargeTraceData(1000)
