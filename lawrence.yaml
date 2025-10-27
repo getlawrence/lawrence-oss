@@ -35,3 +35,8 @@ rollups:
 logging:
   level: info
   format: json
+
+worker:
+  queue_size: 10000
+  workers: 3
+  timeout: 5s

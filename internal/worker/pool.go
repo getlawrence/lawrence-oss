@@ -36,7 +36,7 @@ type WorkItem struct {
 	Timestamp time.Time
 }
 
-// Pool represents a simple worker pool
+// Pool represents a worker pool
 type Pool struct {
 	queue         chan WorkItem
 	shutdown      chan struct{}
@@ -46,11 +46,12 @@ type Pool struct {
 	enricher      *processor.Enricher
 	logger        *zap.Logger
 	queueSize     int
+	workerCount   int
 	submitTimeout time.Duration
 }
 
-// NewPool creates a new worker pool with a single worker
-func NewPool(queueSize int, writer TelemetryWriter, agentService services.AgentService, logger *zap.Logger) *Pool {
+// NewPool creates a new worker pool with configurable workers
+func NewPool(queueSize, workerCount int, submitTimeout time.Duration, writer TelemetryWriter, agentService services.AgentService, logger *zap.Logger) *Pool {
 	return &Pool{
 		queue:         make(chan WorkItem, queueSize),
 		shutdown:      make(chan struct{}),
@@ -59,15 +60,18 @@ func NewPool(queueSize int, writer TelemetryWriter, agentService services.AgentS
 		enricher:      processor.NewEnricher(agentService, logger),
 		logger:        logger,
 		queueSize:     queueSize,
-		submitTimeout: 100 * time.Millisecond, // Timeout for submitting to queue
+		workerCount:   workerCount,
+		submitTimeout: submitTimeout,
 	}
 }
 
 // Start starts the worker pool
 func (p *Pool) Start() {
-	p.logger.Info("Starting worker pool", zap.Int("workers", 1), zap.Int("queue_size", p.queueSize))
-	p.wg.Add(1)
-	go p.worker()
+	p.logger.Info("Starting worker pool", zap.Int("workers", p.workerCount), zap.Int("queue_size", p.queueSize), zap.Duration("submit_timeout", p.submitTimeout))
+	for i := 0; i < p.workerCount; i++ {
+		p.wg.Add(1)
+		go p.worker(i)
+	}
 }
 
 // Stop gracefully stops the worker pool
@@ -110,10 +114,10 @@ func (p *Pool) QueueDepth() int {
 }
 
 // worker is the main worker goroutine
-func (p *Pool) worker() {
+func (p *Pool) worker(id int) {
 	defer p.wg.Done()
 
-	p.logger.Info("Worker started")
+	p.logger.Info("Worker started", zap.Int("worker_id", id))
 
 	for {
 		select {
@@ -127,7 +131,7 @@ func (p *Pool) worker() {
 				case item := <-p.queue:
 					p.processItem(item)
 				default:
-					p.logger.Info("Worker stopped")
+					p.logger.Info("Worker stopped", zap.Int("worker_id", id))
 					return
 				}
 			}
@@ -140,13 +144,8 @@ func (p *Pool) processItem(item WorkItem) {
 	start := time.Now()
 	ctx := context.Background()
 
-	var err error
-	var itemType string
-
 	switch item.Type {
 	case WorkItemTypeTraces:
-		itemType = "traces"
-
 		// Parse raw bytes
 		traces, err := p.parser.ParseTraces(item.RawData)
 		if err != nil {
@@ -165,8 +164,6 @@ func (p *Pool) processItem(item WorkItem) {
 			zap.Error(err))
 
 	case WorkItemTypeMetrics:
-		itemType = "metrics"
-
 		// Parse raw bytes
 		sums, gauges, histograms, err := p.parser.ParseMetrics(item.RawData)
 		if err != nil {
@@ -187,8 +184,6 @@ func (p *Pool) processItem(item WorkItem) {
 			zap.Error(err))
 
 	case WorkItemTypeLogs:
-		itemType = "logs"
-
 		// Parse raw bytes
 		logs, err := p.parser.ParseLogs(item.RawData)
 		if err != nil {
@@ -207,9 +202,5 @@ func (p *Pool) processItem(item WorkItem) {
 			zap.Error(err))
 	}
 
-	if err != nil {
-		p.logger.Error("Failed to process work item",
-			zap.String("type", itemType),
-			zap.Error(err))
-	}
+	// Error handling is done in each case above
 }
