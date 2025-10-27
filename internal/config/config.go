@@ -16,6 +16,7 @@ type Config struct {
 	Retention RetentionConfig `yaml:"retention"`
 	Rollups   RollupsConfig   `yaml:"rollups"`
 	Logging   LoggingConfig   `yaml:"logging"`
+	Worker    WorkerConfig    `yaml:"worker"`
 }
 
 // ServerConfig contains server configuration
@@ -71,6 +72,13 @@ type LoggingConfig struct {
 	Format string `yaml:"format"`
 }
 
+// WorkerConfig contains worker pool configuration
+type WorkerConfig struct {
+	QueueSize int    `yaml:"queue_size"`
+	Workers   int    `yaml:"workers"`
+	Timeout   string `yaml:"timeout"` // Duration string like "5s", "1m"
+}
+
 // LoadConfig loads configuration from a YAML file
 func LoadConfig(path string) (*Config, error) {
 	// Read file
@@ -123,6 +131,11 @@ func DefaultConfig() *Config {
 		Logging: LoggingConfig{
 			Level:  "info",
 			Format: "json",
+		},
+		Worker: WorkerConfig{
+			QueueSize: 10000,
+			Workers:   3,
+			Timeout:   "5s",
 		},
 	}
 }
