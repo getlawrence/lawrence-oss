@@ -192,7 +192,7 @@ func (ts *TestServer) initServers() {
 	// Create config sender (separate concern from AgentService)
 	configSender := opamp.NewConfigSender(agents, ts.logger)
 
-	opampServer, err := opamp.NewServer(agents, ts.agentService, configSender, ts.opampMetrics, "localhost:4317", "localhost:4318", ts.logger)
+	opampServer, err := opamp.NewServer(agents, ts.agentService, ts.opampMetrics, "localhost:4317", "localhost:4318", ts.logger)
 	if err != nil {
 		ts.t.Fatalf("Failed to create OpAMP server: %v", err)
 	}

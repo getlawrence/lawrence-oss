@@ -55,7 +55,6 @@ type Server struct {
 	opampServer      server.OpAMPServer
 	agents           *Agents
 	agentService     services.AgentService
-	configSender     *ConfigSender
 	metrics          *metrics.OpAMPMetrics
 	otlpGRPCEndpoint string // OTLP gRPC endpoint to offer to agents
 	otlpHTTPEndpoint string // OTLP HTTP endpoint to offer to agents
@@ -74,12 +73,11 @@ func (z *zapToOpAmpLogger) Errorf(ctx context.Context, format string, args ...in
 	z.Sugar().Errorf(format, args...)
 }
 
-func NewServer(agents *Agents, agentService services.AgentService, configSender *ConfigSender, metricsInstance *metrics.OpAMPMetrics, otlpGRPCEndpoint, otlpHTTPEndpoint string, logger *zap.Logger) (*Server, error) {
+func NewServer(agents *Agents, agentService services.AgentService, metricsInstance *metrics.OpAMPMetrics, otlpGRPCEndpoint, otlpHTTPEndpoint string, logger *zap.Logger) (*Server, error) {
 	s := &Server{
 		logger:           logger,
 		agents:           agents,
 		agentService:     agentService,
-		configSender:     configSender,
 		metrics:          metricsInstance,
 		otlpGRPCEndpoint: otlpGRPCEndpoint,
 		otlpHTTPEndpoint: otlpHTTPEndpoint,
@@ -281,64 +279,6 @@ func (s *Server) RestartAgent(agentId uuid.UUID) error {
 	agent.SendRestartCommand()
 	s.logger.Info("Restart command sent to agent", zap.String("agentId", agentId.String()))
 	return nil
-}
-
-// SendConfigToAgentsInGroup sends a configuration to all agents in a group
-// Returns the list of agent IDs that were successfully updated and any errors encountered
-func (s *Server) SendConfigToAgentsInGroup(groupId string, configContent string) ([]uuid.UUID, []error) {
-	var updatedAgents []uuid.UUID
-	var errors []error
-
-	// Get all agents
-	allAgents := s.agents.GetAllAgentsReadonlyClone()
-
-	// Find agents in this group
-	for agentId, agent := range allAgents {
-		if agent.GroupID != nil && *agent.GroupID == groupId {
-			// Try to send config to this agent
-			if err := s.configSender.SendConfigToAgent(agentId, configContent); err != nil {
-				errors = append(errors, fmt.Errorf("agent %s: %w", agentId.String(), err))
-			} else {
-				updatedAgents = append(updatedAgents, agentId)
-			}
-		}
-	}
-
-	s.logger.Info("Group config update completed",
-		zap.String("groupId", groupId),
-		zap.Int("updated", len(updatedAgents)),
-		zap.Int("failed", len(errors)))
-
-	return updatedAgents, errors
-}
-
-// RestartAgentsInGroup sends restart commands to all agents in a group
-// Returns the list of agent IDs that were successfully restarted and any errors encountered
-func (s *Server) RestartAgentsInGroup(groupId string) ([]uuid.UUID, []error) {
-	var restartedAgents []uuid.UUID
-	var errors []error
-
-	// Get all agents
-	allAgents := s.agents.GetAllAgentsReadonlyClone()
-
-	// Find agents in this group
-	for agentId, agent := range allAgents {
-		if agent.GroupID != nil && *agent.GroupID == groupId {
-			// Try to restart this agent
-			if err := s.RestartAgent(agentId); err != nil {
-				errors = append(errors, fmt.Errorf("agent %s: %w", agentId.String(), err))
-			} else {
-				restartedAgents = append(restartedAgents, agentId)
-			}
-		}
-	}
-
-	s.logger.Info("Group restart command completed",
-		zap.String("groupId", groupId),
-		zap.Int("restarted", len(restartedAgents)),
-		zap.Int("failed", len(errors)))
-
-	return restartedAgents, errors
 }
 
 // processAgentGrouping handles group resolution for agents

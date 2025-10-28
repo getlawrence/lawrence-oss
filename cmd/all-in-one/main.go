@@ -159,7 +159,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	configSender := opamp.NewConfigSender(agents, logger)
 
 	// Create OpAMP server with agent service (for persistence)
-	opampServer, err := opamp.NewServer(agents, agentService, configSender, opampMetrics, agentGRPCEndpoint, agentHTTPEndpoint, logger)
+	opampServer, err := opamp.NewServer(agents, agentService, opampMetrics, agentGRPCEndpoint, agentHTTPEndpoint, logger)
 	if err != nil {
 		logger.Fatal("Failed to create OpAMP server", zap.Error(err))
 	}
