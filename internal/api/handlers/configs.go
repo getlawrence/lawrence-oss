@@ -20,13 +20,15 @@ import (
 // ConfigHandlers handles config-related API endpoints
 type ConfigHandlers struct {
 	agentService services.AgentService
+	commander    AgentCommander
 	logger       *zap.Logger
 }
 
 // NewConfigHandlers creates a new config handlers instance
-func NewConfigHandlers(agentService services.AgentService, logger *zap.Logger) *ConfigHandlers {
+func NewConfigHandlers(agentService services.AgentService, commander AgentCommander, logger *zap.Logger) *ConfigHandlers {
 	return &ConfigHandlers{
 		agentService: agentService,
+		commander:    commander,
 		logger:       logger,
 	}
 }
@@ -134,6 +136,23 @@ func (h *ConfigHandlers) HandleCreateConfig(c *gin.Context) {
 		h.logger.Error("Failed to create config", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create config"})
 		return
+	}
+
+	// If this is a group config, send it to all agents in the group
+	if config.GroupID != nil && *config.GroupID != "" {
+		updatedAgents, errors := h.commander.SendConfigToAgentsInGroup(*config.GroupID, config.Content)
+		
+		// Log the results
+		if len(errors) > 0 {
+			h.logger.Warn("Some agents failed to receive group config",
+				zap.String("group_id", *config.GroupID),
+				zap.Int("updated", len(updatedAgents)),
+				zap.Int("failed", len(errors)))
+		} else {
+			h.logger.Info("Group config sent to all agents",
+				zap.String("group_id", *config.GroupID),
+				zap.Int("updated", len(updatedAgents)))
+		}
 	}
 
 	c.JSON(http.StatusCreated, config)

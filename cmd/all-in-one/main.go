@@ -152,17 +152,17 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 		agentHTTPEndpoint = config.OTLP.HTTPEndpoint
 	}
 
-	// Create agent service (without config sender initially to break circular dependency)
+	// Create agent service
 	agentService := services.NewAgentService(appStore, logger)
-
-	// Create OpAMP server with agent service (for persistence)
-	opampServer, err := opamp.NewServer(agents, agentService, opampMetrics, agentGRPCEndpoint, agentHTTPEndpoint, logger)
-	if err != nil {
-		logger.Fatal("Failed to create OpAMP server", zap.Error(err))
-	}
 
 	// Create config sender (separate concern from AgentService)
 	configSender := opamp.NewConfigSender(agents, logger)
+
+	// Create OpAMP server with agent service (for persistence)
+	opampServer, err := opamp.NewServer(agents, agentService, configSender, opampMetrics, agentGRPCEndpoint, agentHTTPEndpoint, logger)
+	if err != nil {
+		logger.Fatal("Failed to create OpAMP server", zap.Error(err))
+	}
 
 	// Create telemetry query service
 	telemetryService := services.NewTelemetryQueryService(telemetryReader, agentService, logger)

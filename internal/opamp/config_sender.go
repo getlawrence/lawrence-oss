@@ -76,6 +76,44 @@ func (cs *ConfigSender) RestartAgent(agentId uuid.UUID) error {
 	return nil
 }
 
+// SendConfigToAgentsInGroup sends a configuration to all agents in a group
+// Returns the list of agent IDs that were successfully updated and any errors encountered
+func (cs *ConfigSender) SendConfigToAgentsInGroup(groupId string, configContent string) ([]uuid.UUID, []error) {
+	var updatedAgents []uuid.UUID
+	var errors []error
+
+	// Get all agents
+	allAgents := cs.agents.GetAllAgentsReadonlyClone()
+
+	// Find agents in this group
+	for agentId, agent := range allAgents {
+		if agent.GroupID != nil && *agent.GroupID == groupId {
+			cs.logger.Info("Attempting to send config to agent in group",
+				zap.String("agentId", agentId.String()),
+				zap.String("groupId", groupId))
+
+			// Try to send config to this agent
+			if err := cs.SendConfigToAgent(agentId, configContent); err != nil {
+				cs.logger.Error("Failed to send config to agent",
+					zap.String("agentId", agentId.String()),
+					zap.Error(err))
+				errors = append(errors, fmt.Errorf("agent %s: %w", agentId.String(), err))
+			} else {
+				cs.logger.Info("Successfully sent config to agent",
+					zap.String("agentId", agentId.String()))
+				updatedAgents = append(updatedAgents, agentId)
+			}
+		}
+	}
+
+	cs.logger.Info("Group config update completed",
+		zap.String("groupId", groupId),
+		zap.Int("updated", len(updatedAgents)),
+		zap.Int("failed", len(errors)))
+
+	return updatedAgents, errors
+}
+
 // RestartAgentsInGroup sends restart commands to all agents in a group
 // Returns the list of agent IDs that were successfully restarted and any errors encountered
 func (cs *ConfigSender) RestartAgentsInGroup(groupId string) ([]uuid.UUID, []error) {
