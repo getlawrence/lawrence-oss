@@ -204,7 +204,8 @@ func (ts *TestServer) initServers() {
 	ts.apiServer = api.NewServer(ts.agentService, ts.telemetryService, configSender, ts.logger)
 
 	// Create worker pool for async telemetry processing
-	ts.workerPool = worker.NewPool(1000, ts.telemetryWriter, ts.agentService, ts.logger)
+	// Using default values: queue_size=10000, workers=3, timeout=5s
+	ts.workerPool = worker.NewPool(10000, 3, 5*time.Second, ts.telemetryWriter, ts.agentService, ts.logger)
 	ts.workerPool.Start()
 
 	// OTLP Receivers - use worker pool for async processing

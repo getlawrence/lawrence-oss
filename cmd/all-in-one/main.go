@@ -167,8 +167,16 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	// Create telemetry query service
 	telemetryService := services.NewTelemetryQueryService(telemetryReader, agentService, logger)
 
+	// Parse worker pool timeout
+	workerTimeout, err := time.ParseDuration(config.Worker.Timeout)
+	if err != nil {
+		// Default to 5s if parsing fails
+		workerTimeout = 5 * time.Second
+		logger.Warn("Failed to parse worker timeout, using default", zap.Error(err))
+	}
+
 	// Initialize worker pool for async telemetry processing (with agentService for enrichment)
-	workerPool := worker.NewPool(1000, telemetryWriter, agentService, logger)
+	workerPool := worker.NewPool(config.Worker.QueueSize, config.Worker.Workers, workerTimeout, telemetryWriter, agentService, logger)
 	workerPool.Start()
 	defer func() {
 		if err := workerPool.Stop(30 * time.Second); err != nil {

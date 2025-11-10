@@ -947,7 +947,7 @@ func (s *Storage) writeOTLPSums(ctx context.Context, sums []otlp.MetricSumData) 
 	s.logger.Debug("Starting writeOTLPSums transaction", zap.Int("count", len(sums)))
 
 	// Process in smaller batches to avoid overwhelming the database
-	batchSize := 10
+	batchSize := 50
 	for i := 0; i < len(sums); i += batchSize {
 		end := i + batchSize
 		if end > len(sums) {
@@ -1008,6 +1008,10 @@ func (s *Storage) writeOTLPSums(ctx context.Context, sums []otlp.MetricSumData) 
 }
 
 func (s *Storage) writeOTLPGauges(ctx context.Context, gauges []otlp.MetricGaugeData) error {
+	if len(gauges) == 0 {
+		return nil
+	}
+
 	query := `
 		INSERT INTO metrics_gauge (
 			timestamp, agent_id, group_id, group_name, service_name,
@@ -1015,43 +1019,74 @@ func (s *Storage) writeOTLPGauges(ctx context.Context, gauges []otlp.MetricGauge
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
+	s.logger.Debug("Starting writeOTLPGauges transaction", zap.Int("count", len(gauges)))
 
-	stmt, err := tx.PrepareContext(ctx, query)
-	if err != nil {
-		return fmt.Errorf("failed to prepare statement: %w", err)
-	}
-	defer stmt.Close()
-
-	for _, m := range gauges {
-		resourceAttrsJSON, _ := json.Marshal(m.ResourceAttributes)
-		metricAttrsJSON, _ := json.Marshal(m.Attributes)
-
-		_, err = stmt.ExecContext(ctx,
-			m.TimeUnix,
-			m.AgentID,
-			m.GroupID,
-			m.GroupName,
-			m.ServiceName,
-			m.MetricName,
-			m.MetricDescription,
-			m.Value,
-			string(resourceAttrsJSON),
-			string(metricAttrsJSON),
-		)
-		if err != nil {
-			return fmt.Errorf("failed to insert gauge metric: %w", err)
+	// Process in smaller batches to avoid overwhelming the database
+	batchSize := 50
+	for i := 0; i < len(gauges); i += batchSize {
+		end := i + batchSize
+		if end > len(gauges) {
+			end = len(gauges)
 		}
+
+		batch := gauges[i:end]
+		s.logger.Debug("Processing gauge batch", zap.Int("start", i), zap.Int("end", end), zap.Int("batch_size", len(batch)))
+
+		tx, err := s.db.BeginTx(ctx, nil)
+		if err != nil {
+			s.logger.Error("Failed to begin transaction", zap.Error(err))
+			return fmt.Errorf("failed to begin transaction: %w", err)
+		}
+
+		stmt, err := tx.PrepareContext(ctx, query)
+		if err != nil {
+			_ = tx.Rollback()
+			s.logger.Error("Failed to prepare statement", zap.Error(err))
+			return fmt.Errorf("failed to prepare statement: %w", err)
+		}
+
+		for j, m := range batch {
+			resourceAttrsJSON, _ := json.Marshal(m.ResourceAttributes)
+			metricAttrsJSON, _ := json.Marshal(m.Attributes)
+
+			_, err = stmt.ExecContext(ctx,
+				m.TimeUnix,
+				m.AgentID,
+				m.GroupID,
+				m.GroupName,
+				m.ServiceName,
+				m.MetricName,
+				m.MetricDescription,
+				m.Value,
+				string(resourceAttrsJSON),
+				string(metricAttrsJSON),
+			)
+			if err != nil {
+				stmt.Close()
+				_ = tx.Rollback()
+				s.logger.Error("Failed to insert gauge metric", zap.Error(err), zap.Int("batch_index", j), zap.String("metric_name", m.MetricName))
+				return fmt.Errorf("failed to insert gauge metric: %w", err)
+			}
+		}
+
+		stmt.Close()
+		if err := tx.Commit(); err != nil {
+			s.logger.Error("Failed to commit transaction", zap.Error(err))
+			return fmt.Errorf("failed to commit transaction: %w", err)
+		}
+
+		s.logger.Debug("Gauge batch committed successfully", zap.Int("batch_size", len(batch)))
 	}
 
-	return tx.Commit()
+	s.logger.Debug("All gauge batches completed successfully")
+	return nil
 }
 
 func (s *Storage) writeOTLPHistograms(ctx context.Context, histograms []otlp.MetricHistogramData) error {
+	if len(histograms) == 0 {
+		return nil
+	}
+
 	query := `
 		INSERT INTO metrics_histogram (
 			timestamp, agent_id, group_id, group_name, service_name,
@@ -1060,49 +1095,76 @@ func (s *Storage) writeOTLPHistograms(ctx context.Context, histograms []otlp.Met
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
+	s.logger.Debug("Starting writeOTLPHistograms transaction", zap.Int("count", len(histograms)))
 
-	stmt, err := tx.PrepareContext(ctx, query)
-	if err != nil {
-		return fmt.Errorf("failed to prepare statement: %w", err)
-	}
-	defer stmt.Close()
-
-	for _, m := range histograms {
-		resourceAttrsJSON, _ := json.Marshal(m.ResourceAttributes)
-		metricAttrsJSON, _ := json.Marshal(m.Attributes)
-
-		// Convert slices to arrays for DuckDB
-		bucketCountsStr := fmt.Sprintf("[%s]", strings.Trim(strings.Join(strings.Fields(fmt.Sprint(m.BucketCounts)), ","), "[]"))
-		explicitBoundsStr := fmt.Sprintf("[%s]", strings.Trim(strings.Join(strings.Fields(fmt.Sprint(m.ExplicitBounds)), ","), "[]"))
-
-		_, err = stmt.ExecContext(ctx,
-			m.TimeUnix,
-			m.AgentID,
-			m.GroupID,
-			m.GroupName,
-			m.ServiceName,
-			m.MetricName,
-			m.MetricDescription,
-			m.Count,
-			m.Sum,
-			m.Min,
-			m.Max,
-			bucketCountsStr,
-			explicitBoundsStr,
-			string(resourceAttrsJSON),
-			string(metricAttrsJSON),
-		)
-		if err != nil {
-			return fmt.Errorf("failed to insert histogram metric: %w", err)
+	// Process in smaller batches to avoid overwhelming the database
+	batchSize := 50
+	for i := 0; i < len(histograms); i += batchSize {
+		end := i + batchSize
+		if end > len(histograms) {
+			end = len(histograms)
 		}
+
+		batch := histograms[i:end]
+		s.logger.Debug("Processing histogram batch", zap.Int("start", i), zap.Int("end", end), zap.Int("batch_size", len(batch)))
+
+		tx, err := s.db.BeginTx(ctx, nil)
+		if err != nil {
+			s.logger.Error("Failed to begin transaction", zap.Error(err))
+			return fmt.Errorf("failed to begin transaction: %w", err)
+		}
+
+		stmt, err := tx.PrepareContext(ctx, query)
+		if err != nil {
+			_ = tx.Rollback()
+			s.logger.Error("Failed to prepare statement", zap.Error(err))
+			return fmt.Errorf("failed to prepare statement: %w", err)
+		}
+
+		for j, m := range batch {
+			resourceAttrsJSON, _ := json.Marshal(m.ResourceAttributes)
+			metricAttrsJSON, _ := json.Marshal(m.Attributes)
+
+			// Convert slices to arrays for DuckDB
+			bucketCountsStr := fmt.Sprintf("[%s]", strings.Trim(strings.Join(strings.Fields(fmt.Sprint(m.BucketCounts)), ","), "[]"))
+			explicitBoundsStr := fmt.Sprintf("[%s]", strings.Trim(strings.Join(strings.Fields(fmt.Sprint(m.ExplicitBounds)), ","), "[]"))
+
+			_, err = stmt.ExecContext(ctx,
+				m.TimeUnix,
+				m.AgentID,
+				m.GroupID,
+				m.GroupName,
+				m.ServiceName,
+				m.MetricName,
+				m.MetricDescription,
+				m.Count,
+				m.Sum,
+				m.Min,
+				m.Max,
+				bucketCountsStr,
+				explicitBoundsStr,
+				string(resourceAttrsJSON),
+				string(metricAttrsJSON),
+			)
+			if err != nil {
+				stmt.Close()
+				_ = tx.Rollback()
+				s.logger.Error("Failed to insert histogram metric", zap.Error(err), zap.Int("batch_index", j), zap.String("metric_name", m.MetricName))
+				return fmt.Errorf("failed to insert histogram metric: %w", err)
+			}
+		}
+
+		stmt.Close()
+		if err := tx.Commit(); err != nil {
+			s.logger.Error("Failed to commit transaction", zap.Error(err))
+			return fmt.Errorf("failed to commit transaction: %w", err)
+		}
+
+		s.logger.Debug("Histogram batch committed successfully", zap.Int("batch_size", len(batch)))
 	}
 
-	return tx.Commit()
+	s.logger.Debug("All histogram batches completed successfully")
+	return nil
 }
 
 // Writer interface implementations for types.Writer
