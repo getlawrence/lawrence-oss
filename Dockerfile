@@ -42,6 +42,10 @@ RUN npm install -g pnpm
 # Set working directory
 WORKDIR /app
 
+# Allow builders to override the default backend URL used at build time.
+ARG VITE_BACKEND_URL=http://localhost:8080
+ENV VITE_BACKEND_URL=${VITE_BACKEND_URL}
+
 # Copy package files
 COPY ui/package.json ui/pnpm-lock.yaml ./
 
@@ -89,6 +93,10 @@ COPY --from=frontend-builder /app/dist ./ui/dist
 # Copy configuration
 COPY lawrence.yaml .
 
+# Copy runtime entrypoint for injecting frontend config
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Create data directory
 RUN mkdir -p /app/data && \
     chown -R lawrence:lawrence /app
@@ -111,5 +119,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 ENV GIN_MODE=release
 ENV TZ=UTC
 
+ENTRYPOINT ["/entrypoint.sh"]
 # Run the application
 CMD ["./lawrence"]
