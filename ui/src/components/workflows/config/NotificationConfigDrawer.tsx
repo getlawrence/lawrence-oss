@@ -99,19 +99,6 @@ export function NotificationConfigDrawer({
     onSave(updatedData);
   };
 
-  const getChannelIcon = () => {
-    switch (state.channel) {
-      case "email":
-        return <Mail className="h-4 w-4" />;
-      case "slack":
-        return <MessageSquare className="h-4 w-4" />;
-      case "webhook":
-        return <Webhook className="h-4 w-4" />;
-      default:
-        return <FileText className="h-4 w-4" />;
-    }
-  };
-
   return (
     <ConfigDrawerLayout
       open={open}
@@ -152,10 +139,7 @@ export function NotificationConfigDrawer({
           onValueChange={(value: any) => updateField("channel", value)}
         >
           <SelectTrigger id="channel">
-            <div className="flex items-center gap-2">
-              {getChannelIcon()}
-              <SelectValue />
-            </div>
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="log">

@@ -1,7 +1,6 @@
 import {
   ReactFlow,
   Background,
-  Panel,
   addEdge,
   useNodesState,
   useEdgesState,
@@ -9,11 +8,11 @@ import {
   type NodeTypes,
   BackgroundVariant,
 } from "@xyflow/react";
-import { AlertCircle } from "lucide-react";
 import { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import "@xyflow/react/dist/style.css";
 
 import { ActionConfigDrawer } from "../config/ActionConfigDrawer";
+import { extractWorkflowVariables } from "../utils/flow-utils";
 import { BranchConfigDrawer } from "../config/BranchConfigDrawer";
 import { ConditionConfigDrawer } from "../config/ConditionConfigDrawer";
 import { DelayConfigDrawer } from "../config/DelayConfigDrawer";
@@ -58,7 +57,6 @@ import type {
 import { NodePalette } from "./NodePalette";
 
 import { type WorkflowAction } from "@/api/workflows";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface WorkflowFlowEditorProps {
   initialFlow?: Workflow;
@@ -114,6 +112,16 @@ export function WorkflowFlowEditor({
     () => nodes.filter((n) => n.selected).map((n) => n.id),
     [nodes]
   );
+
+  // Extract available variables from current flow
+  const availableVariables = useMemo(() => {
+    const currentFlow: Workflow = {
+      nodes,
+      edges,
+      variables: initialFlow?.variables,
+    };
+    return extractWorkflowVariables(currentFlow);
+  }, [nodes, edges, initialFlow?.variables]);
 
   const [paletteVisible, setPaletteVisible] = useState(true);
 
@@ -442,27 +450,6 @@ export function WorkflowFlowEditor({
     }
   }, []);
 
-  const validationIssues = useMemo(() => {
-    const issues: string[] = [];
-    const triggerNodes = nodes.filter((n) => n.type === "trigger");
-    const actionNodes = nodes.filter((n) => n.type === "action");
-
-    if (triggerNodes.length === 0) {
-      issues.push("At least one trigger node is required");
-    }
-
-    if (actionNodes.length === 0) {
-      issues.push("At least one action node is required");
-    }
-
-    const unconfiguredNodes = nodes.filter((n) => !isNodeConfigured(n));
-    if (unconfiguredNodes.length > 0) {
-      issues.push(`${unconfiguredNodes.length} node(s) need configuration`);
-    }
-
-    return issues;
-  }, [nodes, isNodeConfigured]);
-
   // Shared helper for drawer save handlers
   const updateNodeData = useCallback(
     <T extends NonNullable<DrawerState>["type"]>(
@@ -586,7 +573,6 @@ export function WorkflowFlowEditor({
     if (!open) setDrawerState(null);
   }, []);
 
-  const hasNodes = nodes.length > 0;
 
   return (
     <div className="h-full w-full flex bg-background">
@@ -623,23 +609,6 @@ export function WorkflowFlowEditor({
             color="hsl(var(--muted-foreground))"
             className="opacity-20"
           />
-
-          {/* Validation Alert */}
-          {validationIssues.length > 0 && hasNodes && (
-            <Panel position="bottom-center" className="mb-4">
-              <Alert
-                variant="destructive"
-                className="bg-background/95 backdrop-blur-sm"
-              >
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-xs">
-                  {validationIssues[0]}
-                  {validationIssues.length > 1 &&
-                    ` (+${validationIssues.length - 1} more)`}
-                </AlertDescription>
-              </Alert>
-            </Panel>
-          )}
         </ReactFlow>
       </div>
 
@@ -649,6 +618,7 @@ export function WorkflowFlowEditor({
         onOpenChange={handleDrawerClose}
         action={drawerState?.type === "action" ? drawerState.data : null}
         onSave={handleActionDrawerSave}
+        availableVariables={availableVariables}
       />
 
       <TriggerConfigDrawer

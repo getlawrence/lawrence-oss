@@ -1,5 +1,5 @@
 import yaml from "js-yaml";
-import { Save, Info, Code, Loader2 } from "lucide-react";
+import { Save, Info, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import useSWR from "swr";
 
@@ -30,12 +30,14 @@ import {
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { VariableAutocomplete } from "../shared/VariableAutocomplete";
 
 interface ActionConfigDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   action: WorkflowAction | null;
   onSave: (action: WorkflowAction) => void;
+  availableVariables?: string[];
 }
 
 export function ActionConfigDrawer({
@@ -43,6 +45,7 @@ export function ActionConfigDrawer({
   onOpenChange,
   action,
   onSave,
+  availableVariables = [],
 }: ActionConfigDrawerProps) {
   const [targetType, setTargetType] = useState<"agent" | "group">("group");
   const [targetId, setTargetId] = useState<string>("");
@@ -337,15 +340,16 @@ export function ActionConfigDrawer({
               <Label className="text-sm">
                 Target ID <span className="text-destructive">*</span>
               </Label>
-              <Input
+              <VariableAutocomplete
                 value={targetId}
-                onChange={(e) => setTargetId(e.target.value)}
+                onChange={setTargetId}
                 placeholder={
                   targetType === "group"
                     ? "group-name or ${app_name}"
                     : "agent-uuid"
                 }
                 className="h-9 font-mono text-sm"
+                availableVariables={availableVariables}
               />
               <p className="text-xs text-muted-foreground">
                 {targetType === "group" ? (
@@ -510,6 +514,17 @@ export function ActionConfigDrawer({
                           <li>
                             For sampling, include the processor configuration
                           </li>
+                          <li>
+                            <strong>Variables:</strong> Use{" "}
+                            <code className="text-xs bg-muted px-1 rounded">
+                              {"${variable_name}"}
+                            </code>{" "}
+                            to reference webhook payload fields (e.g.,{" "}
+                            <code className="text-xs bg-muted px-1 rounded">
+                              {"${service_name}"}
+                            </code>
+                            )
+                          </li>
                         </ul>
                       </AlertDescription>
                     </Alert>
@@ -615,22 +630,6 @@ export function ActionConfigDrawer({
               </div>
             )}
           </div>
-
-          {/* Metadata Variables Info */}
-          <Alert>
-            <Code className="h-4 w-4" />
-            <AlertDescription className="text-xs">
-              <strong>Metadata Variables:</strong> Use{" "}
-              <code className="text-xs bg-muted px-1 rounded">
-                {"${variable_name}"}
-              </code>{" "}
-              in Target ID to reference webhook payload fields (e.g.,{" "}
-              <code className="text-xs bg-muted px-1 rounded">
-                {"${app_name}"}
-              </code>
-              )
-            </AlertDescription>
-          </Alert>
 
           {/* Error Alert */}
           {error && (

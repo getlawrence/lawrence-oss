@@ -892,14 +892,14 @@ func (s *workflowServiceImpl) executeConfigUpdate(ctx context.Context, workflow 
 	var newContent string
 	if err != nil || currentConfig == nil {
 		if action.ConfigUpdate.Operation == "replace" {
-			// No existing config, use template directly
-			newContent = action.ConfigUpdate.Template
+			// No existing config, use template directly with variable substitution
+			newContent = s.substituteTemplateVariables(action.ConfigUpdate.Template, execution.Metadata)
 		} else {
 			return fmt.Errorf("failed to get current config for %s operation: %w", action.ConfigUpdate.Operation, err)
 		}
 	} else {
-		// Apply config transformation
-		newContent, err = s.applyConfigUpdate(currentConfig.Content, action.ConfigUpdate)
+		// Apply config transformation with variable substitution
+		newContent, err = s.applyConfigUpdate(currentConfig.Content, action.ConfigUpdate, execution.Metadata)
 		if err != nil {
 			return fmt.Errorf("failed to apply config update: %w", err)
 		}
@@ -945,14 +945,15 @@ func (s *workflowServiceImpl) executeConfigUpdate(ctx context.Context, workflow 
 }
 
 // applyConfigUpdate applies a config update operation
-func (s *workflowServiceImpl) applyConfigUpdate(currentYAML string, update *types.ConfigUpdateAction) (string, error) {
+func (s *workflowServiceImpl) applyConfigUpdate(currentYAML string, update *types.ConfigUpdateAction, metadata map[string]string) (string, error) {
 	switch update.Operation {
 	case "replace":
 		// Simply replace the entire config with the template
 		if update.Template == "" {
 			return "", fmt.Errorf("template is required for replace operation")
 		}
-		return update.Template, nil
+		// Substitute variables in template
+		return s.substituteTemplateVariables(update.Template, metadata), nil
 
 	case "merge":
 		// Merge the template into the current config
@@ -960,13 +961,16 @@ func (s *workflowServiceImpl) applyConfigUpdate(currentYAML string, update *type
 			return "", fmt.Errorf("template is required for merge operation")
 		}
 
+		// Substitute variables in template before parsing
+		templateWithVars := s.substituteTemplateVariables(update.Template, metadata)
+
 		var current, template map[string]interface{}
 
 		if err := yaml.Unmarshal([]byte(currentYAML), &current); err != nil {
 			return "", fmt.Errorf("failed to unmarshal current config: %w", err)
 		}
 
-		if err := yaml.Unmarshal([]byte(update.Template), &template); err != nil {
+		if err := yaml.Unmarshal([]byte(templateWithVars), &template); err != nil {
 			return "", fmt.Errorf("failed to unmarshal template: %w", err)
 		}
 
@@ -991,8 +995,14 @@ func (s *workflowServiceImpl) applyConfigUpdate(currentYAML string, update *type
 			return "", fmt.Errorf("failed to unmarshal config: %w", err)
 		}
 
+		// Resolve variable in patch value if it's a string
+		patchValue := update.Value
+		if strValue, ok := patchValue.(string); ok {
+			patchValue = s.substituteTemplateVariables(strValue, metadata)
+		}
+
 		// Apply the patch
-		if err := s.setYAMLPath(config, update.YAMLPath, update.Value); err != nil {
+		if err := s.setYAMLPath(config, update.YAMLPath, patchValue); err != nil {
 			return "", fmt.Errorf("failed to set YAML path: %w", err)
 		}
 
@@ -1156,6 +1166,21 @@ func (s *workflowServiceImpl) resolveMetadataVariable(value string, metadata map
 		s.logger.Warn("Metadata variable not found", zap.String("variable", varName))
 	}
 	return value
+}
+
+// substituteTemplateVariables substitutes all ${variable} occurrences in a template string with values from metadata
+func (s *workflowServiceImpl) substituteTemplateVariables(template string, metadata map[string]string) string {
+	// Match ${variable_name} pattern
+	re := regexp.MustCompile(`\$\{([^}]+)\}`)
+	return re.ReplaceAllStringFunc(template, func(match string) string {
+		varName := strings.TrimPrefix(strings.TrimSuffix(match, "}"), "${")
+		if resolved, exists := metadata[varName]; exists {
+			return resolved
+		}
+		// If variable not found, return original (could be intentional)
+		s.logger.Warn("Template variable not found", zap.String("variable", varName))
+		return match
+	})
 }
 
 // isUUID checks if a string is a valid UUID

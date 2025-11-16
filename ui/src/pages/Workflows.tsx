@@ -1,4 +1,4 @@
-import { Plus, Play, RefreshCw, Trash2, Zap, History } from "lucide-react";
+import { Plus, Play, RefreshCw, Trash2, Workflow as WorkflowIcon, History } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useSWR from "swr";
@@ -132,7 +132,6 @@ export default function WorkflowsPage() {
           <>
             <TableCell className="font-medium">
               <div className="flex items-center gap-2">
-                <Zap className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <div>{workflow.name}</div>
                   {workflow.description && (
@@ -228,7 +227,7 @@ export default function WorkflowsPage() {
           </>
         )}
         emptyState={{
-          icon: Zap,
+          icon: WorkflowIcon,
           title: "No Workflows Found",
           description:
             "Create your first workflow to automate collector configuration updates.",

@@ -6,6 +6,7 @@ import type {
   DelayNodeData,
   TriggerNodeData,
    ActionNodeData,
+  VariableNodeData,
 } from "../types/flow-types";
 
 import type { Workflow as ApiWorkflow, WorkflowTrigger, WorkflowStep } from "@/api/workflows";
@@ -276,4 +277,50 @@ export function validateFlow(flow: Workflow): {
     valid: errors.length === 0,
     errors,
   };
+}
+
+/**
+ * Extract all available variables from a workflow
+ * Returns variables from:
+ * 1. Workflow-level variable definitions
+ * 2. Variable nodes with "set" operation
+ * 3. Webhook metadata variables (if trigger is webhook)
+ */
+export function extractWorkflowVariables(flow: Workflow | null): string[] {
+  const variables = new Set<string>();
+
+  if (!flow) {
+    return [];
+  }
+
+  // 1. Add workflow-level variables
+  if (flow.variables) {
+    Object.keys(flow.variables).forEach((key) => variables.add(key));
+  }
+
+  // 2. Extract variables from variable nodes with "set" operation
+  flow.nodes.forEach((node) => {
+    if (node.type === "variable") {
+      const varData = node.data as VariableNodeData;
+      if (varData.operation === "set" && varData.variableName) {
+        variables.add(varData.variableName);
+      }
+    }
+  });
+
+  // 3. Add webhook metadata variables if trigger is webhook
+  const triggerNode = flow.nodes.find((n) => n.type === "trigger") as
+    | Node<TriggerNodeData, "trigger">
+    | undefined;
+  if (triggerNode?.data.triggerType === "webhook") {
+    // Add common webhook variables that users might use
+    // These are examples - users can pass any fields in webhook payload
+    variables.add("service_name");
+    variables.add("app_name");
+    variables.add("environment");
+    variables.add("version");
+    variables.add("source");
+  }
+
+  return Array.from(variables).sort();
 }
