@@ -26,7 +26,7 @@ export const GroupNode = memo(
 
     return (
       <Card
-        className={`min-w-[200px] p-3 cursor-pointer transition-all bg-white dark:bg-gray-900 ${
+        className={`w-[180px] h-[110px] overflow-hidden p-2.5 cursor-pointer transition-all bg-white dark:bg-gray-900 ${
           selected ? "ring-2 ring-primary shadow-lg" : "shadow-sm"
         } hover:shadow-md border-border`}
         onClick={handleClick}
