@@ -20,10 +20,25 @@ export type FlowNodeType =
 // Original node data types
 export interface TriggerNodeData extends Record<string, unknown> {
   label: string;
-  triggerType: "manual" | "schedule" | "webhook";
+  triggerType: "manual" | "schedule" | "webhook" | "telemetry";
   cronExpression?: string;
   timezone?: string;
+  telemetryConfig?: TelemetryTriggerConfig;
   description?: string;
+}
+
+export interface TelemetryTriggerConfig {
+  type: "log" | "metric";
+  // Log config
+  severity?: "error" | "warn" | "info";
+  pattern?: string;
+  agentId?: string;
+  serviceName?: string;
+  // Metric config
+  metricName?: string;
+  operator?: ">" | "<" | ">=" | "<=";
+  threshold?: number;
+  timeWindow?: string; // e.g., "5m", "1h"
 }
 
 export interface ConditionNodeData extends Record<string, unknown> {

@@ -50,6 +50,23 @@ export const nodeTemplates: NodeTemplate[] = [
     color: "blue",
     ports: { inputs: 0, outputs: 1 },
   },
+  {
+    id: "trigger-telemetry",
+    type: "trigger",
+    name: "Telemetry Trigger",
+    description: "Execute workflow based on collector telemetry",
+    icon: "Activity",
+    defaultData: {
+      label: "Telemetry Trigger",
+      triggerType: "telemetry",
+      telemetryConfig: {
+        type: "log",
+      },
+    },
+    category: "triggers",
+    color: "blue",
+    ports: { inputs: 0, outputs: 1 },
+  },
 
   // Logic nodes
   {

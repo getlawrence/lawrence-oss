@@ -2,16 +2,31 @@ import { apiGet, apiPost, apiPut, apiDelete } from "./base";
 
 export interface WorkflowTrigger {
   workflow_id: string;
-  type: "webhook" | "schedule" | "manual";
+  type: "webhook" | "schedule" | "manual" | "telemetry";
   webhook_url?: string;
   webhook_secret?: string;
   schedule?: {
     cron_expression: string;
     timezone: string;
   };
+  telemetry_config?: TelemetryTriggerConfig;
   enabled: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface TelemetryTriggerConfig {
+  type: "log" | "metric";
+  // Log config
+  severity?: "error" | "warn" | "info";
+  pattern?: string;
+  agent_id?: string;
+  service_name?: string;
+  // Metric config
+  metric_name?: string;
+  operator?: ">" | "<" | ">=" | "<=";
+  threshold?: number;
+  time_window?: string; // e.g., "5m", "1h"
 }
 
 export interface WorkflowStep {
@@ -37,7 +52,7 @@ export interface Workflow {
   id: string;
   name: string;
   description: string;
-  type: "webhook" | "schedule" | "manual";
+  type: "webhook" | "schedule" | "manual" | "telemetry";
   status: "active" | "inactive" | "error";
   schedule?: {
     cron_expression: string;
@@ -45,6 +60,7 @@ export interface Workflow {
   };
   webhook_url?: string;
   webhook_secret?: string;
+  telemetry_config?: TelemetryTriggerConfig;
 
   // Normalized structure (from API)
   trigger?: WorkflowTrigger;

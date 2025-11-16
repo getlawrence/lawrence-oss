@@ -42,7 +42,6 @@ import type {
   NodeTemplate,
   TriggerNodeData,
   ConditionNodeData,
-  ActionNodeData,
   LoopNodeData,
   DelayNodeData,
   NotificationNodeData,
@@ -398,57 +397,6 @@ export function WorkflowFlowEditor({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedNodes, deleteSelectedNodes]);
-
-  // Validation
-  const isNodeConfigured = useCallback((node: FlowNode): boolean => {
-    switch (node.type) {
-      case "trigger": {
-        const data = node.data as TriggerNodeData;
-        if (data.triggerType === "schedule") {
-          return !!(data.cronExpression && data.timezone);
-        }
-        return true;
-      }
-      case "condition": {
-        const data = node.data as ConditionNodeData;
-        return data.conditions.length > 0;
-      }
-      case "action": {
-        const data = node.data as ActionNodeData;
-        return !!(data.action.target_id && data.action.config_update?.template);
-      }
-      case "loop": {
-        const data = node.data as LoopNodeData;
-        return !!data.loopType;
-      }
-      case "delay": {
-        const data = node.data as DelayNodeData;
-        return !!(data.duration && data.unit);
-      }
-      case "notification": {
-        const data = node.data as NotificationNodeData;
-        return !!data.message;
-      }
-      case "group": {
-        // Group nodes are always considered configured (visual grouping)
-        return true;
-      }
-      case "variable": {
-        const data = node.data as VariableNodeData;
-        return !!(data.variableName && data.operation);
-      }
-      case "error-handler": {
-        // Error handler nodes are always considered configured
-        return true;
-      }
-      case "branch": {
-        const data = node.data as BranchNodeData;
-        return !!(data.branches && data.branches.length > 0);
-      }
-      default:
-        return true;
-    }
-  }, []);
 
   // Shared helper for drawer save handlers
   const updateNodeData = useCallback(

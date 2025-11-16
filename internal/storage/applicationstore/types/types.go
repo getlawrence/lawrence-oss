@@ -155,9 +155,10 @@ type Workflow struct {
 type WorkflowTriggerType string
 
 const (
-	WorkflowTriggerTypeWebhook  WorkflowTriggerType = "webhook"
-	WorkflowTriggerTypeSchedule WorkflowTriggerType = "schedule"
-	WorkflowTriggerTypeManual   WorkflowTriggerType = "manual"
+	WorkflowTriggerTypeWebhook   WorkflowTriggerType = "webhook"
+	WorkflowTriggerTypeSchedule  WorkflowTriggerType = "schedule"
+	WorkflowTriggerTypeManual    WorkflowTriggerType = "manual"
+	WorkflowTriggerTypeTelemetry WorkflowTriggerType = "telemetry"
 )
 
 // WorkflowStatus represents the status of a workflow
@@ -173,6 +174,31 @@ const (
 type ScheduleConfig struct {
 	CronExpression string `json:"cron_expression"`
 	Timezone       string `json:"timezone"`
+}
+
+// TelemetryTriggerType represents the type of telemetry trigger
+type TelemetryTriggerType string
+
+const (
+	TelemetryTriggerTypeLog    TelemetryTriggerType = "log"
+	TelemetryTriggerTypeMetric TelemetryTriggerType = "metric"
+)
+
+// TelemetryTriggerConfig represents telemetry-based trigger configuration
+type TelemetryTriggerConfig struct {
+	Type TelemetryTriggerType `json:"type"` // "log" or "metric"
+
+	// Log trigger fields
+	Severity    string `json:"severity,omitempty"`     // "error", "warn", "info" (optional)
+	Pattern     string `json:"pattern,omitempty"`       // Pattern to match in log body (optional, supports regex)
+	AgentID     string `json:"agent_id,omitempty"`      // Filter by agent ID (optional)
+	ServiceName string `json:"service_name,omitempty"`  // Filter by service name (optional)
+
+	// Metric trigger fields
+	MetricName string  `json:"metric_name,omitempty"`  // Name of the metric to monitor
+	Operator   string  `json:"operator,omitempty"`     // ">", "<", ">=", "<="
+	Threshold  float64 `json:"threshold,omitempty"`     // Threshold value
+	TimeWindow string  `json:"time_window,omitempty"`   // Duration string like "5m", "1h"
 }
 
 // WorkflowAction represents an action to execute when a workflow runs
@@ -282,14 +308,15 @@ type DelayedActionQueue struct {
 
 // WorkflowTrigger represents a normalized workflow trigger
 type WorkflowTrigger struct {
-	WorkflowID    string              `json:"workflow_id"`
-	Type          WorkflowTriggerType `json:"type"`
-	Schedule      *ScheduleConfig     `json:"schedule,omitempty"`
-	WebhookURL    string              `json:"webhook_url,omitempty"`
-	WebhookSecret string              `json:"webhook_secret,omitempty"`
-	Enabled       bool                `json:"enabled"`
-	CreatedAt     time.Time           `json:"created_at"`
-	UpdatedAt     time.Time           `json:"updated_at"`
+	WorkflowID      string                 `json:"workflow_id"`
+	Type            WorkflowTriggerType     `json:"type"`
+	Schedule        *ScheduleConfig         `json:"schedule,omitempty"`
+	WebhookURL      string                  `json:"webhook_url,omitempty"`
+	WebhookSecret   string                  `json:"webhook_secret,omitempty"`
+	TelemetryConfig *TelemetryTriggerConfig `json:"telemetry_config,omitempty"`
+	Enabled         bool                    `json:"enabled"`
+	CreatedAt       time.Time               `json:"created_at"`
+	UpdatedAt       time.Time               `json:"updated_at"`
 }
 
 // FlowNodeType represents the type of flow node
