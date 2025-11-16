@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 
 import type { GroupNodeData } from "../types/flow-types";
 
+import { ConfigDrawerLayout } from "./ConfigDrawerLayout";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -13,8 +15,6 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useFormState } from "@/hooks/useDrawerForm";
-
-import { ConfigDrawerLayout } from "./ConfigDrawerLayout";
 
 interface GroupConfigDrawerProps {
   open: boolean;

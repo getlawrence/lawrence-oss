@@ -10,6 +10,8 @@ import { useMemo, useState } from "react";
 
 import type { NotificationNodeData } from "../types/flow-types";
 
+import { ConfigDrawerLayout } from "./ConfigDrawerLayout";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,8 +24,6 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useFormState, useArrayField } from "@/hooks/useDrawerForm";
-
-import { ConfigDrawerLayout } from "./ConfigDrawerLayout";
 
 interface NotificationConfigDrawerProps {
   open: boolean;

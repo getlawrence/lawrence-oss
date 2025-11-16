@@ -3,6 +3,8 @@ import { useMemo, useState } from "react";
 
 import type { ConditionNodeData } from "../types/flow-types";
 
+import { ConfigDrawerLayout } from "./ConfigDrawerLayout";
+
 import type { WorkflowCondition } from "@/api/workflows";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,8 +17,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useArrayField } from "@/hooks/useDrawerForm";
-
-import { ConfigDrawerLayout } from "./ConfigDrawerLayout";
 
 interface ConditionConfigDrawerProps {
   open: boolean;

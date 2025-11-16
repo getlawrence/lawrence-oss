@@ -3,13 +3,13 @@ import { useMemo, useState } from "react";
 
 import type { ErrorHandlerNodeData } from "../types/flow-types";
 
+import { ConfigDrawerLayout } from "./ConfigDrawerLayout";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useFormState, useArrayField } from "@/hooks/useDrawerForm";
-
-import { ConfigDrawerLayout } from "./ConfigDrawerLayout";
 
 interface ErrorHandlerConfigDrawerProps {
   open: boolean;

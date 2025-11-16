@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { BranchNodeData } from "../types/flow-types";
 
+import { ConfigDrawerLayout } from "./ConfigDrawerLayout";
+
 import type { WorkflowCondition } from "@/api/workflows";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,8 +18,6 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useFormState } from "@/hooks/useDrawerForm";
-
-import { ConfigDrawerLayout } from "./ConfigDrawerLayout";
 
 interface BranchConfigDrawerProps {
   open: boolean;

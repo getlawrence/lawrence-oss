@@ -2,11 +2,11 @@ import { useMemo, useState } from "react";
 
 import type { SequentialNodeData } from "../types/flow-types";
 
+import { ConfigDrawerLayout } from "./ConfigDrawerLayout";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useFormState } from "@/hooks/useDrawerForm";
-
-import { ConfigDrawerLayout } from "./ConfigDrawerLayout";
 
 interface SequentialConfigDrawerProps {
   open: boolean;
