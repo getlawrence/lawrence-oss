@@ -230,15 +230,18 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 		_ = httpServer.Stop(ctx)
 	}()
 
+	// Create cancellable context for background services
+	serviceCtx, serviceCancel := context.WithCancel(context.Background())
+	defer serviceCancel()
+
 	// Start trigger scheduler
-	ctx := context.Background()
-	if err := workflowScheduler.Start(ctx); err != nil {
+	if err := workflowScheduler.Start(serviceCtx); err != nil {
 		logger.Fatal("Failed to start trigger scheduler", zap.Error(err))
 	}
 	defer workflowScheduler.Stop()
 
 	// Start delayed action executor
-	if err := delayedActionExecutor.Start(ctx); err != nil {
+	if err := delayedActionExecutor.Start(serviceCtx); err != nil {
 		logger.Fatal("Failed to start delayed action executor", zap.Error(err))
 	}
 	defer delayedActionExecutor.Stop()
@@ -253,9 +256,9 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 		}
 	}()
 	defer func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		stopCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		_ = apiServer.Stop(ctx)
+		_ = apiServer.Stop(stopCtx)
 	}()
 
 	// Start background services
