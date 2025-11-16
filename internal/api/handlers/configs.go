@@ -238,13 +238,17 @@ func (h *ConfigHandlers) HandleDeleteConfig(c *gin.Context) {
 // handleValidateConfig handles POST /api/v1/configs/validate
 func (h *ConfigHandlers) HandleValidateConfig(c *gin.Context) {
 	var req struct {
-		Content string `json:"content" binding:"required"`
+		Content        string `json:"content" binding:"required"`
+		UseSchemaCheck bool   `json:"use_schema_check,omitempty"` // Optional flag to enable schema validation
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data", "details": err.Error()})
 		return
 	}
+
+	var allErrors []string
+	var allWarnings []string
 
 	// Validate YAML syntax
 	if err := validateYAMLConfig(req.Content); err != nil {
@@ -264,10 +268,22 @@ func (h *ConfigHandlers) HandleValidateConfig(c *gin.Context) {
 		})
 		return
 	}
+	allWarnings = append(allWarnings, warnings...)
+
+	// Optional schema-based validation
+	if req.UseSchemaCheck {
+		// TODO: Once the schema library is available, add schema validation here
+		// This would validate each component (receivers, processors, exporters) against their schemas
+		// Example:
+		// schemaErrors, schemaWarnings := validateConfigWithSchemas(req.Content)
+		// allErrors = append(allErrors, schemaErrors...)
+		// allWarnings = append(allWarnings, schemaWarnings...)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"valid":    true,
-		"warnings": warnings,
+		"valid":    len(allErrors) == 0,
+		"errors":   allErrors,
+		"warnings": allWarnings,
 	})
 }
 

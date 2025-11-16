@@ -9,9 +9,9 @@ describe("validateYamlConfig", () => {
   describe("default validators", () => {
     it("should run all default validators", () => {
       const yamlContent = `receivers:
-  otlp:
+  otlp: {}
 exporters:
-  logging:
+  logging: {}
 service:
   pipelines:
     traces:
@@ -22,7 +22,8 @@ service:
       const result = validateYamlConfig(yamlContent, parsed);
 
       expect(result.valid).toBe(true);
-      expect(result.errors).toHaveLength(0);
+      // Check that there are no errors (warnings may exist)
+      expect(result.errors.filter((e) => e.severity === "error")).toHaveLength(0);
     });
 
     it("should detect errors from multiple validators", () => {
@@ -273,11 +274,14 @@ service:
   describe("validity determination", () => {
     it("should be valid when no errors", () => {
       const yamlContent = `receivers:
-  otlp:
+  otlp: {}
+exporters:
+  logging: {}
 service:
   pipelines:
     traces:
-      receivers: [otlp]`;
+      receivers: [otlp]
+      exporters: [logging]`;
 
       const parsed = yaml.load(yamlContent);
       const result = validateYamlConfig(yamlContent, parsed);

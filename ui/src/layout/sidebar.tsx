@@ -5,6 +5,7 @@ import {
   BarChart3,
   GitBranch,
   Sparkle,
+  Zap,
 } from "lucide-react";
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -60,6 +61,12 @@ export function AppSidebar() {
       title: "Configs",
       url: "/configs",
       icon: FileText,
+    },
+    {
+      key: "workflows",
+      title: "Workflows",
+      url: "/workflows",
+      icon: Zap,
     },
     {
       key: "telemetry",

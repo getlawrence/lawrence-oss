@@ -1,5 +1,5 @@
 import { RefreshCw } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import useSWR from "swr";
 
@@ -107,16 +107,28 @@ export default function ConfigsPage({
       selectedGroupId ? getConfigVersions({ group_id: selectedGroupId }) : null,
   );
 
-  // Load config into editor when in edit mode
+  // Track if we've loaded the initial config to avoid resetting user edits
+  const loadedConfigIdRef = useRef<string | null>(null);
+
+  // Load config into editor when switching between modes or configs
+  // This useEffect is appropriate - it syncs external data (SWR) to local form state
   useEffect(() => {
     if (mode === "edit" && currentConfigData) {
-      setEditorContent(currentConfigData.content);
-      setConfigName(currentConfigData.name || "New Config");
-      setSelectedGroupId(currentConfigData.group_id || "");
+      // Only load if it's a different config (prevent resetting user edits)
+      if (loadedConfigIdRef.current !== currentConfigData.id) {
+        setEditorContent(currentConfigData.content);
+        setConfigName(currentConfigData.name || "New Config");
+        setSelectedGroupId(currentConfigData.group_id || "");
+        loadedConfigIdRef.current = currentConfigData.id;
+      }
     } else if (mode === "create") {
-      setEditorContent(DEFAULT_CONFIG);
-      setConfigName("New Config");
-      setSelectedGroupId("");
+      // Reset to defaults when creating new config
+      if (loadedConfigIdRef.current !== null) {
+        setEditorContent(DEFAULT_CONFIG);
+        setConfigName("New Config");
+        setSelectedGroupId("");
+        loadedConfigIdRef.current = null;
+      }
     }
   }, [mode, currentConfigData]);
 

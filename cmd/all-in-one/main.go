@@ -167,6 +167,15 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	// Create telemetry query service
 	telemetryService := services.NewTelemetryQueryService(telemetryReader, agentService, logger)
 
+	// Create workflow service
+	workflowService := services.NewWorkflowService(appStore, agentService, logger)
+
+	// Create workflow scheduler
+	workflowScheduler := services.NewWorkflowScheduler(workflowService, logger)
+
+	// Create delayed action executor
+	delayedActionExecutor := services.NewDelayedActionExecutor(appStore, workflowService, logger)
+
 	// Parse worker pool timeout
 	workerTimeout, err := time.ParseDuration(config.Worker.Timeout)
 	if err != nil {
@@ -221,8 +230,21 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 		_ = httpServer.Stop(ctx)
 	}()
 
+	// Start trigger scheduler
+	ctx := context.Background()
+	if err := workflowScheduler.Start(ctx); err != nil {
+		logger.Fatal("Failed to start trigger scheduler", zap.Error(err))
+	}
+	defer workflowScheduler.Stop()
+
+	// Start delayed action executor
+	if err := delayedActionExecutor.Start(ctx); err != nil {
+		logger.Fatal("Failed to start delayed action executor", zap.Error(err))
+	}
+	defer delayedActionExecutor.Stop()
+
 	// Initialize HTTP API server
-	apiServer := api.NewServer(agentService, telemetryService, configSender, logger)
+	apiServer := api.NewServer(agentService, telemetryService, workflowService, workflowScheduler, appStore, configSender, logger)
 
 	// Start API server in a goroutine
 	go func() {

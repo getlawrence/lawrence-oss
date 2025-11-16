@@ -6,7 +6,7 @@ import type { Config } from "./configs";
 export interface Group {
   id: string;
   name: string;
-  labels: Record<string, string>;
+  labels?: Record<string, string> | null;
   agent_count: number;
   config_name?: string;
   created_at: string;

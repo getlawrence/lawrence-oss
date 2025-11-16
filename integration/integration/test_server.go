@@ -186,6 +186,12 @@ func (ts *TestServer) initServices() {
 
 // initServers initializes all servers
 func (ts *TestServer) initServers() {
+	// Get app store instance
+	appStore, err := ts.appStoreFactory.CreateApplicationStore()
+	if err != nil {
+		ts.t.Fatalf("Failed to create app store: %v", err)
+	}
+
 	// OpAMP Server components
 	agents := opamp.NewAgents(ts.logger)
 	opampServer, err := opamp.NewServer(agents, ts.agentService, ts.opampMetrics, "localhost:4317", "localhost:4318", ts.logger)
@@ -200,8 +206,14 @@ func (ts *TestServer) initServers() {
 	// Create telemetry service
 	ts.telemetryService = services.NewTelemetryQueryService(ts.telemetryReader, ts.agentService, ts.logger)
 
+	// Create workflow service
+	workflowService := services.NewWorkflowService(appStore, ts.agentService, ts.logger)
+
+	// Create workflow scheduler
+	workflowScheduler := services.NewWorkflowScheduler(workflowService, ts.logger)
+
 	// API Server
-	ts.apiServer = api.NewServer(ts.agentService, ts.telemetryService, configSender, ts.logger)
+	ts.apiServer = api.NewServer(ts.agentService, ts.telemetryService, workflowService, workflowScheduler, appStore, configSender, ts.logger)
 
 	// Create worker pool for async telemetry processing
 	// Using default values: queue_size=10000, workers=3, timeout=5s
