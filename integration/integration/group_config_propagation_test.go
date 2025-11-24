@@ -72,11 +72,11 @@ service:
 
 	configHash := "test-hash-123" // In real scenario, this would be calculated
 	configData := map[string]interface{}{
-		"name":       "Test Config",
-		"group_id":   groupID,
+		"name":        "Test Config",
+		"group_id":    groupID,
 		"config_hash": configHash,
-		"content":    configContent,
-		"version":    1,
+		"content":     configContent,
+		"version":     1,
 	}
 
 	body, err = json.Marshal(configData)
@@ -251,4 +251,3 @@ func TestGroupConfigPropagation_AgentSpecificConfigTakesPriority(t *testing.T) {
 	// This is tested in unit tests (server_test.go - TestGetConfigForAgent_Priority)
 	t.Skip("Requires OpAMP agent setup - tested in unit tests")
 }
-

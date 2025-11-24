@@ -214,7 +214,7 @@ func (h *GroupHandlers) HandleAssignConfig(c *gin.Context) {
 
 	// Send config to all agents in the group
 	updatedAgents, errors := h.commander.SendConfigToAgentsInGroup(groupID, newConfig.Content)
-	
+
 	// Log the results
 	if len(errors) > 0 {
 		h.logger.Warn("Some agents failed to receive group config",

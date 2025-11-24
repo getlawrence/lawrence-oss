@@ -141,7 +141,7 @@ func (h *ConfigHandlers) HandleCreateConfig(c *gin.Context) {
 	// If this is a group config, send it to all agents in the group
 	if config.GroupID != nil && *config.GroupID != "" {
 		updatedAgents, errors := h.commander.SendConfigToAgentsInGroup(*config.GroupID, config.Content)
-		
+
 		// Log the results
 		if len(errors) > 0 {
 			h.logger.Warn("Some agents failed to receive group config",
