@@ -23,6 +23,7 @@ type AgentCommander interface {
 	SendConfigToAgent(agentId uuid.UUID, configContent string) error
 	RestartAgent(agentId uuid.UUID) error
 	RestartAgentsInGroup(groupId string) ([]uuid.UUID, []error)
+	SendConfigToAgentsInGroup(groupId string, configContent string) ([]uuid.UUID, []error)
 }
 
 // Server represents the HTTP API server
@@ -99,7 +100,7 @@ func (s *Server) Stop(ctx context.Context) error {
 func (s *Server) registerRoutes() {
 	// Initialize handlers
 	agentHandlers := handlers.NewAgentHandlers(s.agentService, s.commander, s.logger)
-	configHandlers := handlers.NewConfigHandlers(s.agentService, s.logger)
+	configHandlers := handlers.NewConfigHandlers(s.agentService, s.commander, s.logger)
 	telemetryHandlers := handlers.NewTelemetryHandlers(s.telemetryService, s.logger)
 	lawrenceQLHandlers := handlers.NewLawrenceQLHandlers(s.telemetryService, s.logger)
 	groupHandlers := handlers.NewGroupHandlers(s.agentService, s.commander, s.logger)

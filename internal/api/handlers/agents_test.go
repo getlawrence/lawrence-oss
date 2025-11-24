@@ -40,6 +40,10 @@ func (m *mockConfigSender) RestartAgentsInGroup(groupId string) ([]uuid.UUID, []
 	return []uuid.UUID{}, []error{}
 }
 
+func (m *mockConfigSender) SendConfigToAgentsInGroup(groupId string, configContent string) ([]uuid.UUID, []error) {
+	return []uuid.UUID{}, []error{}
+}
+
 func setupAgentHandlersTest() (*AgentHandlers, *testutils.MockAgentService) {
 	mockService := testutils.NewMockAgentService()
 	mockSender := &mockConfigSender{}

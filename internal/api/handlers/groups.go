@@ -212,6 +212,21 @@ func (h *GroupHandlers) HandleAssignConfig(c *gin.Context) {
 
 	h.logger.Info("Assigned config to group", zap.String("group_id", groupID), zap.String("config_id", newConfig.ID))
 
+	// Send config to all agents in the group
+	updatedAgents, errors := h.commander.SendConfigToAgentsInGroup(groupID, newConfig.Content)
+
+	// Log the results
+	if len(errors) > 0 {
+		h.logger.Warn("Some agents failed to receive group config",
+			zap.String("group_id", groupID),
+			zap.Int("updated", len(updatedAgents)),
+			zap.Int("failed", len(errors)))
+	} else {
+		h.logger.Info("Group config sent to all agents",
+			zap.String("group_id", groupID),
+			zap.Int("updated", len(updatedAgents)))
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Config assigned to group successfully",
 		"config":  newConfig,
