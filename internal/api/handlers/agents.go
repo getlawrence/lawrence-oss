@@ -16,6 +16,7 @@ type AgentCommander interface {
 	SendConfigToAgent(agentId uuid.UUID, configContent string) error
 	RestartAgent(agentId uuid.UUID) error
 	RestartAgentsInGroup(groupId string) ([]uuid.UUID, []error)
+	SendConfigToAgentsInGroup(groupId string, configContent string) ([]uuid.UUID, []error)
 }
 
 // AgentHandlers handles agent-related API endpoints

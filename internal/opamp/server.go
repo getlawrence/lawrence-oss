@@ -281,35 +281,6 @@ func (s *Server) RestartAgent(agentId uuid.UUID) error {
 	return nil
 }
 
-// RestartAgentsInGroup sends restart commands to all agents in a group
-// Returns the list of agent IDs that were successfully restarted and any errors encountered
-func (s *Server) RestartAgentsInGroup(groupId string) ([]uuid.UUID, []error) {
-	var restartedAgents []uuid.UUID
-	var errors []error
-
-	// Get all agents
-	allAgents := s.agents.GetAllAgentsReadonlyClone()
-
-	// Find agents in this group
-	for agentId, agent := range allAgents {
-		if agent.GroupID != nil && *agent.GroupID == groupId {
-			// Try to restart this agent
-			if err := s.RestartAgent(agentId); err != nil {
-				errors = append(errors, fmt.Errorf("agent %s: %w", agentId.String(), err))
-			} else {
-				restartedAgents = append(restartedAgents, agentId)
-			}
-		}
-	}
-
-	s.logger.Info("Group restart command completed",
-		zap.String("groupId", groupId),
-		zap.Int("restarted", len(restartedAgents)),
-		zap.Int("failed", len(errors)))
-
-	return restartedAgents, errors
-}
-
 // processAgentGrouping handles group resolution for agents
 // In OSS version, this is simplified - no backend API calls
 func (s *Server) processAgentGrouping(ctx context.Context, agent *Agent, msg *protobufs.AgentToServer) {
