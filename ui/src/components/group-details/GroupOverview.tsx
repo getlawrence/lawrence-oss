@@ -6,7 +6,7 @@ import { InfoCard } from "@/components/ui/info-card";
 interface Group {
   id: string;
   name: string;
-  labels: Record<string, string>;
+  labels?: Record<string, string> | null;
   created_at: string;
   updated_at: string;
 }

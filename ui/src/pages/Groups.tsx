@@ -164,15 +164,16 @@ export default function GroupsPage() {
             </TableCell>
             <TableCell>
               <div className="flex flex-wrap gap-1">
-                {Object.entries(group.labels).map(([key, value]) => (
-                  <span
-                    key={key}
-                    className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded"
-                  >
-                    {key}={value}
-                  </span>
-                ))}
-                {Object.keys(group.labels).length === 0 && (
+                {group.labels &&
+                  Object.entries(group.labels).map(([key, value]) => (
+                    <span
+                      key={key}
+                      className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded"
+                    >
+                      {key}={value}
+                    </span>
+                  ))}
+                {(!group.labels || Object.keys(group.labels).length === 0) && (
                   <span className="text-xs text-muted-foreground">
                     No labels
                   </span>
@@ -204,7 +205,7 @@ export default function GroupsPage() {
 
       {/* Create Group Drawer */}
       <Sheet open={createDrawerOpen} onOpenChange={setCreateDrawerOpen}>
-        <SheetContent>
+        <SheetContent className="p-6">
           <SheetHeader>
             <SheetTitle>Create New Group</SheetTitle>
             <SheetDescription>

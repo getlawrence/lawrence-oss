@@ -45,7 +45,7 @@ export function ConfigTargetDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent>
+      <SheetContent className="p-6">
         <SheetHeader>
           <SheetTitle>Configuration Target</SheetTitle>
           <SheetDescription>

@@ -6,6 +6,8 @@ import ConfigsPage from "./pages/Configs";
 import GroupsPage from "./pages/Groups";
 import TelemetryPage from "./pages/Telemetry";
 import TopologyPage from "./pages/Topology";
+import WorkflowEditor from "./pages/WorkflowEditor";
+import WorkflowsPage from "./pages/Workflows";
 
 import "./App.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -35,6 +37,12 @@ function App() {
                 />
                 <Route path="/telemetry" element={<TelemetryPage />} />
                 <Route path="/topology" element={<TopologyPage />} />
+                <Route path="/workflows" element={<WorkflowsPage />} />
+                <Route path="/workflows/new" element={<WorkflowEditor />} />
+                <Route
+                  path="/workflows/:id/edit"
+                  element={<WorkflowEditor />}
+                />
               </Route>
             </Routes>
           </Router>

@@ -1,6 +1,6 @@
 import Editor, { type OnMount } from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { useTheme } from "../ThemeProvider";
 
@@ -29,16 +29,15 @@ export function ConfigYamlEditorWithMetrics({
   const monacoRef = useRef<typeof Monaco | null>(null);
   const decorationsRef =
     useRef<Monaco.editor.IEditorDecorationsCollection | null>(null);
-  const [parsedComponents, setParsedComponents] = useState<YamlComponent[]>([]);
 
   const { theme } = useTheme();
 
-  // Parse YAML to find components whenever value changes
-  useEffect(() => {
+  // Parse YAML to find components - use useMemo for derived state
+  const parsedComponents = useMemo<YamlComponent[]>(() => {
     if (value) {
-      const components = parseYamlComponents(value);
-      setParsedComponents(components);
+      return parseYamlComponents(value);
     }
+    return [];
   }, [value]);
 
   // Update decorations when metrics or parsed components change

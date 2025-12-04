@@ -1,8 +1,10 @@
 import Editor, { type OnMount } from "@monaco-editor/react";
 import { AlertCircle, Workflow, Loader2, AlertTriangle } from "lucide-react";
 import type { editor } from "monaco-editor";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
+import { getComponentSchemas } from "@/api/schemas";
+import type { JSONSchema } from "@/api/schemas";
 import { CollectorPipelineView } from "@/components/collector-pipeline/CollectorPipelineView";
 import { useTheme } from "@/components/ThemeProvider";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +15,12 @@ import {
 } from "@/components/ui/resizable";
 import { useYamlParser } from "@/hooks/useYamlParser";
 import { useYamlValidation } from "@/hooks/useYamlValidation";
+import {
+  buildOTelCollectorSchema,
+  SchemaCache,
+  registerYamlCompletionProvider,
+  registerYamlHoverProvider,
+} from "@/lib/monaco";
 
 interface ConfigEditorSideBySideProps {
   value: string;
@@ -31,6 +39,25 @@ export function ConfigEditorSideBySide({
     value,
     editorRef,
   );
+  const [schema, setSchema] = useState<JSONSchema | null>(null);
+  const schemaCacheRef = useRef<SchemaCache>(new SchemaCache());
+  const completionProviderRef = useRef<{ dispose: () => void } | null>(null);
+  const hoverProviderRef = useRef<{ dispose: () => void } | null>(null);
+
+  // Load OTel schema for autocomplete
+  useEffect(() => {
+    const loadSchema = async () => {
+      try {
+        const { components } = await getComponentSchemas();
+        const otelConfigSchema = await buildOTelCollectorSchema(components);
+        setSchema(otelConfigSchema);
+      } catch (error) {
+        console.error("Failed to load OTel collector schemas:", error);
+      }
+    };
+
+    loadSchema();
+  }, []);
 
   const handleEditorDidMount: OnMount = (editor) => {
     editorRef.current = editor;
@@ -48,6 +75,7 @@ export function ConfigEditorSideBySide({
 
           const hoveredMarkers = markers.filter(
             (marker) =>
+              marker.source === "otel-validator" &&
               marker.startLineNumber <= position.lineNumber &&
               marker.endLineNumber >= position.lineNumber &&
               marker.startColumn <= position.column &&
@@ -69,6 +97,47 @@ export function ConfigEditorSideBySide({
       });
     }
   };
+
+  // Setup autocomplete and hover when schema is loaded
+  useEffect(() => {
+    const monaco = (
+      window as unknown as { monaco?: typeof import("monaco-editor") }
+    ).monaco;
+
+    if (!monaco || !schema) return;
+
+    // Dispose previous providers if they exist
+    if (completionProviderRef.current) {
+      completionProviderRef.current.dispose();
+    }
+    if (hoverProviderRef.current) {
+      hoverProviderRef.current.dispose();
+    }
+
+    // Register completion provider
+    const completionProvider = registerYamlCompletionProvider(
+      monaco,
+      schema,
+      schemaCacheRef.current,
+    );
+    completionProviderRef.current = completionProvider;
+
+    // Register hover provider
+    const hoverProvider = registerYamlHoverProvider(
+      monaco,
+      schemaCacheRef.current,
+    );
+    hoverProviderRef.current = hoverProvider;
+
+    return () => {
+      if (completionProviderRef.current) {
+        completionProviderRef.current.dispose();
+      }
+      if (hoverProviderRef.current) {
+        hoverProviderRef.current.dispose();
+      }
+    };
+  }, [schema]);
 
   return (
     <div className="flex flex-col h-full">
@@ -192,6 +261,18 @@ export function ConfigEditorSideBySide({
                       horizontalScrollbarSize: 8,
                     },
                     padding: { top: 16, bottom: 16 },
+                    quickSuggestions: {
+                      other: true,
+                      comments: false,
+                      strings: true,
+                    },
+                    suggestOnTriggerCharacters: true,
+                    acceptSuggestionOnEnter: "on",
+                    tabCompletion: "on",
+                    wordBasedSuggestions: "off",
+                    parameterHints: {
+                      enabled: true,
+                    },
                   }}
                 />
               </div>
@@ -293,6 +374,15 @@ export function ConfigEditorSideBySide({
               readOnly: false,
               automaticLayout: true,
               wordWrap: "on",
+              quickSuggestions: {
+                other: true,
+                comments: false,
+                strings: true,
+              },
+              suggestOnTriggerCharacters: true,
+              acceptSuggestionOnEnter: "on",
+              tabCompletion: "on",
+              wordBasedSuggestions: "off",
             }}
           />
         </div>
