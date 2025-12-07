@@ -29,7 +29,7 @@ export function ParallelConfigDrawer({
       label: nodeData?.label || "",
       description: nodeData?.description || "",
     }),
-    [nodeData]
+    [nodeData],
   );
 
   const { state, updateField } = useFormState(initialState);
@@ -113,8 +113,8 @@ export function ParallelConfigDrawer({
             }}
           />
           <p className="text-xs text-muted-foreground">
-            Maximum time to wait for parallel paths to complete. Leave empty
-            for no timeout.
+            Maximum time to wait for parallel paths to complete. Leave empty for
+            no timeout.
           </p>
         </div>
       </div>

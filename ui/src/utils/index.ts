@@ -57,3 +57,36 @@ export const formatCount = (count: number): string => {
     ? formatted.slice(0, -2) + "B"
     : formatted + "B";
 };
+
+/**
+ * Validate a cron expression
+ * Returns an object with valid boolean and optional error message
+ */
+export const validateCronExpression = (
+  cron: string,
+): { valid: boolean; error?: string } => {
+  if (!cron || !cron.trim()) {
+    return { valid: false, error: "Cron expression is required" };
+  }
+
+  // Basic cron format validation: 5 fields (minute hour day month weekday)
+  // or 6 fields (second minute hour day month weekday)
+  const parts = cron.trim().split(/\s+/);
+  if (parts.length !== 5 && parts.length !== 6) {
+    return {
+      valid: false,
+      error: "Cron expression must have 5 or 6 fields",
+    };
+  }
+
+  // Check for valid characters (numbers, *, -, /, ,)
+  const validPattern = /^[\d\*\/\-\s,]+$/;
+  if (!validPattern.test(cron)) {
+    return {
+      valid: false,
+      error: "Cron expression contains invalid characters",
+    };
+  }
+
+  return { valid: true };
+};

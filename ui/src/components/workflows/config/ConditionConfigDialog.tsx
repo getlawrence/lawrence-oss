@@ -41,16 +41,17 @@ export function ConditionConfigDrawer({
     () => ({
       label: nodeData?.label || "",
     }),
-    [nodeData]
+    [nodeData],
   );
 
   const initialConditions = useMemo<WorkflowCondition[]>(
     () => nodeData?.conditions || [],
-    [nodeData]
+    [nodeData],
   );
 
   const { state, updateField, resetState } = useFormState(initialState);
-  const { items: conditions, setItems: setConditions } = useArrayField<WorkflowCondition>(initialConditions);
+  const { items: conditions, setItems: setConditions } =
+    useArrayField<WorkflowCondition>(initialConditions);
   const [error, setError] = useState<string | null>(null);
 
   // Reset form state and conditions when drawer opens with new nodeData
@@ -61,7 +62,14 @@ export function ConditionConfigDrawer({
       setConditions(initialConditions);
       setError(null);
     }
-  }, [open, nodeData, initialState, initialConditions, resetState, setConditions]);
+  }, [
+    open,
+    nodeData,
+    initialState,
+    initialConditions,
+    resetState,
+    setConditions,
+  ]);
 
   const handleConditionChange = (
     index: number,

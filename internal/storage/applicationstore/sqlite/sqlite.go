@@ -731,25 +731,41 @@ func (s *Storage) GetLatestConfigForGroup(ctx context.Context, groupID string) (
 	return &config, nil
 }
 
-func (s *Storage) ListConfigs(ctx context.Context, filter types.ConfigFilter) ([]*types.Config, error) {
-	query := `SELECT id, name, agent_id, group_id, config_hash, content, version, created_at FROM configs WHERE 1=1`
+func (s *Storage) ListConfigs(ctx context.Context, filter types.ConfigFilter) (*types.ListConfigsResult, error) {
+	// Build WHERE clause for counting and querying
+	whereClause := `WHERE 1=1`
 	args := []interface{}{}
 
 	if filter.AgentID != nil {
-		query += ` AND agent_id = ?`
+		whereClause += ` AND agent_id = ?`
 		args = append(args, filter.AgentID.String())
 	}
 
 	if filter.GroupID != nil {
-		query += ` AND group_id = ?`
+		whereClause += ` AND group_id = ?`
 		args = append(args, *filter.GroupID)
 	}
 
+	// Get total count
+	countQuery := `SELECT COUNT(*) FROM configs ` + whereClause
+	var totalCount int
+	err := s.db.QueryRowContext(ctx, countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count configs: %w", err)
+	}
+
+	// Build query for data
+	query := `SELECT id, name, agent_id, group_id, config_hash, content, version, created_at FROM configs ` + whereClause
 	query += ` ORDER BY created_at DESC`
 
 	if filter.Limit > 0 {
 		query += ` LIMIT ?`
 		args = append(args, filter.Limit)
+	}
+
+	if filter.Offset > 0 {
+		query += ` OFFSET ?`
+		args = append(args, filter.Offset)
 	}
 
 	rows, err := s.db.QueryContext(ctx, query, args...)
@@ -792,7 +808,10 @@ func (s *Storage) ListConfigs(ctx context.Context, filter types.ConfigFilter) ([
 		configs = append(configs, &config)
 	}
 
-	return configs, nil
+	return &types.ListConfigsResult{
+		Configs:    configs,
+		TotalCount: totalCount,
+	}, nil
 }
 
 // Workflow management

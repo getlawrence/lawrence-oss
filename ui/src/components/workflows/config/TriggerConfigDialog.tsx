@@ -46,7 +46,7 @@ export function TriggerConfigDrawer({
       timezone: nodeData?.timezone || "UTC",
       label: nodeData?.label || "",
     }),
-    [nodeData]
+    [nodeData],
   );
 
   const { state, updateField, resetState } = useFormState(initialState);
@@ -111,7 +111,10 @@ export function TriggerConfigDrawer({
             <Select
               value={state.triggerType}
               onValueChange={(value) => {
-                updateField("triggerType", value as "manual" | "schedule" | "webhook");
+                updateField(
+                  "triggerType",
+                  value as "manual" | "schedule" | "webhook",
+                );
                 setError(null);
               }}
             >
@@ -135,7 +138,9 @@ export function TriggerConfigDrawer({
                 </Label>
                 <Input
                   value={state.cronExpression}
-                  onChange={(e) => updateField("cronExpression", e.target.value)}
+                  onChange={(e) =>
+                    updateField("cronExpression", e.target.value)
+                  }
                   placeholder="0 0 * * *"
                   className="h-8 text-sm font-mono"
                 />

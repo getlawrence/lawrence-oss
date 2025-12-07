@@ -36,26 +36,35 @@ export interface ValidateConfigResponse {
   warnings?: string[];
 }
 
-export interface GetConfigsResponse {
-  configs: Config[];
-  count: number;
+export interface PaginatedResponse<T> {
+  data: T[];
+  page: number;
+  page_size: number;
+  total_count: number;
+  total_pages: number;
+  has_next: boolean;
+  has_prev: boolean;
 }
+
+export type GetConfigsResponse = PaginatedResponse<Config>;
 
 export interface GetVersionsResponse {
   versions: Config[];
   count: number;
 }
 
-// Get all configs with optional filtering
+// Get all configs with optional filtering and pagination
 export const getConfigs = (params?: {
   agent_id?: string;
   group_id?: string;
-  limit?: number;
+  page?: number;
+  page_size?: number;
 }): Promise<GetConfigsResponse> => {
   const queryParams: Record<string, string> = {};
   if (params?.agent_id) queryParams.agent_id = params.agent_id;
   if (params?.group_id) queryParams.group_id = params.group_id;
-  if (params?.limit) queryParams.limit = params.limit.toString();
+  if (params?.page) queryParams.page = params.page.toString();
+  if (params?.page_size) queryParams.page_size = params.page_size.toString();
 
   return apiGet<GetConfigsResponse>("/configs", queryParams);
 };

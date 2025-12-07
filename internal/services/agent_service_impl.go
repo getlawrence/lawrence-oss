@@ -284,21 +284,22 @@ func (s *AgentServiceImpl) GetLatestConfigForGroup(ctx context.Context, groupID 
 }
 
 // ListConfigs lists configurations with filters
-func (s *AgentServiceImpl) ListConfigs(ctx context.Context, filter ConfigFilter) ([]*Config, error) {
+func (s *AgentServiceImpl) ListConfigs(ctx context.Context, filter ConfigFilter) (*ListConfigsResult, error) {
 	storageFilter := applicationstore.ConfigFilter{
 		AgentID: filter.AgentID,
 		GroupID: filter.GroupID,
 		Limit:   filter.Limit,
+		Offset:  filter.Offset,
 	}
 
-	configs, err := s.appStore.ListConfigs(ctx, storageFilter)
+	result, err := s.appStore.ListConfigs(ctx, storageFilter)
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]*Config, len(configs))
-	for i, config := range configs {
-		result[i] = &Config{
+	configs := make([]*Config, len(result.Configs))
+	for i, config := range result.Configs {
+		configs[i] = &Config{
 			ID:         config.ID,
 			Name:       config.Name,
 			AgentID:    config.AgentID,
@@ -310,7 +311,10 @@ func (s *AgentServiceImpl) ListConfigs(ctx context.Context, filter ConfigFilter)
 		}
 	}
 
-	return result, nil
+	return &ListConfigsResult{
+		Configs:    configs,
+		TotalCount: result.TotalCount,
+	}, nil
 }
 
 // StoreConfigForAgent validates and stores configuration for an agent (storage only, no delivery)

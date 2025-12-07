@@ -1,4 +1,13 @@
-import { Plus, Play, RefreshCw, Trash2, Workflow as WorkflowIcon, History } from "lucide-react";
+import {
+  Plus,
+  Play,
+  RefreshCw,
+  Trash2,
+  Workflow as WorkflowIcon,
+  History,
+  Pause,
+  RotateCw,
+} from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useSWR from "swr";
@@ -7,6 +16,8 @@ import {
   getWorkflows,
   deleteWorkflow,
   executeWorkflow,
+  pauseWorkflow,
+  resumeWorkflow,
   type Workflow,
 } from "@/api/workflows";
 import { PageTable } from "@/components/shared/PageTable";
@@ -70,6 +81,26 @@ export default function WorkflowsPage() {
     e.stopPropagation();
     setSelectedWorkflow(workflow);
     setDeleteDialogOpen(true);
+  };
+
+  const handlePause = async (workflow: Workflow, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await pauseWorkflow(workflow.id);
+      await mutate();
+    } catch (err) {
+      console.error("Failed to pause workflow:", err);
+    }
+  };
+
+  const handleResume = async (workflow: Workflow, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await resumeWorkflow(workflow.id);
+      await mutate();
+    } catch (err) {
+      console.error("Failed to resume workflow:", err);
+    }
   };
 
   const workflows = data?.workflows || [];
@@ -211,9 +242,29 @@ export default function WorkflowsPage() {
                     e.stopPropagation();
                     handleExecute(workflow);
                   }}
+                  title="Execute workflow"
                 >
                   <Play className="h-4 w-4" />
                 </Button>
+                {workflow.status === "active" ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => handlePause(workflow, e)}
+                    title="Pause workflow"
+                  >
+                    <Pause className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => handleResume(workflow, e)}
+                    title="Resume workflow"
+                  >
+                    <RotateCw className="h-4 w-4" />
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"

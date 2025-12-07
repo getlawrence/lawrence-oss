@@ -46,7 +46,7 @@ export function AgentConfigPipeline({
   const { data: configsData, isLoading: configLoading } = useSWR(
     effectiveConfig ? null : `agent-config-${agentId}`,
     async () => {
-      const result = await getConfigs({ agent_id: agentId, limit: 1 });
+      const result = await getConfigs({ agent_id: agentId, page_size: 1 });
       return result;
     },
   );
@@ -73,7 +73,7 @@ export function AgentConfigPipeline({
   );
 
   // Use effective config from agent if available, otherwise fallback to configs API
-  const configContent = effectiveConfig || configsData?.configs?.[0]?.content;
+  const configContent = effectiveConfig || configsData?.data?.[0]?.content;
   const metrics = metricsData || [];
 
   // Get the current config value (edited or original)

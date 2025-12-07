@@ -12,10 +12,10 @@ import (
 
 // TriggerAwareWriter wraps a TelemetryWriter and evaluates triggers after writing
 type TriggerAwareWriter struct {
-	writer              TelemetryWriter
-	evaluator           *services.TelemetryTriggerEvaluator
-	workflowService     services.WorkflowService
-	logger              *zap.Logger
+	writer          TelemetryWriter
+	evaluator       *services.TelemetryTriggerEvaluator
+	workflowService services.WorkflowService
+	logger          *zap.Logger
 }
 
 // NewTriggerAwareWriter creates a new trigger-aware writer wrapper
@@ -84,7 +84,7 @@ func (w *TriggerAwareWriter) WriteLogs(ctx context.Context, logs []otlp.LogData)
 // evaluateLogTrigger evaluates a log against triggers and executes matching workflows
 func (w *TriggerAwareWriter) evaluateLogTrigger(ctx context.Context, log *otlp.LogData) {
 	matchingWorkflows := w.evaluator.EvaluateLog(ctx, log)
-	
+
 	for _, workflowID := range matchingWorkflows {
 		w.executeWorkflow(ctx, workflowID, w.buildLogMetadata(log))
 	}
@@ -93,7 +93,7 @@ func (w *TriggerAwareWriter) evaluateLogTrigger(ctx context.Context, log *otlp.L
 // evaluateMetricTrigger evaluates a metric against triggers and executes matching workflows
 func (w *TriggerAwareWriter) evaluateMetricTrigger(ctx context.Context, metricName string, value float64, agentID string, serviceName string, timestamp time.Time) {
 	matchingWorkflows := w.evaluator.EvaluateMetric(ctx, metricName, value, agentID, serviceName, timestamp)
-	
+
 	for _, workflowID := range matchingWorkflows {
 		w.executeWorkflow(ctx, workflowID, w.buildMetricMetadata(metricName, value, agentID, serviceName, timestamp))
 	}
@@ -129,7 +129,7 @@ func (w *TriggerAwareWriter) buildLogMetadata(log *otlp.LogData) map[string]stri
 	metadata["severity_number"] = fmt.Sprintf("%d", log.SeverityNumber)
 	metadata["log_body"] = log.Body
 	metadata["log_timestamp"] = log.Timestamp.Format("2006-01-02T15:04:05Z07:00")
-	
+
 	if log.TraceId != "" {
 		metadata["trace_id"] = log.TraceId
 	}
@@ -151,4 +151,3 @@ func (w *TriggerAwareWriter) buildMetricMetadata(metricName string, value float6
 
 	return metadata
 }
-

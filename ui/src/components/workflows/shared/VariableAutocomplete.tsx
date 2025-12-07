@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+
 import { Input } from "@/components/ui/input";
 
 interface VariableAutocompleteProps {
@@ -27,7 +28,7 @@ export function VariableAutocomplete({
     // Find the last ${ before cursor
     const beforeCursor = text.substring(0, cursorPos);
     const lastDollarBrace = beforeCursor.lastIndexOf("${");
-    
+
     if (lastDollarBrace === -1) {
       return null;
     }
@@ -35,15 +36,18 @@ export function VariableAutocomplete({
     // Check if we haven't closed it yet
     const afterDollarBrace = beforeCursor.substring(lastDollarBrace + 2);
     const closingBrace = afterDollarBrace.indexOf("}");
-    
+
     if (closingBrace !== -1 && closingBrace < cursorPos - lastDollarBrace - 2) {
       // Already closed, no autocomplete
       return null;
     }
 
     // Extract the partial variable name
-    const partialVar = afterDollarBrace.substring(0, cursorPos - lastDollarBrace - 2);
-    
+    const partialVar = afterDollarBrace.substring(
+      0,
+      cursorPos - lastDollarBrace - 2,
+    );
+
     return {
       start: lastDollarBrace,
       partial: partialVar,
@@ -53,7 +57,7 @@ export function VariableAutocomplete({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     const newCursorPos = e.target.selectionStart || 0;
-    
+
     onChange(newValue);
     setCursorPosition(newCursorPos);
 
@@ -72,10 +76,10 @@ export function VariableAutocomplete({
     const before = value.substring(0, context.start);
     const after = value.substring(cursorPosition);
     const newValue = `${before}\${${variable}}${after}`;
-    
+
     onChange(newValue);
     setOpen(false);
-    
+
     // Set cursor position after the inserted variable
     setTimeout(() => {
       if (inputRef.current) {
@@ -89,7 +93,7 @@ export function VariableAutocomplete({
   const context = getVariableContext(value, cursorPosition);
   const filteredVariables = context
     ? availableVariables.filter((v) =>
-        v.toLowerCase().startsWith(context.partial.toLowerCase())
+        v.toLowerCase().startsWith(context.partial.toLowerCase()),
       )
     : [];
 
@@ -143,4 +147,3 @@ export function VariableAutocomplete({
     </div>
   );
 }
-

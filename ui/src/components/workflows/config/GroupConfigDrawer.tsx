@@ -36,7 +36,7 @@ export function GroupConfigDrawer({
       collapsed: nodeData?.collapsed ?? false,
       color: nodeData?.color || "slate",
     }),
-    [nodeData]
+    [nodeData],
   );
 
   const { state, updateField } = useFormState(initialState);
@@ -141,12 +141,16 @@ export function GroupConfigDrawer({
         <p className="text-sm">
           <span className="font-semibold">{state.label || "Group Name"}</span>
           {state.description && (
-            <span className="text-muted-foreground"> - {state.description}</span>
+            <span className="text-muted-foreground">
+              {" "}
+              - {state.description}
+            </span>
           )}
         </p>
         <p className="text-xs text-muted-foreground mt-2">
           Color:{" "}
-          {colorOptions.find((c) => c.value === state.color)?.label || state.color}
+          {colorOptions.find((c) => c.value === state.color)?.label ||
+            state.color}
         </p>
       </div>
     </ConfigDrawerLayout>

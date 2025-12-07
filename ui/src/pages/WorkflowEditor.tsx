@@ -1,6 +1,8 @@
 import {
   AlertCircle,
   ArrowLeft,
+  History,
+  Play,
   Save,
   Webhook,
   Workflow as WorkflowIcon,
@@ -14,6 +16,7 @@ import {
   getWorkflow,
   createWorkflow,
   updateWorkflow,
+  executeWorkflow,
   type Workflow as ApiWorkflow,
 } from "@/api/workflows";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -34,6 +37,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { WorkflowFlowEditor } from "@/components/workflows/core/WorkflowFlowEditor";
+import { WorkflowExecutionsDrawer } from "@/components/workflows/execution/WorkflowExecutionsDrawer";
 import { WebhookCredentials } from "@/components/workflows/shared/WebhookCredentials";
 import { type Workflow } from "@/components/workflows/types/flow-types";
 import {
@@ -54,30 +58,30 @@ export default function WorkflowEditor() {
       id ? getWorkflow(id) : Promise.reject(new Error("Invalid workflow id")),
   );
 
-  const initialState = useMemo(
-    () => {
-      let flow: Workflow | null = null;
-      if (workflow) {
-        try {
-          flow = workflowToFlow(workflow) as Workflow;
-        } catch (error) {
-          console.error("Failed to convert workflow to flow:", error);
-        }
+  const initialState = useMemo(() => {
+    let flow: Workflow | null = null;
+    if (workflow) {
+      try {
+        flow = workflowToFlow(workflow) as Workflow;
+      } catch (error) {
+        console.error("Failed to convert workflow to flow:", error);
       }
-      return {
-        name: workflow?.name || "",
-        description: workflow?.description || "",
-        flow,
-      };
-    },
-    [workflow]
-  );
+    }
+    return {
+      name: workflow?.name || "",
+      description: workflow?.description || "",
+      flow,
+    };
+  }, [workflow]);
 
   const { state, updateField, resetState } = useFormState(initialState);
-  const [createdWorkflow, setCreatedWorkflow] = useState<ApiWorkflow | null>(null);
+  const [createdWorkflow, setCreatedWorkflow] = useState<ApiWorkflow | null>(
+    null,
+  );
   const [webhookCredentialsOpen, setWebhookCredentialsOpen] = useState(false);
   const [webhookSheetOpen, setWebhookSheetOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [executionsDrawerOpen, setExecutionsDrawerOpen] = useState(false);
 
   // Reset form state when workflow data loads (for editing existing workflow)
   // This is appropriate useEffect usage - resetting state when SWR data changes
@@ -101,8 +105,22 @@ export default function WorkflowEditor() {
     (updatedFlow: Workflow) => {
       updateField("flow", updatedFlow);
     },
-    [updateField]
+    [updateField],
   );
+
+  const handleExecute = async () => {
+    if (!id) return;
+    try {
+      await executeWorkflow(id);
+      // Optionally refresh workflow data to get updated run_count
+      if (workflow) {
+        // The SWR will automatically refetch if we mutate
+      }
+    } catch (err) {
+      console.error("Failed to execute workflow:", err);
+      setErrorMessage("Failed to execute workflow. Please try again.");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,7 +139,9 @@ export default function WorkflowEditor() {
     // Validate flow
     const validation = validateFlow(state.flow as any);
     if (!validation.valid) {
-      setErrorMessage("Flow validation errors:\n" + validation.errors.join("\n"));
+      setErrorMessage(
+        "Flow validation errors:\n" + validation.errors.join("\n"),
+      );
       return;
     }
 
@@ -130,7 +150,10 @@ export default function WorkflowEditor() {
       name: state.name,
       description: state.description,
       status: "active",
-      ...flowToWorkflow(state.flow as any, { name: state.name, description: state.description }),
+      ...flowToWorkflow(state.flow as any, {
+        name: state.name,
+        description: state.description,
+      }),
     };
 
     try {
@@ -211,6 +234,34 @@ export default function WorkflowEditor() {
           </div>
 
           <form onSubmit={handleSubmit} className="flex items-center gap-2">
+            {/* Run Workflow Button - only show for existing workflows */}
+            {!isNew && id && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8"
+                onClick={handleExecute}
+                title="Run workflow"
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Run
+              </Button>
+            )}
+            {/* View Runs Button - only show for existing workflows with runs */}
+            {!isNew && id && workflow && workflow.run_count > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8"
+                onClick={() => setExecutionsDrawerOpen(true)}
+                title="View execution history"
+              >
+                <History className="h-4 w-4 mr-2" />
+                View Runs
+              </Button>
+            )}
             {/* Webhook Credentials Button - only show for existing webhook workflows */}
             {workflow &&
               workflow.type === "webhook" &&
@@ -313,6 +364,15 @@ export default function WorkflowEditor() {
             </SheetContent>
           </Sheet>
         )}
+
+      {/* Workflow Executions Drawer */}
+      {!isNew && id && (
+        <WorkflowExecutionsDrawer
+          workflowId={id}
+          open={executionsDrawerOpen}
+          onOpenChange={setExecutionsDrawerOpen}
+        />
+      )}
     </div>
   );
 }

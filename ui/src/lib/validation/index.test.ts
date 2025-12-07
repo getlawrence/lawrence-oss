@@ -23,7 +23,9 @@ service:
 
       expect(result.valid).toBe(true);
       // Check that there are no errors (warnings may exist)
-      expect(result.errors.filter((e) => e.severity === "error")).toHaveLength(0);
+      expect(result.errors.filter((e) => e.severity === "error")).toHaveLength(
+        0,
+      );
     });
 
     it("should detect errors from multiple validators", () => {

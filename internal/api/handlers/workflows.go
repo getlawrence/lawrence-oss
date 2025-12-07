@@ -17,19 +17,21 @@ import (
 
 // WorkflowHandlers handles trigger-related API endpoints
 type WorkflowHandlers struct {
-	workflowService services.WorkflowService
-	scheduler       *services.WorkflowScheduler
-	appStore        types.ApplicationStore
-	logger          *zap.Logger
+	workflowService           services.WorkflowService
+	scheduler                 *services.WorkflowScheduler
+	telemetryTriggerEvaluator *services.TelemetryTriggerEvaluator
+	appStore                  types.ApplicationStore
+	logger                    *zap.Logger
 }
 
 // NewWorkflowHandlers creates a new trigger handlers instance
-func NewWorkflowHandlers(workflowService services.WorkflowService, scheduler *services.WorkflowScheduler, appStore types.ApplicationStore, logger *zap.Logger) *WorkflowHandlers {
+func NewWorkflowHandlers(workflowService services.WorkflowService, scheduler *services.WorkflowScheduler, telemetryTriggerEvaluator *services.TelemetryTriggerEvaluator, appStore types.ApplicationStore, logger *zap.Logger) *WorkflowHandlers {
 	return &WorkflowHandlers{
-		workflowService: workflowService,
-		scheduler:       scheduler,
-		appStore:        appStore,
-		logger:          logger,
+		workflowService:           workflowService,
+		scheduler:                 scheduler,
+		telemetryTriggerEvaluator: telemetryTriggerEvaluator,
+		appStore:                  appStore,
+		logger:                    logger,
 	}
 }
 
@@ -284,19 +286,59 @@ func (h *WorkflowHandlers) HandleUpdateWorkflow(c *gin.Context) {
 	workflow := req.Workflow
 	workflow.ID = id
 
+	// Get existing workflow first to support partial updates (e.g., status-only updates)
+	existingWorkflow, err := h.workflowService.GetWorkflow(c.Request.Context(), id)
+	if err != nil {
+		h.logger.Error("Failed to get existing workflow", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get existing workflow"})
+		return
+	}
+	if existingWorkflow == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Workflow not found"})
+		return
+	}
+	oldStatus := existingWorkflow.Status
+
+	// Merge existing workflow with partial update from request
+	// This ensures we don't lose fields when only updating status (e.g., pause/resume)
+	// Only merge fields that are empty/zero in the request, indicating they weren't provided
+	if workflow.Name == "" {
+		workflow.Name = existingWorkflow.Name
+	}
+	if workflow.Description == "" {
+		workflow.Description = existingWorkflow.Description
+	}
+	if workflow.Type == "" {
+		workflow.Type = existingWorkflow.Type
+	}
+	// Note: Status is intentionally not merged - it should always be set in the request for updates
+	// If status is empty, we preserve the existing status (though this shouldn't happen in practice)
+	if workflow.Status == "" {
+		workflow.Status = existingWorkflow.Status
+	}
+	if workflow.Schedule == nil && existingWorkflow.Schedule != nil {
+		workflow.Schedule = existingWorkflow.Schedule
+	}
+	if workflow.WebhookURL == "" && existingWorkflow.WebhookURL != "" {
+		workflow.WebhookURL = existingWorkflow.WebhookURL
+	}
+	if workflow.WebhookSecret == "" && existingWorkflow.WebhookSecret != "" {
+		workflow.WebhookSecret = existingWorkflow.WebhookSecret
+	}
+	if workflow.CreatedBy == "" && existingWorkflow.CreatedBy != "" {
+		workflow.CreatedBy = existingWorkflow.CreatedBy
+	}
+	// Always preserve statistics and timestamps from existing workflow
+	// These are managed by the system and shouldn't be overwritten by partial updates
+	workflow.LastRun = existingWorkflow.LastRun
+	workflow.NextRun = existingWorkflow.NextRun
+	workflow.RunCount = existingWorkflow.RunCount
+	workflow.ErrorCount = existingWorkflow.ErrorCount
+	workflow.LastError = existingWorkflow.LastError
+	workflow.CreatedAt = existingWorkflow.CreatedAt
+
 	// Convert flow_graph to trigger and steps if provided
 	if req.FlowGraph != nil {
-		// Get existing workflow to preserve webhook secret if it exists
-		existingWorkflow, err := h.workflowService.GetWorkflow(c.Request.Context(), id)
-		if err == nil && existingWorkflow != nil {
-			if workflow.WebhookSecret == "" && existingWorkflow.WebhookSecret != "" {
-				workflow.WebhookSecret = existingWorkflow.WebhookSecret
-			}
-			if workflow.WebhookURL == "" && existingWorkflow.WebhookURL != "" {
-				workflow.WebhookURL = existingWorkflow.WebhookURL
-			}
-		}
-
 		// Generate webhook URL and secret if webhook type (before conversion)
 		if workflow.Type == types.WorkflowTriggerTypeWebhook {
 			if workflow.WebhookURL == "" {
@@ -330,7 +372,26 @@ func (h *WorkflowHandlers) HandleUpdateWorkflow(c *gin.Context) {
 		}
 	}
 
-	// Validate workflow and normalized structure
+	// Load existing trigger and steps if not provided in request (for partial updates)
+	if req.Trigger == nil && req.Steps == nil && req.FlowGraph == nil {
+		existingTrigger, err := h.appStore.GetWorkflowTrigger(c.Request.Context(), id)
+		if err != nil {
+			h.logger.Error("Failed to get existing workflow trigger", zap.String("id", id), zap.Error(err))
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get existing workflow trigger"})
+			return
+		}
+		req.Trigger = existingTrigger
+
+		existingSteps, err := h.appStore.ListWorkflowSteps(c.Request.Context(), id)
+		if err != nil {
+			h.logger.Error("Failed to get existing workflow steps", zap.String("id", id), zap.Error(err))
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get existing workflow steps"})
+			return
+		}
+		req.Steps = existingSteps
+	}
+
+	// Validate workflow and normalized structure (after merge)
 	if err := h.validateWorkflow(&workflow); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -390,20 +451,24 @@ func (h *WorkflowHandlers) HandleUpdateWorkflow(c *gin.Context) {
 		return
 	}
 
-	// Delete existing steps and create new ones
-	if err := h.appStore.DeleteWorkflowSteps(c.Request.Context(), id); err != nil {
-		h.logger.Error("Failed to delete workflow steps", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete workflow steps"})
-		return
-	}
-
-	// Create new steps
-	for _, step := range steps {
-		step.UpdatedAt = time.Now()
-		if err := h.appStore.CreateWorkflowStep(c.Request.Context(), step); err != nil {
-			h.logger.Error("Failed to create workflow step", zap.String("step_id", step.ID), zap.Error(err))
-			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to create workflow step: %s", step.ID)})
+	// Only update steps if flow_graph or steps were explicitly provided in the request
+	// For partial updates (e.g., status-only), we skip step updates
+	if req.FlowGraph != nil || len(req.Steps) > 0 {
+		// Delete existing steps and create new ones
+		if err := h.appStore.DeleteWorkflowSteps(c.Request.Context(), id); err != nil {
+			h.logger.Error("Failed to delete workflow steps", zap.Error(err))
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete workflow steps"})
 			return
+		}
+
+		// Create new steps
+		for _, step := range steps {
+			step.UpdatedAt = time.Now()
+			if err := h.appStore.CreateWorkflowStep(c.Request.Context(), step); err != nil {
+				h.logger.Error("Failed to create workflow step", zap.String("step_id", step.ID), zap.Error(err))
+				c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to create workflow step: %s", step.ID)})
+				return
+			}
 		}
 	}
 
@@ -421,6 +486,24 @@ func (h *WorkflowHandlers) HandleUpdateWorkflow(c *gin.Context) {
 		}
 	} else if h.scheduler != nil {
 		h.scheduler.RemoveWorkflow(workflow.ID)
+	}
+
+	// Reload telemetry triggers if status changed for telemetry workflows
+	if workflow.Type == types.WorkflowTriggerTypeTelemetry && h.telemetryTriggerEvaluator != nil {
+		if oldStatus != workflow.Status {
+			if err := h.telemetryTriggerEvaluator.LoadActiveTriggers(c.Request.Context()); err != nil {
+				h.logger.Warn("Failed to reload telemetry triggers after status change",
+					zap.String("workflow_id", workflow.ID),
+					zap.String("old_status", string(oldStatus)),
+					zap.String("new_status", string(workflow.Status)),
+					zap.Error(err))
+			} else {
+				h.logger.Info("Reloaded telemetry triggers after status change",
+					zap.String("workflow_id", workflow.ID),
+					zap.String("old_status", string(oldStatus)),
+					zap.String("new_status", string(workflow.Status)))
+			}
+		}
 	}
 
 	response := WorkflowResponse{

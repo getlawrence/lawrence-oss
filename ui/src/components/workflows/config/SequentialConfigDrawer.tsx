@@ -28,7 +28,7 @@ export function SequentialConfigDrawer({
       label: nodeData?.label || "",
       description: nodeData?.description || "",
     }),
-    [nodeData]
+    [nodeData],
   );
 
   // Use single state object instead of multiple useState calls
@@ -84,9 +84,7 @@ export function SequentialConfigDrawer({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="delayBetween">
-          Delay Between Actions (seconds)
-        </Label>
+        <Label htmlFor="delayBetween">Delay Between Actions (seconds)</Label>
         <Input
           id="delayBetween"
           type="number"
@@ -98,8 +96,8 @@ export function SequentialConfigDrawer({
           }
         />
         <p className="text-xs text-muted-foreground">
-          Delay in seconds between each action in the sequence. Set to 0 for
-          no delay.
+          Delay in seconds between each action in the sequence. Set to 0 for no
+          delay.
         </p>
       </div>
 

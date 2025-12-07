@@ -43,12 +43,12 @@ export function BranchConfigDrawer({
       label: nodeData?.label || "",
       description: nodeData?.description || "",
     }),
-    [nodeData]
+    [nodeData],
   );
 
   const initialBranches = useMemo<Branch[]>(
     () => nodeData?.branches || [],
-    [nodeData]
+    [nodeData],
   );
 
   const { state, updateField, resetState } = useFormState(initialState);
@@ -299,107 +299,102 @@ export function BranchConfigDrawer({
 
                     {branch.condition.length === 0 ? (
                       <div className="border-l-2 border-muted pl-3 py-2 text-xs text-muted-foreground">
-                        No conditions. Add conditions or mark as default
-                        branch.
+                        No conditions. Add conditions or mark as default branch.
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        {branch.condition.map(
-                          (condition, conditionIndex) => (
-                            <div
-                              key={conditionIndex}
-                              className="border-l-2 border-primary/30 pl-3 py-2 space-y-2 bg-background rounded"
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-medium text-muted-foreground">
-                                  Condition {conditionIndex + 1}
-                                </span>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() =>
-                                    handleRemoveCondition(
+                        {branch.condition.map((condition, conditionIndex) => (
+                          <div
+                            key={conditionIndex}
+                            className="border-l-2 border-primary/30 pl-3 py-2 space-y-2 bg-background rounded"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-muted-foreground">
+                                Condition {conditionIndex + 1}
+                              </span>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() =>
+                                  handleRemoveCondition(
+                                    branchIndex,
+                                    conditionIndex,
+                                  )
+                                }
+                                className="h-6 w-6 p-0 text-destructive"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-2">
+                              <div className="space-y-1">
+                                <Label className="text-xs">Field</Label>
+                                <Input
+                                  value={condition.field}
+                                  onChange={(e) =>
+                                    handleConditionChange(
                                       branchIndex,
                                       conditionIndex,
+                                      "field",
+                                      e.target.value,
                                     )
                                   }
-                                  className="h-6 w-6 p-0 text-destructive"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
+                                  placeholder="field_name"
+                                  className="h-7 text-xs"
+                                />
                               </div>
 
-                              <div className="grid grid-cols-3 gap-2">
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Field</Label>
-                                  <Input
-                                    value={condition.field}
-                                    onChange={(e) =>
-                                      handleConditionChange(
-                                        branchIndex,
-                                        conditionIndex,
-                                        "field",
-                                        e.target.value,
-                                      )
-                                    }
-                                    placeholder="field_name"
-                                    className="h-7 text-xs"
-                                  />
-                                </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Operator</Label>
+                                <Select
+                                  value={condition.operator}
+                                  onValueChange={(value) =>
+                                    handleConditionChange(
+                                      branchIndex,
+                                      conditionIndex,
+                                      "operator",
+                                      value,
+                                    )
+                                  }
+                                >
+                                  <SelectTrigger className="h-7 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="equals">
+                                      Equals
+                                    </SelectItem>
+                                    <SelectItem value="contains">
+                                      Contains
+                                    </SelectItem>
+                                    <SelectItem value="matches">
+                                      Matches
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
 
-                                <div className="space-y-1">
-                                  <Label className="text-xs">
-                                    Operator
-                                  </Label>
-                                  <Select
-                                    value={condition.operator}
-                                    onValueChange={(value) =>
-                                      handleConditionChange(
-                                        branchIndex,
-                                        conditionIndex,
-                                        "operator",
-                                        value,
-                                      )
-                                    }
-                                  >
-                                    <SelectTrigger className="h-7 text-xs">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="equals">
-                                        Equals
-                                      </SelectItem>
-                                      <SelectItem value="contains">
-                                        Contains
-                                      </SelectItem>
-                                      <SelectItem value="matches">
-                                        Matches
-                                      </SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Value</Label>
-                                  <Input
-                                    value={condition.value}
-                                    onChange={(e) =>
-                                      handleConditionChange(
-                                        branchIndex,
-                                        conditionIndex,
-                                        "value",
-                                        e.target.value,
-                                      )
-                                    }
-                                    placeholder="value"
-                                    className="h-7 text-xs"
-                                  />
-                                </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Value</Label>
+                                <Input
+                                  value={condition.value}
+                                  onChange={(e) =>
+                                    handleConditionChange(
+                                      branchIndex,
+                                      conditionIndex,
+                                      "value",
+                                      e.target.value,
+                                    )
+                                  }
+                                  placeholder="value"
+                                  className="h-7 text-xs"
+                                />
                               </div>
                             </div>
-                          ),
-                        )}
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>

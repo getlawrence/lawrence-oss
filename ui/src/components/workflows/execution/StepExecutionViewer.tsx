@@ -46,7 +46,9 @@ export function StepExecutionViewer({
   const [confirmRetryOpen, setConfirmRetryOpen] = useState(false);
   const [stepToRetry, setStepToRetry] = useState<StepExecution | null>(null);
   const [alertMessage, setAlertMessage] = useState<string>("");
-  const [alertVariant, setAlertVariant] = useState<"default" | "destructive">("default");
+  const [alertVariant, setAlertVariant] = useState<"default" | "destructive">(
+    "default",
+  );
 
   const { data, error, mutate } = useSWR(
     workflowId && executionId
@@ -169,7 +171,7 @@ export function StepExecutionViewer({
   return (
     <div className="space-y-3">
       <h3 className="text-lg font-semibold">Step Executions</h3>
-      
+
       {/* Alert Message */}
       {alertMessage && (
         <Alert variant={alertVariant} className="relative">

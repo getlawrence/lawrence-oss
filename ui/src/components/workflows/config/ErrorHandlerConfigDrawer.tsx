@@ -32,7 +32,7 @@ export function ErrorHandlerConfigDrawer({
       label: nodeData?.label || "",
       description: nodeData?.description || "",
     }),
-    [nodeData]
+    [nodeData],
   );
 
   const { state, updateField } = useFormState(initialState);
@@ -60,7 +60,7 @@ export function ErrorHandlerConfigDrawer({
 
     if (!state.catchAll && errorTypes.length === 0) {
       setError(
-        "At least one error type is required when not catching all errors"
+        "At least one error type is required when not catching all errors",
       );
       return;
     }
@@ -201,9 +201,7 @@ export function ErrorHandlerConfigDrawer({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="retryDelay">
-            Retry Delay (seconds, Optional)
-          </Label>
+          <Label htmlFor="retryDelay">Retry Delay (seconds, Optional)</Label>
           <Input
             id="retryDelay"
             type="number"
@@ -215,16 +213,12 @@ export function ErrorHandlerConfigDrawer({
               updateField("retryDelay", value ? parseInt(value) : undefined);
             }}
           />
-          <p className="text-xs text-muted-foreground">
-            Delay between retries
-          </p>
+          <p className="text-xs text-muted-foreground">Delay between retries</p>
         </div>
       </div>
 
       <div className="bg-muted p-4 rounded-md">
-        <p className="text-sm font-medium mb-1">
-          Error Handler Configuration
-        </p>
+        <p className="text-sm font-medium mb-1">Error Handler Configuration</p>
         <p className="text-sm">
           Mode:{" "}
           <span className="font-semibold">
@@ -234,9 +228,7 @@ export function ErrorHandlerConfigDrawer({
         {!state.catchAll && errorTypes.length > 0 && (
           <p className="text-sm mt-1">
             Error types:{" "}
-            <span className="font-mono text-xs">
-              {errorTypes.join(", ")}
-            </span>
+            <span className="font-mono text-xs">{errorTypes.join(", ")}</span>
           </p>
         )}
         {state.retryCount && state.retryCount > 0 && (

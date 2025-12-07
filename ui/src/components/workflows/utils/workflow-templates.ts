@@ -1,7 +1,4 @@
-import type {
-  NodeTemplate,
-  NodeCategory,
-} from "../types/flow-types";
+import type { NodeTemplate, NodeCategory } from "../types/flow-types";
 
 // Node templates for the palette
 export const nodeTemplates: NodeTemplate[] = [
@@ -278,4 +275,3 @@ export const nodeCategories: NodeCategory[] = [
     nodes: nodeTemplates.filter((n) => n.category === "advanced"),
   },
 ];
-

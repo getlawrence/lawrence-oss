@@ -85,11 +85,16 @@ export function EditableConfigTitle({
 
   return (
     <div className={`flex items-center gap-2 group ${className}`}>
-      <h1 className="text-lg font-semibold">{value}</h1>
+      <h1
+        className="text-lg font-semibold truncate max-w-[400px]"
+        title={value}
+      >
+        {value}
+      </h1>
       <Button
         variant="ghost"
         size="icon"
-        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
         onClick={() => setIsEditing(true)}
       >
         <Pencil className="h-3 w-3" />

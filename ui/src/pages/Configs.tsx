@@ -19,6 +19,7 @@ import {
   ConfigVersionHistory,
 } from "@/components/configs";
 import { Button } from "@/components/ui/button";
+import { usePagination } from "@/hooks/usePagination";
 
 const DEFAULT_CONFIG = `receivers:
   otlp:
@@ -86,13 +87,19 @@ export default function ConfigsPage({
   const [showVersions, setShowVersions] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
 
+  const pagination = usePagination(50);
+
   const {
     data: configsData,
     error: configsError,
     mutate: mutateConfigs,
-  } = useSWR("configs", () => getConfigs({ limit: 100 }), {
-    refreshInterval: 30000,
-  });
+  } = useSWR(
+    ["configs", pagination.page, pagination.pageSize],
+    () => getConfigs({ page: pagination.page, page_size: pagination.pageSize }),
+    {
+      refreshInterval: 30000,
+    },
+  );
 
   const { data: groupsData } = useSWR("groups", getGroups);
 
@@ -186,7 +193,6 @@ export default function ConfigsPage({
     navigate("/configs");
   };
 
-  const configs = configsData?.configs || [];
   const groups = groupsData?.groups || [];
   const versions = versionsData?.versions || [];
 
@@ -209,13 +215,25 @@ export default function ConfigsPage({
       );
     }
 
+    if (!configsData) {
+      return (
+        <div className="container mx-auto p-6">
+          <div className="text-center">
+            <p className="text-muted-foreground">Loading configurations...</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <ConfigsList
-        configs={configs}
+        data={configsData}
         refreshing={refreshing}
         onRefresh={handleRefresh}
         onCreateNew={handleCreateNew}
         onEditConfig={handleEditConfig}
+        onPageChange={pagination.goToPage}
+        onPageSizeChange={pagination.changePageSize}
       />
     );
   }

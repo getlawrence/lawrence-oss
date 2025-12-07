@@ -77,7 +77,7 @@ export function CollectorPipelineView({
     async () => {
       const configsResponse = await getConfigs({
         agent_id: agentId!,
-        limit: 1,
+        page_size: 1,
       });
       return configsResponse;
     },
@@ -86,8 +86,8 @@ export function CollectorPipelineView({
   // Determine the effective config to use
   const effectiveConfig =
     propEffectiveConfig ||
-    (configsData?.configs && configsData.configs.length > 0
-      ? configsData.configs[0].content
+    (configsData?.data && configsData.data.length > 0
+      ? configsData.data[0].content
       : null);
 
   const loading = !previewMode && !propEffectiveConfig && configLoading;

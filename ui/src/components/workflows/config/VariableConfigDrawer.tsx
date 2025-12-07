@@ -31,13 +31,17 @@ export function VariableConfigDrawer({
 }: VariableConfigDrawerProps) {
   const initialState = useMemo(
     () => ({
-      operation: (nodeData?.operation || "set") as "set" | "get" | "increment" | "append",
+      operation: (nodeData?.operation || "set") as
+        | "set"
+        | "get"
+        | "increment"
+        | "append",
       variableName: nodeData?.variableName || "",
       value: nodeData?.value || "",
       label: nodeData?.label || "",
       description: nodeData?.description || "",
     }),
-    [nodeData]
+    [nodeData],
   );
 
   const { state, updateField } = useFormState(initialState);
@@ -51,7 +55,10 @@ export function VariableConfigDrawer({
       return;
     }
 
-    if ((state.operation === "set" || state.operation === "append") && !state.value.trim()) {
+    if (
+      (state.operation === "set" || state.operation === "append") &&
+      !state.value.trim()
+    ) {
       setError(`Value is required for ${state.operation} operation`);
       return;
     }
@@ -70,7 +77,8 @@ export function VariableConfigDrawer({
     onSave(updatedData);
   };
 
-  const requiresValue = state.operation === "set" || state.operation === "append";
+  const requiresValue =
+    state.operation === "set" || state.operation === "append";
 
   return (
     <ConfigDrawerLayout
@@ -115,9 +123,7 @@ export function VariableConfigDrawer({
           <SelectContent>
             <SelectItem value="set">Set - Assign a value</SelectItem>
             <SelectItem value="get">Get - Retrieve a value</SelectItem>
-            <SelectItem value="increment">
-              Increment - Increase by 1
-            </SelectItem>
+            <SelectItem value="increment">Increment - Increase by 1</SelectItem>
             <SelectItem value="append">
               Append - Add to existing value
             </SelectItem>
@@ -163,7 +169,8 @@ export function VariableConfigDrawer({
         <p className="text-sm font-mono">
           {state.operation === "set" &&
             `Set ${state.variableName || "variable"} = ${state.value || "value"}`}
-          {state.operation === "get" && `Get ${state.variableName || "variable"}`}
+          {state.operation === "get" &&
+            `Get ${state.variableName || "variable"}`}
           {state.operation === "increment" &&
             `Increment ${state.variableName || "variable"}++`}
           {state.operation === "append" &&

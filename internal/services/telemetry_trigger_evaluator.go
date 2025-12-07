@@ -308,4 +308,3 @@ func (e *TelemetryTriggerEvaluator) Stop() {
 		e.cacheCleanup.Stop()
 	}
 }
-

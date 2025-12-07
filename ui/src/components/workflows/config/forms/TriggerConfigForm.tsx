@@ -4,9 +4,7 @@ import { useMemo, useState } from "react";
 import type {
   TriggerNodeData,
   TelemetryTriggerConfig,
-} from "../types/flow-types";
-
-import { ConfigDrawerLayout } from "./ConfigDrawerLayout";
+} from "../../types/flow-types";
 
 import {
   queryLogs,
@@ -25,20 +23,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useFormState } from "@/hooks/useDrawerForm";
+import { validateCronExpression } from "@/utils";
 
-interface TriggerConfigDrawerProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface TriggerConfigFormProps {
   nodeData: TriggerNodeData | null;
   onSave: (data: TriggerNodeData) => void;
+  onCancel?: () => void;
 }
 
-export function TriggerConfigDrawer({
-  open,
-  onOpenChange,
+export function TriggerConfigForm({
   nodeData,
   onSave,
-}: TriggerConfigDrawerProps) {
+  onCancel,
+}: TriggerConfigFormProps) {
   const initialState = useMemo(
     () => ({
       triggerType: (nodeData?.triggerType || "manual") as
@@ -64,6 +61,7 @@ export function TriggerConfigDrawer({
 
   const { state, updateField } = useFormState(initialState);
   const [error, setError] = useState<string | null>(null);
+  const [cronError, setCronError] = useState<string | null>(null);
   const [previewLogs, setPreviewLogs] = useState<LogData[]>([]);
   const [previewMetrics, setPreviewMetrics] = useState<MetricData[]>([]);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
@@ -73,11 +71,22 @@ export function TriggerConfigDrawer({
     if (!nodeData) return;
 
     setError(null);
+    setCronError(null);
 
     // Validate schedule trigger
-    if (state.triggerType === "schedule" && !state.cronExpression.trim()) {
-      setError("Cron expression is required for schedule triggers");
-      return;
+    if (state.triggerType === "schedule") {
+      if (!state.cronExpression.trim()) {
+        setError("Cron expression is required for schedule triggers");
+        return;
+      }
+
+      // Validate cron expression format
+      const validation = validateCronExpression(state.cronExpression);
+      if (!validation.valid) {
+        setCronError(validation.error || "Invalid cron expression");
+        setError(validation.error || "Invalid cron expression");
+        return;
+      }
     }
 
     // Validate telemetry trigger
@@ -135,7 +144,6 @@ export function TriggerConfigDrawer({
     };
 
     onSave(updatedData);
-    onOpenChange(false);
   };
 
   const handlePreview = async () => {
@@ -233,16 +241,22 @@ export function TriggerConfigDrawer({
     }
   };
 
+  if (!nodeData) {
+    return (
+      <div className="p-4 text-sm text-muted-foreground">
+        No trigger node selected
+      </div>
+    );
+  }
+
   return (
-    <ConfigDrawerLayout
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Configure Trigger"
-      description="Configure the trigger settings for this node"
-      error={error}
-      onSave={handleSave}
-      maxWidth="xl"
-    >
+    <div className="space-y-6">
+      {error && (
+        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
       {/* Label */}
       <div className="space-y-2">
         <Label className="text-sm">Label</Label>
@@ -510,7 +524,7 @@ export function TriggerConfigDrawer({
                             ? "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-400"
                             : log.severity_text?.toUpperCase() === "WARN"
                               ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-400"
-                              : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:bg-blue-400"
+                              : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-400"
                         }`}
                       >
                         {log.severity_text || "INFO"}
@@ -605,12 +619,32 @@ export function TriggerConfigDrawer({
             </Label>
             <Input
               value={state.cronExpression}
-              onChange={(e) => updateField("cronExpression", e.target.value)}
-              placeholder="0 0 * * *"
-              className="h-8 text-sm font-mono"
+              onChange={(e) => {
+                updateField("cronExpression", e.target.value);
+                // Validate on change
+                if (e.target.value.trim()) {
+                  const validation = validateCronExpression(e.target.value);
+                  if (validation.valid) {
+                    setCronError(null);
+                  } else {
+                    setCronError(validation.error || "Invalid cron expression");
+                  }
+                } else {
+                  setCronError(null);
+                }
+              }}
+              placeholder="0 0 0 * * *"
+              className={`h-8 text-sm font-mono ${
+                cronError ? "border-destructive" : ""
+              }`}
             />
+            {cronError && (
+              <p className="text-xs text-destructive">{cronError}</p>
+            )}
             <p className="text-xs text-muted-foreground">
-              Example: 0 0 * * * (runs daily at midnight)
+              Format: second minute hour day month weekday (6 fields required)
+              <br />
+              Example: 0 0 0 * * * (runs daily at midnight)
             </p>
           </div>
 
@@ -638,6 +672,16 @@ export function TriggerConfigDrawer({
           </div>
         </div>
       )}
-    </ConfigDrawerLayout>
+
+      {/* Footer Actions */}
+      <div className="flex justify-end gap-2 pt-4 border-t">
+        {onCancel && (
+          <Button variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
+        <Button onClick={handleSave}>Save</Button>
+      </div>
+    </div>
   );
 }

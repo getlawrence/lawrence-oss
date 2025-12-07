@@ -326,7 +326,7 @@ func (s *Store) GetLatestConfigForGroup(ctx context.Context, groupID string) (*t
 	return &configCopy, nil
 }
 
-func (s *Store) ListConfigs(ctx context.Context, filter types.ConfigFilter) ([]*types.Config, error) {
+func (s *Store) ListConfigs(ctx context.Context, filter types.ConfigFilter) (*types.ListConfigsResult, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -345,12 +345,25 @@ func (s *Store) ListConfigs(ctx context.Context, filter types.ConfigFilter) ([]*
 		configs = append(configs, &configCopy)
 	}
 
+	// Get total count before applying pagination
+	totalCount := len(configs)
+
+	// Apply offset
+	if filter.Offset > 0 && filter.Offset < len(configs) {
+		configs = configs[filter.Offset:]
+	} else if filter.Offset >= len(configs) {
+		configs = []*types.Config{}
+	}
+
 	// Apply limit
 	if filter.Limit > 0 && len(configs) > filter.Limit {
 		configs = configs[:filter.Limit]
 	}
 
-	return configs, nil
+	return &types.ListConfigsResult{
+		Configs:    configs,
+		TotalCount: totalCount,
+	}, nil
 }
 
 // Workflow management

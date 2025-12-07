@@ -213,8 +213,11 @@ func (ts *TestServer) initServers() {
 	// Create workflow scheduler
 	workflowScheduler := services.NewWorkflowScheduler(workflowService, ts.logger)
 
+	// Create telemetry trigger evaluator
+	telemetryTriggerEvaluator := services.NewTelemetryTriggerEvaluator(appStore, ts.logger)
+
 	// API Server
-	ts.apiServer = api.NewServer(ts.agentService, ts.telemetryService, workflowService, workflowScheduler, appStore, configSender, ts.logger)
+	ts.apiServer = api.NewServer(ts.agentService, ts.telemetryService, workflowService, workflowScheduler, telemetryTriggerEvaluator, appStore, configSender, ts.logger)
 
 	// Create worker pool for async telemetry processing
 	// Using default values: queue_size=10000, workers=3, timeout=5s

@@ -40,13 +40,21 @@ export function NotificationConfigDrawer({
 }: NotificationConfigDrawerProps) {
   const initialState = useMemo(
     () => ({
-      channel: (nodeData?.channel || "log") as "email" | "slack" | "webhook" | "log",
+      channel: (nodeData?.channel || "log") as
+        | "email"
+        | "slack"
+        | "webhook"
+        | "log",
       message: nodeData?.message || "",
-      severity: (nodeData?.severity || "info") as "info" | "warning" | "error" | "success",
+      severity: (nodeData?.severity || "info") as
+        | "info"
+        | "warning"
+        | "error"
+        | "success",
       label: nodeData?.label || "",
       description: nodeData?.description || "",
     }),
-    [nodeData]
+    [nodeData],
   );
 
   const { state, updateField } = useFormState(initialState);
@@ -82,7 +90,7 @@ export function NotificationConfigDrawer({
       recipients.length === 0
     ) {
       setError(
-        "At least one recipient is required for email and slack channels"
+        "At least one recipient is required for email and slack channels",
       );
       return;
     }
@@ -201,8 +209,7 @@ export function NotificationConfigDrawer({
           className="font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          You can use variables like {"${workflow.name}"} or{" "}
-          {"${execution.id}"}
+          You can use variables like {"${workflow.name}"} or {"${execution.id}"}
         </p>
       </div>
 

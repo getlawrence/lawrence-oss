@@ -12,7 +12,6 @@ import { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import "@xyflow/react/dist/style.css";
 
 import { ActionConfigDrawer } from "../config/ActionConfigDrawer";
-import { extractWorkflowVariables } from "../utils/flow-utils";
 import { BranchConfigDrawer } from "../config/BranchConfigDrawer";
 import { ConditionConfigDrawer } from "../config/ConditionConfigDrawer";
 import { DelayConfigDrawer } from "../config/DelayConfigDrawer";
@@ -52,6 +51,7 @@ import type {
   GroupNodeData,
   ErrorHandlerNodeData,
 } from "../types/flow-types";
+import { extractWorkflowVariables } from "../utils/flow-utils";
 
 import { NodePalette } from "./NodePalette";
 
@@ -88,7 +88,11 @@ export function WorkflowFlowEditor({
   const initialNodes = useMemo(() => {
     if (!initialFlow?.nodes) return [];
     return initialFlow.nodes.map((node, index) => {
-      if (!node.position || typeof node.position.x !== 'number' || typeof node.position.y !== 'number') {
+      if (
+        !node.position ||
+        typeof node.position.x !== "number" ||
+        typeof node.position.y !== "number"
+      ) {
         return {
           ...node,
           position: {
@@ -109,7 +113,7 @@ export function WorkflowFlowEditor({
   // Derive selected nodes from nodes state (no useEffect needed)
   const selectedNodes = useMemo(
     () => nodes.filter((n) => n.selected).map((n) => n.id),
-    [nodes]
+    [nodes],
   );
 
   // Extract available variables from current flow
@@ -144,7 +148,11 @@ export function WorkflowFlowEditor({
     if (initialFlow && !initialFlowSetRef.current) {
       // Ensure all nodes have valid positions before setting them
       const nodesWithPositions = initialFlow.nodes.map((node, index) => {
-        if (!node.position || typeof node.position.x !== 'number' || typeof node.position.y !== 'number') {
+        if (
+          !node.position ||
+          typeof node.position.x !== "number" ||
+          typeof node.position.y !== "number"
+        ) {
           return {
             ...node,
             position: {
@@ -521,7 +529,6 @@ export function WorkflowFlowEditor({
     if (!open) setDrawerState(null);
   }, []);
 
-
   return (
     <div className="h-full w-full flex bg-background">
       {/* Node Palette Sidebar */}
@@ -572,18 +579,14 @@ export function WorkflowFlowEditor({
       <TriggerConfigDrawer
         open={drawerState?.type === "trigger"}
         onOpenChange={handleDrawerClose}
-        nodeData={
-          drawerState?.type === "trigger" ? drawerState.data : null
-        }
+        nodeData={drawerState?.type === "trigger" ? drawerState.data : null}
         onSave={handleTriggerDrawerSave}
       />
 
       <ConditionConfigDrawer
         open={drawerState?.type === "condition"}
         onOpenChange={handleDrawerClose}
-        nodeData={
-          drawerState?.type === "condition" ? drawerState.data : null
-        }
+        nodeData={drawerState?.type === "condition" ? drawerState.data : null}
         onSave={handleConditionDrawerSave}
       />
 
@@ -599,18 +602,14 @@ export function WorkflowFlowEditor({
       <ParallelConfigDrawer
         open={drawerState?.type === "parallel"}
         onOpenChange={handleDrawerClose}
-        nodeData={
-          drawerState?.type === "parallel" ? drawerState.data : null
-        }
+        nodeData={drawerState?.type === "parallel" ? drawerState.data : null}
         onSave={handleParallelDrawerSave}
       />
 
       <SequentialConfigDrawer
         open={drawerState?.type === "sequential"}
         onOpenChange={handleDrawerClose}
-        nodeData={
-          drawerState?.type === "sequential" ? drawerState.data : null
-        }
+        nodeData={drawerState?.type === "sequential" ? drawerState.data : null}
         onSave={handleSequentialDrawerSave}
       />
 
@@ -638,9 +637,7 @@ export function WorkflowFlowEditor({
       <VariableConfigDrawer
         open={drawerState?.type === "variable"}
         onOpenChange={handleDrawerClose}
-        nodeData={
-          drawerState?.type === "variable" ? drawerState.data : null
-        }
+        nodeData={drawerState?.type === "variable" ? drawerState.data : null}
         onSave={handleVariableDrawerSave}
       />
 

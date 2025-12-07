@@ -85,7 +85,6 @@ export const VariableNode = memo(
               {data.value}
             </div>
           )}
-
         </div>
 
         <Handle

@@ -230,6 +230,14 @@ export const executeWorkflow = (id: string): Promise<WorkflowExecution> => {
   return apiPost(`/workflows/${id}/execute`, {});
 };
 
+export const pauseWorkflow = (id: string): Promise<Workflow> => {
+  return updateWorkflow(id, { status: "inactive" });
+};
+
+export const resumeWorkflow = (id: string): Promise<Workflow> => {
+  return updateWorkflow(id, { status: "active" });
+};
+
 export const getWorkflowExecutions = (
   id: string,
 ): Promise<ListWorkflowExecutionsResponse> => {

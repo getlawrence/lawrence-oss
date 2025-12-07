@@ -28,7 +28,7 @@ type ApplicationStore interface {
 	GetConfig(ctx context.Context, id string) (*Config, error)
 	GetLatestConfigForAgent(ctx context.Context, agentID uuid.UUID) (*Config, error)
 	GetLatestConfigForGroup(ctx context.Context, groupID string) (*Config, error)
-	ListConfigs(ctx context.Context, filter ConfigFilter) ([]*Config, error)
+	ListConfigs(ctx context.Context, filter ConfigFilter) (*ListConfigsResult, error)
 
 	// Workflow management
 	CreateWorkflow(ctx context.Context, workflow *Workflow) error
@@ -126,6 +126,13 @@ type ConfigFilter struct {
 	AgentID *uuid.UUID
 	GroupID *string
 	Limit   int
+	Offset  int
+}
+
+// ListConfigsResult represents the result of listing configs with total count
+type ListConfigsResult struct {
+	Configs    []*Config
+	TotalCount int
 }
 
 // Workflow represents an automation workflow for config updates
@@ -190,15 +197,15 @@ type TelemetryTriggerConfig struct {
 
 	// Log trigger fields
 	Severity    string `json:"severity,omitempty"`     // "error", "warn", "info" (optional)
-	Pattern     string `json:"pattern,omitempty"`       // Pattern to match in log body (optional, supports regex)
-	AgentID     string `json:"agent_id,omitempty"`      // Filter by agent ID (optional)
-	ServiceName string `json:"service_name,omitempty"`  // Filter by service name (optional)
+	Pattern     string `json:"pattern,omitempty"`      // Pattern to match in log body (optional, supports regex)
+	AgentID     string `json:"agent_id,omitempty"`     // Filter by agent ID (optional)
+	ServiceName string `json:"service_name,omitempty"` // Filter by service name (optional)
 
 	// Metric trigger fields
-	MetricName string  `json:"metric_name,omitempty"`  // Name of the metric to monitor
-	Operator   string  `json:"operator,omitempty"`     // ">", "<", ">=", "<="
-	Threshold  float64 `json:"threshold,omitempty"`     // Threshold value
-	TimeWindow string  `json:"time_window,omitempty"`   // Duration string like "5m", "1h"
+	MetricName string  `json:"metric_name,omitempty"` // Name of the metric to monitor
+	Operator   string  `json:"operator,omitempty"`    // ">", "<", ">=", "<="
+	Threshold  float64 `json:"threshold,omitempty"`   // Threshold value
+	TimeWindow string  `json:"time_window,omitempty"` // Duration string like "5m", "1h"
 }
 
 // WorkflowAction represents an action to execute when a workflow runs
@@ -308,7 +315,7 @@ type DelayedActionQueue struct {
 
 // WorkflowTrigger represents a normalized workflow trigger
 type WorkflowTrigger struct {
-	WorkflowID      string                 `json:"workflow_id"`
+	WorkflowID      string                  `json:"workflow_id"`
 	Type            WorkflowTriggerType     `json:"type"`
 	Schedule        *ScheduleConfig         `json:"schedule,omitempty"`
 	WebhookURL      string                  `json:"webhook_url,omitempty"`

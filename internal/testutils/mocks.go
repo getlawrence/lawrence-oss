@@ -337,7 +337,7 @@ func (m *MockAgentService) GetLatestConfigForGroup(ctx context.Context, groupID 
 }
 
 // ListConfigs implements services.AgentService
-func (m *MockAgentService) ListConfigs(ctx context.Context, filter services.ConfigFilter) ([]*services.Config, error) {
+func (m *MockAgentService) ListConfigs(ctx context.Context, filter services.ConfigFilter) (*services.ListConfigsResult, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -359,12 +359,25 @@ func (m *MockAgentService) ListConfigs(ctx context.Context, filter services.Conf
 		configs = append(configs, &configCopy)
 	}
 
+	// Get total count before applying pagination
+	totalCount := len(configs)
+
+	// Apply offset
+	if filter.Offset > 0 && filter.Offset < len(configs) {
+		configs = configs[filter.Offset:]
+	} else if filter.Offset >= len(configs) {
+		configs = []*services.Config{}
+	}
+
 	// Apply limit
 	if filter.Limit > 0 && len(configs) > filter.Limit {
 		configs = configs[:filter.Limit]
 	}
 
-	return configs, nil
+	return &services.ListConfigsResult{
+		Configs:    configs,
+		TotalCount: totalCount,
+	}, nil
 }
 
 // StoreConfigForAgent implements services.AgentService

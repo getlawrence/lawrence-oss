@@ -261,7 +261,7 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	defer delayedActionExecutor.Stop()
 
 	// Initialize HTTP API server
-	apiServer := api.NewServer(agentService, telemetryService, workflowService, workflowScheduler, appStore, configSender, logger)
+	apiServer := api.NewServer(agentService, telemetryService, workflowService, workflowScheduler, telemetryTriggerEvaluator, appStore, configSender, logger)
 
 	// Start API server in a goroutine
 	go func() {

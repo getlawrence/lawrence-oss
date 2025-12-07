@@ -20,9 +20,7 @@ import {
 import { useState, useMemo, useCallback } from "react";
 
 import type { NodeTemplate } from "../types/flow-types";
-import { nodeCategories
-  
- } from "../utils/workflow-templates";
+import { nodeCategories } from "../utils/workflow-templates";
 
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";

@@ -29,21 +29,22 @@ type AgentCommander interface {
 
 // Server represents the HTTP API server
 type Server struct {
-	router            *gin.Engine
-	agentService      services.AgentService
-	telemetryService  services.TelemetryQueryService
-	workflowService   services.WorkflowService
-	workflowScheduler *services.WorkflowScheduler
-	appStore          types.ApplicationStore
-	commander         AgentCommander
-	logger            *zap.Logger
-	httpServer        *http.Server
-	metrics           *metrics.APIMetrics
-	registry          *prometheus.Registry
+	router                    *gin.Engine
+	agentService              services.AgentService
+	telemetryService          services.TelemetryQueryService
+	workflowService           services.WorkflowService
+	workflowScheduler         *services.WorkflowScheduler
+	telemetryTriggerEvaluator *services.TelemetryTriggerEvaluator
+	appStore                  types.ApplicationStore
+	commander                 AgentCommander
+	logger                    *zap.Logger
+	httpServer                *http.Server
+	metrics                   *metrics.APIMetrics
+	registry                  *prometheus.Registry
 }
 
 // NewServer creates a new API server
-func NewServer(agentService services.AgentService, telemetryService services.TelemetryQueryService, workflowService services.WorkflowService, workflowScheduler *services.WorkflowScheduler, appStore types.ApplicationStore, commander AgentCommander, logger *zap.Logger) *Server {
+func NewServer(agentService services.AgentService, telemetryService services.TelemetryQueryService, workflowService services.WorkflowService, workflowScheduler *services.WorkflowScheduler, telemetryTriggerEvaluator *services.TelemetryTriggerEvaluator, appStore types.ApplicationStore, commander AgentCommander, logger *zap.Logger) *Server {
 	// Set Gin to release mode for production
 	gin.SetMode(gin.ReleaseMode)
 
@@ -60,16 +61,17 @@ func NewServer(agentService services.AgentService, telemetryService services.Tel
 	router.Use(loggingMiddleware(logger))
 
 	server := &Server{
-		router:            router,
-		agentService:      agentService,
-		telemetryService:  telemetryService,
-		workflowService:   workflowService,
-		workflowScheduler: workflowScheduler,
-		appStore:          appStore,
-		commander:         commander,
-		logger:            logger,
-		metrics:           apiMetrics,
-		registry:          registry,
+		router:                    router,
+		agentService:              agentService,
+		telemetryService:          telemetryService,
+		workflowService:           workflowService,
+		workflowScheduler:         workflowScheduler,
+		telemetryTriggerEvaluator: telemetryTriggerEvaluator,
+		appStore:                  appStore,
+		commander:                 commander,
+		logger:                    logger,
+		metrics:                   apiMetrics,
+		registry:                  registry,
 	}
 
 	// Add metrics middleware
@@ -113,7 +115,7 @@ func (s *Server) registerRoutes() {
 	groupHandlers := handlers.NewGroupHandlers(s.agentService, s.commander, s.logger)
 	topologyHandlers := handlers.NewTopologyHandlers(s.agentService, s.telemetryService, s.logger)
 	healthHandlers := handlers.NewHealthHandlers(s.agentService, s.telemetryService, s.logger)
-	workflowHandlers := handlers.NewWorkflowHandlers(s.workflowService, s.workflowScheduler, s.appStore, s.logger)
+	workflowHandlers := handlers.NewWorkflowHandlers(s.workflowService, s.workflowScheduler, s.telemetryTriggerEvaluator, s.appStore, s.logger)
 	schemaHandlers := handlers.NewSchemaHandlers(s.logger)
 
 	// Metrics endpoint

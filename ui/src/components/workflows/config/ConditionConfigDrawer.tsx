@@ -34,12 +34,17 @@ export function ConditionConfigDrawer({
   // Derive initial conditions from nodeData
   const initialConditions = useMemo(
     () => nodeData?.conditions || [],
-    [nodeData]
+    [nodeData],
   );
 
   // Use array management hook
-  const { items: conditions, addItem, removeItem, updateItem } = useArrayField<WorkflowCondition>(initialConditions);
-  
+  const {
+    items: conditions,
+    addItem,
+    removeItem,
+    updateItem,
+  } = useArrayField<WorkflowCondition>(initialConditions);
+
   const [label, setLabel] = useState(nodeData?.label || "");
   const [error, setError] = useState<string | null>(null);
 
@@ -159,11 +164,7 @@ export function ConditionConfigDrawer({
                     <Input
                       value={condition.field}
                       onChange={(e) =>
-                        handleConditionChange(
-                          index,
-                          "field",
-                          e.target.value,
-                        )
+                        handleConditionChange(index, "field", e.target.value)
                       }
                       placeholder="field_name"
                       className="h-8 text-xs"
@@ -198,11 +199,7 @@ export function ConditionConfigDrawer({
                     <Input
                       value={condition.value}
                       onChange={(e) =>
-                        handleConditionChange(
-                          index,
-                          "value",
-                          e.target.value,
-                        )
+                        handleConditionChange(index, "value", e.target.value)
                       }
                       placeholder="value"
                       className="h-8 text-xs"

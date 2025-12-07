@@ -50,6 +50,7 @@ export interface PageTableProps<T> {
   cardTitle: string;
   cardDescription: string;
   cardHeaderExtra?: ReactNode;
+  cardFooter?: ReactNode;
   columns: PageTableColumn[];
   data: T[];
   renderRow: (item: T) => ReactNode;
@@ -67,6 +68,7 @@ export function PageTable<T>({
   cardTitle,
   cardDescription,
   cardHeaderExtra,
+  cardFooter,
   columns,
   data,
   renderRow,
@@ -160,6 +162,7 @@ export function PageTable<T>({
               </TableBody>
             </Table>
           )}
+          {cardFooter && <div className="border-t">{cardFooter}</div>}
         </CardContent>
       </Card>
     </div>

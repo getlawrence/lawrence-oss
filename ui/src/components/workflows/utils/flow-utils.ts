@@ -5,11 +5,15 @@ import type {
   FlowNode,
   DelayNodeData,
   TriggerNodeData,
-   ActionNodeData,
+  ActionNodeData,
   VariableNodeData,
 } from "../types/flow-types";
 
-import type { Workflow as ApiWorkflow, WorkflowTrigger, WorkflowStep } from "@/api/workflows";
+import type {
+  Workflow as ApiWorkflow,
+  WorkflowTrigger,
+  WorkflowStep,
+} from "@/api/workflows";
 
 /**
  * Convert trigger + steps to flow_graph format
@@ -125,28 +129,30 @@ export function workflowToFlow(workflow: ApiWorkflow): Workflow {
   // If flow_graph is already present, use it
   if (workflow.flow_graph) {
     // Ensure all nodes have valid positions
-    const normalizedNodes: FlowNode[] = workflow.flow_graph.nodes.map((node, index) => {
-      // If node doesn't have position or position is invalid, assign a default
-      const position = node.position;
-      if (
-        !position ||
-        typeof position !== 'object' ||
-        typeof position.x !== 'number' ||
-        typeof position.y !== 'number' ||
-        isNaN(position.x) ||
-        isNaN(position.y)
-      ) {
-        return {
-          ...node,
-          position: {
-            x: 100 + (index % 3) * 350,
-            y: 100 + Math.floor(index / 3) * 150,
-          },
-        } as FlowNode;
-      }
-      return node as FlowNode;
-    });
-    
+    const normalizedNodes: FlowNode[] = workflow.flow_graph.nodes.map(
+      (node, index) => {
+        // If node doesn't have position or position is invalid, assign a default
+        const position = node.position;
+        if (
+          !position ||
+          typeof position !== "object" ||
+          typeof position.x !== "number" ||
+          typeof position.y !== "number" ||
+          isNaN(position.x) ||
+          isNaN(position.y)
+        ) {
+          return {
+            ...node,
+            position: {
+              x: 100 + (index % 3) * 350,
+              y: 100 + Math.floor(index / 3) * 150,
+            },
+          } as FlowNode;
+        }
+        return node as FlowNode;
+      },
+    );
+
     return {
       nodes: normalizedNodes,
       edges: workflow.flow_graph.edges,
@@ -158,9 +164,7 @@ export function workflowToFlow(workflow: ApiWorkflow): Workflow {
     return normalizeToFlowGraph(workflow, workflow.trigger, workflow.steps);
   }
 
-  throw new Error(
-    "Workflow must have either flow_graph or trigger+steps",
-  );
+  throw new Error("Workflow must have either flow_graph or trigger+steps");
 }
 
 /**

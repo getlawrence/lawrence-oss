@@ -144,8 +144,6 @@ export type FlowNode =
   | Node<ErrorHandlerNodeData, "error-handler">
   | Node<BranchNodeData, "branch">;
 
-
-
 export interface Workflow {
   nodes: FlowNode[];
   edges: Edge[];

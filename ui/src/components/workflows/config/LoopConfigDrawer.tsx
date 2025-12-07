@@ -32,14 +32,17 @@ export function LoopConfigDrawer({
 }: LoopConfigDrawerProps) {
   const initialState = useMemo(
     () => ({
-      loopType: (nodeData?.loopType || "agents") as "agents" | "groups" | "range",
+      loopType: (nodeData?.loopType || "agents") as
+        | "agents"
+        | "groups"
+        | "range",
       filter: nodeData?.filter || "",
       maxIterations: nodeData?.maxIterations,
       parallelExecution: nodeData?.parallelExecution ?? false,
       label: nodeData?.label || "",
       description: nodeData?.description || "",
     }),
-    [nodeData]
+    [nodeData],
   );
 
   const { state, updateField } = useFormState(initialState);
@@ -53,10 +56,7 @@ export function LoopConfigDrawer({
       return;
     }
 
-    if (
-      state.maxIterations !== undefined &&
-      state.maxIterations <= 0
-    ) {
+    if (state.maxIterations !== undefined && state.maxIterations <= 0) {
       setError("Max iterations must be greater than 0");
       return;
     }

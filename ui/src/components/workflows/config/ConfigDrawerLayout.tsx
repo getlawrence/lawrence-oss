@@ -37,14 +37,14 @@ const maxWidthClasses = {
 
 /**
  * Reusable layout component for configuration drawers.
- * 
+ *
  * Eliminates repetitive markup across drawer components by providing:
  * - Sheet wrapper with consistent styling
  * - Header with title and description
  * - Error alert display
  * - Footer with Cancel and Save buttons
  * - Consistent spacing and layout
- * 
+ *
  * @example
  * ```tsx
  * <ConfigDrawerLayout
@@ -83,7 +83,9 @@ export function ConfigDrawerLayout({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className={`w-full ${maxWidthClasses[maxWidth]} overflow-y-auto p-6`}>
+      <SheetContent
+        className={`w-full ${maxWidthClasses[maxWidth]} overflow-y-auto p-6`}
+      >
         <SheetHeader>
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>{description}</SheetDescription>
@@ -116,4 +118,3 @@ export function ConfigDrawerLayout({
     </Sheet>
   );
 }
-
