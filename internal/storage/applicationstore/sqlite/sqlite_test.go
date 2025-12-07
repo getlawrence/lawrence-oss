@@ -348,25 +348,28 @@ func TestSQLiteListConfigsWithFilter(t *testing.T) {
 		require.NoError(t, err)
 
 		// Filter by agent ID
-		configs, err := store.ListConfigs(context.Background(), types.ConfigFilter{
+		result, err := store.ListConfigs(context.Background(), types.ConfigFilter{
 			AgentID: &agentID1,
 		})
 		require.NoError(t, err)
-		assert.Len(t, configs, 1)
-		assert.Equal(t, config1.ID, configs[0].ID)
+		assert.Len(t, result.Configs, 1)
+		assert.Equal(t, config1.ID, result.Configs[0].ID)
+		assert.Equal(t, 1, result.TotalCount)
 
 		// Filter by group ID
-		configs, err = store.ListConfigs(context.Background(), types.ConfigFilter{
+		result, err = store.ListConfigs(context.Background(), types.ConfigFilter{
 			GroupID: &groupID,
 		})
 		require.NoError(t, err)
-		assert.Len(t, configs, 1)
-		assert.Equal(t, config3.ID, configs[0].ID)
+		assert.Len(t, result.Configs, 1)
+		assert.Equal(t, config3.ID, result.Configs[0].ID)
+		assert.Equal(t, 1, result.TotalCount)
 
 		// No filter
-		configs, err = store.ListConfigs(context.Background(), types.ConfigFilter{})
+		result, err = store.ListConfigs(context.Background(), types.ConfigFilter{})
 		require.NoError(t, err)
-		assert.Len(t, configs, 3)
+		assert.Len(t, result.Configs, 3)
+		assert.Equal(t, 3, result.TotalCount)
 	})
 }
 
@@ -379,11 +382,12 @@ func TestSQLiteListConfigsWithLimit(t *testing.T) {
 		}
 
 		// List with limit
-		configs, err := store.ListConfigs(context.Background(), types.ConfigFilter{
+		result, err := store.ListConfigs(context.Background(), types.ConfigFilter{
 			Limit: 3,
 		})
 		require.NoError(t, err)
-		assert.Len(t, configs, 3)
+		assert.Len(t, result.Configs, 3)
+		assert.Equal(t, 5, result.TotalCount)
 	})
 }
 

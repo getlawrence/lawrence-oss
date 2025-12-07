@@ -167,6 +167,28 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	// Create telemetry query service
 	telemetryService := services.NewTelemetryQueryService(telemetryReader, agentService, logger)
 
+	// Create workflow service
+	workflowService := services.NewWorkflowService(appStore, agentService, logger)
+
+	// Create workflow scheduler
+	workflowScheduler := services.NewWorkflowScheduler(workflowService, logger)
+
+	// Create delayed action executor
+	delayedActionExecutor := services.NewDelayedActionExecutor(appStore, workflowService, logger)
+
+	// Create telemetry trigger evaluator
+	telemetryTriggerEvaluator := services.NewTelemetryTriggerEvaluator(appStore, logger)
+	defer telemetryTriggerEvaluator.Stop()
+
+	// Load active telemetry triggers on startup
+	ctx := context.Background()
+	if err := telemetryTriggerEvaluator.LoadActiveTriggers(ctx); err != nil {
+		logger.Warn("Failed to load active telemetry triggers", zap.Error(err))
+	}
+
+	// Wrap telemetry writer with trigger-aware writer
+	triggerAwareWriter := receiver.NewTriggerAwareWriter(telemetryWriter, telemetryTriggerEvaluator, workflowService, logger)
+
 	// Parse worker pool timeout
 	workerTimeout, err := time.ParseDuration(config.Worker.Timeout)
 	if err != nil {
@@ -176,7 +198,8 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 	}
 
 	// Initialize worker pool for async telemetry processing (with agentService for enrichment)
-	workerPool := worker.NewPool(config.Worker.QueueSize, config.Worker.Workers, workerTimeout, telemetryWriter, agentService, logger)
+	// Use trigger-aware writer so triggers are evaluated after telemetry is written
+	workerPool := worker.NewPool(config.Worker.QueueSize, config.Worker.Workers, workerTimeout, triggerAwareWriter, agentService, logger)
 	workerPool.Start()
 	defer func() {
 		if err := workerPool.Stop(30 * time.Second); err != nil {
@@ -221,8 +244,24 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 		_ = httpServer.Stop(ctx)
 	}()
 
+	// Create cancellable context for background services
+	serviceCtx, serviceCancel := context.WithCancel(context.Background())
+	defer serviceCancel()
+
+	// Start trigger scheduler
+	if err := workflowScheduler.Start(serviceCtx); err != nil {
+		logger.Fatal("Failed to start trigger scheduler", zap.Error(err))
+	}
+	defer workflowScheduler.Stop()
+
+	// Start delayed action executor
+	if err := delayedActionExecutor.Start(serviceCtx); err != nil {
+		logger.Fatal("Failed to start delayed action executor", zap.Error(err))
+	}
+	defer delayedActionExecutor.Stop()
+
 	// Initialize HTTP API server
-	apiServer := api.NewServer(agentService, telemetryService, configSender, logger)
+	apiServer := api.NewServer(agentService, telemetryService, workflowService, workflowScheduler, telemetryTriggerEvaluator, appStore, configSender, logger)
 
 	// Start API server in a goroutine
 	go func() {
@@ -231,9 +270,9 @@ func runLawrence(cmd *cobra.Command, args []string) error {
 		}
 	}()
 	defer func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		stopCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		_ = apiServer.Stop(ctx)
+		_ = apiServer.Stop(stopCtx)
 	}()
 
 	// Start background services

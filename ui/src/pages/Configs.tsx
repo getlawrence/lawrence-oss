@@ -1,5 +1,5 @@
 import { RefreshCw } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import useSWR from "swr";
 
@@ -19,6 +19,7 @@ import {
   ConfigVersionHistory,
 } from "@/components/configs";
 import { Button } from "@/components/ui/button";
+import { usePagination } from "@/hooks/usePagination";
 
 const DEFAULT_CONFIG = `receivers:
   otlp:
@@ -86,13 +87,19 @@ export default function ConfigsPage({
   const [showVersions, setShowVersions] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
 
+  const pagination = usePagination(50);
+
   const {
     data: configsData,
     error: configsError,
     mutate: mutateConfigs,
-  } = useSWR("configs", () => getConfigs({ limit: 100 }), {
-    refreshInterval: 30000,
-  });
+  } = useSWR(
+    ["configs", pagination.page, pagination.pageSize],
+    () => getConfigs({ page: pagination.page, page_size: pagination.pageSize }),
+    {
+      refreshInterval: 30000,
+    },
+  );
 
   const { data: groupsData } = useSWR("groups", getGroups);
 
@@ -107,16 +114,28 @@ export default function ConfigsPage({
       selectedGroupId ? getConfigVersions({ group_id: selectedGroupId }) : null,
   );
 
-  // Load config into editor when in edit mode
+  // Track if we've loaded the initial config to avoid resetting user edits
+  const loadedConfigIdRef = useRef<string | null>(null);
+
+  // Load config into editor when switching between modes or configs
+  // This useEffect is appropriate - it syncs external data (SWR) to local form state
   useEffect(() => {
     if (mode === "edit" && currentConfigData) {
-      setEditorContent(currentConfigData.content);
-      setConfigName(currentConfigData.name || "New Config");
-      setSelectedGroupId(currentConfigData.group_id || "");
+      // Only load if it's a different config (prevent resetting user edits)
+      if (loadedConfigIdRef.current !== currentConfigData.id) {
+        setEditorContent(currentConfigData.content);
+        setConfigName(currentConfigData.name || "New Config");
+        setSelectedGroupId(currentConfigData.group_id || "");
+        loadedConfigIdRef.current = currentConfigData.id;
+      }
     } else if (mode === "create") {
-      setEditorContent(DEFAULT_CONFIG);
-      setConfigName("New Config");
-      setSelectedGroupId("");
+      // Reset to defaults when creating new config
+      if (loadedConfigIdRef.current !== null) {
+        setEditorContent(DEFAULT_CONFIG);
+        setConfigName("New Config");
+        setSelectedGroupId("");
+        loadedConfigIdRef.current = null;
+      }
     }
   }, [mode, currentConfigData]);
 
@@ -174,7 +193,6 @@ export default function ConfigsPage({
     navigate("/configs");
   };
 
-  const configs = configsData?.configs || [];
   const groups = groupsData?.groups || [];
   const versions = versionsData?.versions || [];
 
@@ -197,13 +215,25 @@ export default function ConfigsPage({
       );
     }
 
+    if (!configsData) {
+      return (
+        <div className="container mx-auto p-6">
+          <div className="text-center">
+            <p className="text-muted-foreground">Loading configurations...</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <ConfigsList
-        configs={configs}
+        data={configsData}
         refreshing={refreshing}
         onRefresh={handleRefresh}
         onCreateNew={handleCreateNew}
         onEditConfig={handleEditConfig}
+        onPageChange={pagination.goToPage}
+        onPageSizeChange={pagination.changePageSize}
       />
     );
   }

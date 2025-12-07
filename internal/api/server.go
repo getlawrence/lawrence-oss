@@ -16,6 +16,7 @@ import (
 	"github.com/getlawrence/lawrence-oss/internal/api/handlers"
 	"github.com/getlawrence/lawrence-oss/internal/metrics"
 	"github.com/getlawrence/lawrence-oss/internal/services"
+	"github.com/getlawrence/lawrence-oss/internal/storage/applicationstore/types"
 )
 
 // AgentCommander defines the interface for sending commands to agents
@@ -28,18 +29,22 @@ type AgentCommander interface {
 
 // Server represents the HTTP API server
 type Server struct {
-	router           *gin.Engine
-	agentService     services.AgentService
-	telemetryService services.TelemetryQueryService
-	commander        AgentCommander
-	logger           *zap.Logger
-	httpServer       *http.Server
-	metrics          *metrics.APIMetrics
-	registry         *prometheus.Registry
+	router                    *gin.Engine
+	agentService              services.AgentService
+	telemetryService          services.TelemetryQueryService
+	workflowService           services.WorkflowService
+	workflowScheduler         *services.WorkflowScheduler
+	telemetryTriggerEvaluator *services.TelemetryTriggerEvaluator
+	appStore                  types.ApplicationStore
+	commander                 AgentCommander
+	logger                    *zap.Logger
+	httpServer                *http.Server
+	metrics                   *metrics.APIMetrics
+	registry                  *prometheus.Registry
 }
 
 // NewServer creates a new API server
-func NewServer(agentService services.AgentService, telemetryService services.TelemetryQueryService, commander AgentCommander, logger *zap.Logger) *Server {
+func NewServer(agentService services.AgentService, telemetryService services.TelemetryQueryService, workflowService services.WorkflowService, workflowScheduler *services.WorkflowScheduler, telemetryTriggerEvaluator *services.TelemetryTriggerEvaluator, appStore types.ApplicationStore, commander AgentCommander, logger *zap.Logger) *Server {
 	// Set Gin to release mode for production
 	gin.SetMode(gin.ReleaseMode)
 
@@ -56,13 +61,17 @@ func NewServer(agentService services.AgentService, telemetryService services.Tel
 	router.Use(loggingMiddleware(logger))
 
 	server := &Server{
-		router:           router,
-		agentService:     agentService,
-		telemetryService: telemetryService,
-		commander:        commander,
-		logger:           logger,
-		metrics:          apiMetrics,
-		registry:         registry,
+		router:                    router,
+		agentService:              agentService,
+		telemetryService:          telemetryService,
+		workflowService:           workflowService,
+		workflowScheduler:         workflowScheduler,
+		telemetryTriggerEvaluator: telemetryTriggerEvaluator,
+		appStore:                  appStore,
+		commander:                 commander,
+		logger:                    logger,
+		metrics:                   apiMetrics,
+		registry:                  registry,
 	}
 
 	// Add metrics middleware
@@ -106,6 +115,8 @@ func (s *Server) registerRoutes() {
 	groupHandlers := handlers.NewGroupHandlers(s.agentService, s.commander, s.logger)
 	topologyHandlers := handlers.NewTopologyHandlers(s.agentService, s.telemetryService, s.logger)
 	healthHandlers := handlers.NewHealthHandlers(s.agentService, s.telemetryService, s.logger)
+	workflowHandlers := handlers.NewWorkflowHandlers(s.workflowService, s.workflowScheduler, s.telemetryTriggerEvaluator, s.appStore, s.logger)
+	schemaHandlers := handlers.NewSchemaHandlers(s.logger)
 
 	// Metrics endpoint
 	s.router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(s.registry, promhttp.HandlerOpts{})))
@@ -177,6 +188,41 @@ func (s *Server) registerRoutes() {
 			topology.GET("", topologyHandlers.HandleGetTopology)
 			topology.GET("/agent/:id", topologyHandlers.HandleGetAgentTopology)
 			topology.GET("/group/:id", topologyHandlers.HandleGetGroupTopology)
+		}
+
+		// Workflow routes
+		workflows := v1.Group("/workflows")
+		{
+			workflows.GET("", workflowHandlers.HandleListWorkflows)
+			workflows.POST("", workflowHandlers.HandleCreateWorkflow)
+			workflows.GET("/:id", workflowHandlers.HandleGetWorkflow)
+			workflows.PUT("/:id", workflowHandlers.HandleUpdateWorkflow)
+			workflows.DELETE("/:id", workflowHandlers.HandleDeleteWorkflow)
+			workflows.POST("/:id/execute", workflowHandlers.HandleExecuteWorkflow)
+			workflows.GET("/:id/executions", workflowHandlers.HandleGetWorkflowExecutions)
+			workflows.GET("/:id/executions/:executionId/steps", workflowHandlers.HandleGetStepExecutions)
+		}
+
+		// Step execution routes
+		stepExecutions := v1.Group("/step-executions")
+		{
+			stepExecutions.GET("/:executionId", workflowHandlers.HandleGetStepExecution)
+			stepExecutions.GET("/:executionId/logs", workflowHandlers.HandleGetStepExecutionLogs)
+			stepExecutions.POST("/:executionId/retry", workflowHandlers.HandleRetryStepExecution)
+		}
+
+		// Webhook endpoint (outside triggers group for cleaner URLs)
+		webhooks := v1.Group("/webhooks")
+		{
+			webhooks.POST("/workflows/:id", workflowHandlers.HandleWebhookWorkflow)
+		}
+
+		// Schema routes
+		schemas := v1.Group("/schemas")
+		{
+			schemas.GET("/components", schemaHandlers.HandleGetComponentSchemas)
+			schemas.GET("/components/:type/:name", schemaHandlers.HandleGetComponentSchema)
+			schemas.POST("/validate", schemaHandlers.HandleValidateComponentConfig)
 		}
 	}
 

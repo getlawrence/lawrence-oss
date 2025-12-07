@@ -9,6 +9,7 @@ import {
   OTelPipelineValidator,
   OTelExtensionsValidator,
   OTelEmptyPipelineValidator,
+  OTelSchemaValidator,
 } from "./validators";
 
 // Default validators for OpenTelemetry collector configs
@@ -16,6 +17,7 @@ export const defaultValidators: Validator[] = [
   new OTelPipelineValidator(),
   new OTelExtensionsValidator(),
   new OTelEmptyPipelineValidator(),
+  new OTelSchemaValidator(),
 ];
 
 /**

@@ -1,7 +1,7 @@
 # Development Dockerfile for Lawrence OSS Go Backend
 # Includes hot reloading and debugging support
 
-FROM golang:1.24-bookworm
+FROM golang:1.25-bookworm
 
 # Install build and development dependencies
 RUN apt-get update && apt-get install -y \

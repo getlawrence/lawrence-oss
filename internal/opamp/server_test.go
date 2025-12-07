@@ -120,9 +120,12 @@ func (m *MockAgentService) GetLatestConfigForGroup(ctx context.Context, groupID 
 	return args.Get(0).(*services.Config), args.Error(1)
 }
 
-func (m *MockAgentService) ListConfigs(ctx context.Context, filter services.ConfigFilter) ([]*services.Config, error) {
+func (m *MockAgentService) ListConfigs(ctx context.Context, filter services.ConfigFilter) (*services.ListConfigsResult, error) {
 	args := m.Called(ctx, filter)
-	return args.Get(0).([]*services.Config), args.Error(1)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*services.ListConfigsResult), args.Error(1)
 }
 
 func (m *MockAgentService) StoreConfigForAgent(ctx context.Context, agentID uuid.UUID, content string) (*services.Config, error) {

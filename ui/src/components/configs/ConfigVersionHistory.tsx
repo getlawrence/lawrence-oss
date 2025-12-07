@@ -23,7 +23,7 @@ export function ConfigVersionHistory({
 }: ConfigVersionHistoryProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[400px] sm:w-[540px]">
+      <SheetContent className="w-[400px] sm:w-[540px] p-6">
         <SheetHeader>
           <SheetTitle>Configuration Versions</SheetTitle>
           <SheetDescription>

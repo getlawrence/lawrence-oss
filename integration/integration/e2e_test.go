@@ -203,7 +203,8 @@ func TestEndToEndAgentLifecycle(t *testing.T) {
 	err = json.NewDecoder(resp.Body).Decode(&configsResp)
 	require.NoError(t, err)
 
-	configs, ok := configsResp["configs"].([]interface{})
+	// The API now returns a paginated response with "data" field
+	configs, ok := configsResp["data"].([]interface{})
 	require.True(t, ok)
 	t.Logf("Found %d configs", len(configs))
 

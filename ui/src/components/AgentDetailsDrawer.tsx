@@ -97,7 +97,7 @@ export function AgentDetailsDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full min-w[70vw] sm:max-w-2xl overflow-y-auto px-6">
+      <SheetContent className="w-full min-w[70vw] sm:max-w-2xl overflow-y-auto p-6">
         <SheetHeader>
           <div className="flex items-center justify-between">
             <div className="flex-1">

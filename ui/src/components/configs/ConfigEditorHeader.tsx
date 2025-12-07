@@ -55,12 +55,22 @@ export function ConfigEditorHeader({
 }: ConfigEditorHeaderProps) {
   return (
     <div className="flex justify-between items-center w-full">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={onBack}>
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onBack}
+          className="flex-shrink-0"
+        >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <EditableConfigTitle value={configName} onChange={onConfigNameChange} />
-        <div className="w-[200px]">
+        <div className="min-w-0">
+          <EditableConfigTitle
+            value={configName}
+            onChange={onConfigNameChange}
+          />
+        </div>
+        <div className="w-[200px] flex-shrink-0">
           <Select value={selectedGroupId} onValueChange={onGroupChange}>
             <SelectTrigger className="h-9">
               <SelectValue placeholder="Select target group" />

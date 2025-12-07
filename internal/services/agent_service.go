@@ -30,7 +30,7 @@ type AgentService interface {
 	GetConfig(ctx context.Context, id string) (*Config, error)
 	GetLatestConfigForAgent(ctx context.Context, agentID uuid.UUID) (*Config, error)
 	GetLatestConfigForGroup(ctx context.Context, groupID string) (*Config, error)
-	ListConfigs(ctx context.Context, filter ConfigFilter) ([]*Config, error)
+	ListConfigs(ctx context.Context, filter ConfigFilter) (*ListConfigsResult, error)
 
 	// StoreConfigForAgent validates and stores configuration for an agent
 	// Returns the stored config or error if agent doesn't exist or doesn't support remote config
@@ -90,4 +90,11 @@ type ConfigFilter struct {
 	AgentID *uuid.UUID
 	GroupID *string
 	Limit   int
+	Offset  int
+}
+
+// ListConfigsResult represents the result of listing configs with total count
+type ListConfigsResult struct {
+	Configs    []*Config
+	TotalCount int
 }

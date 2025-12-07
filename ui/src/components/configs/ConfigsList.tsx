@@ -1,25 +1,30 @@
 import { Plus, RefreshCw, FileText, Hash, Edit } from "lucide-react";
 
-import type { Config } from "@/api/configs";
+import type { Config, PaginatedResponse } from "@/api/configs";
 import { PageTable } from "@/components/shared/PageTable";
+import { Pagination } from "@/components/shared/Pagination";
 import { TruncatedId } from "@/components/shared/TruncatedId";
 import { Button } from "@/components/ui/button";
 import { TableCell } from "@/components/ui/table";
 
 interface ConfigsListProps {
-  configs: Config[];
+  data: PaginatedResponse<Config>;
   refreshing: boolean;
   onRefresh: () => void;
   onCreateNew: () => void;
   onEditConfig: (config: Config) => void;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
 }
 
 export function ConfigsList({
-  configs,
+  data,
   refreshing,
   onRefresh,
   onCreateNew,
   onEditConfig,
+  onPageChange,
+  onPageSizeChange,
 }: ConfigsListProps) {
   return (
     <PageTable
@@ -40,8 +45,20 @@ export function ConfigsList({
           variant: "default" as const,
         },
       ]}
-      cardTitle={`Configurations (${configs.length})`}
+      cardTitle={`Configurations (${data.total_count})`}
       cardDescription="All agent and group configurations"
+      cardFooter={
+        <Pagination
+          page={data.page}
+          pageSize={data.page_size}
+          totalCount={data.total_count}
+          totalPages={data.total_pages}
+          hasNext={data.has_next}
+          hasPrev={data.has_prev}
+          onPageChange={onPageChange}
+          onPageSizeChange={onPageSizeChange}
+        />
+      }
       columns={[
         { header: "Name", key: "name" },
         { header: "ID", key: "id" },
@@ -51,12 +68,12 @@ export function ConfigsList({
         { header: "Created", key: "created" },
         { header: "Actions", key: "actions" },
       ]}
-      data={configs}
+      data={data.data}
       getRowKey={(config) => config.id}
       renderRow={(config) => (
         <>
-          <TableCell>
-            <span className="font-medium">
+          <TableCell className="max-w-[200px]">
+            <span className="font-medium truncate block">
               {config.name && config.name.trim() !== ""
                 ? config.name
                 : "Unnamed Config"}

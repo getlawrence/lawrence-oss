@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -52,21 +51,12 @@ type UpdateConfigRequest struct {
 
 // handleGetConfigs handles GET /api/v1/configs
 func (h *ConfigHandlers) HandleGetConfigs(c *gin.Context) {
+	// Parse pagination parameters
+	pagination := ParsePaginationParams(c)
+
 	// Parse query parameters
 	agentIDStr := c.Query("agent_id")
 	groupIDStr := c.Query("group_id")
-	limitStr := c.DefaultQuery("limit", "100")
-
-	// Parse limit
-	limit := 100
-	if limitStr != "" {
-		if parsedLimit, err := strconv.Atoi(limitStr); err == nil {
-			limit = parsedLimit
-		}
-	}
-	if limit > 1000 {
-		limit = 1000
-	}
 
 	// Parse UUIDs
 	var agentUUID *uuid.UUID
@@ -90,21 +80,27 @@ func (h *ConfigHandlers) HandleGetConfigs(c *gin.Context) {
 	filter := services.ConfigFilter{
 		AgentID: agentUUID,
 		GroupID: groupID,
-		Limit:   limit,
+		Limit:   pagination.PageSize,
+		Offset:  pagination.Offset,
 	}
 
 	// Get configs from service
-	configs, err := h.agentService.ListConfigs(c.Request.Context(), filter)
+	result, err := h.agentService.ListConfigs(c.Request.Context(), filter)
 	if err != nil {
 		h.logger.Error("Failed to get configs", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch configs"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"configs": configs,
-		"count":   len(configs),
-	})
+	// Return paginated response
+	response := NewPaginatedResponse(
+		result.Configs,
+		pagination.Page,
+		pagination.PageSize,
+		result.TotalCount,
+	)
+
+	c.JSON(http.StatusOK, response)
 }
 
 // handleCreateConfig handles POST /api/v1/configs
@@ -257,13 +253,17 @@ func (h *ConfigHandlers) HandleDeleteConfig(c *gin.Context) {
 // handleValidateConfig handles POST /api/v1/configs/validate
 func (h *ConfigHandlers) HandleValidateConfig(c *gin.Context) {
 	var req struct {
-		Content string `json:"content" binding:"required"`
+		Content        string `json:"content" binding:"required"`
+		UseSchemaCheck bool   `json:"use_schema_check,omitempty"` // Optional flag to enable schema validation
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data", "details": err.Error()})
 		return
 	}
+
+	var allErrors []string
+	var allWarnings []string
 
 	// Validate YAML syntax
 	if err := validateYAMLConfig(req.Content); err != nil {
@@ -283,10 +283,22 @@ func (h *ConfigHandlers) HandleValidateConfig(c *gin.Context) {
 		})
 		return
 	}
+	allWarnings = append(allWarnings, warnings...)
+
+	// Optional schema-based validation
+	if req.UseSchemaCheck {
+		// TODO: Once the schema library is available, add schema validation here
+		// This would validate each component (receivers, processors, exporters) against their schemas
+		// Example:
+		// schemaErrors, schemaWarnings := validateConfigWithSchemas(req.Content)
+		// allErrors = append(allErrors, schemaErrors...)
+		// allWarnings = append(allWarnings, schemaWarnings...)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"valid":    true,
-		"warnings": warnings,
+		"valid":    len(allErrors) == 0,
+		"errors":   allErrors,
+		"warnings": allWarnings,
 	})
 }
 
@@ -320,7 +332,7 @@ func (h *ConfigHandlers) HandleGetConfigVersions(c *gin.Context) {
 	}
 
 	// Get config versions
-	configs, err := h.agentService.ListConfigs(c.Request.Context(), filter)
+	result, err := h.agentService.ListConfigs(c.Request.Context(), filter)
 	if err != nil {
 		h.logger.Error("Failed to get config versions", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch config versions"})
@@ -328,8 +340,8 @@ func (h *ConfigHandlers) HandleGetConfigVersions(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"versions": configs,
-		"count":    len(configs),
+		"versions": result.Configs,
+		"count":    result.TotalCount,
 	})
 }
 
